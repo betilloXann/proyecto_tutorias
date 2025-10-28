@@ -35,7 +35,7 @@ nav:
     - Inicio: index.md
     - Visión General:
           - Stack Tecnológico: stack.md
-          - Equipo de Desarrollo: index.md#equipo-de-desarrollo
+          - Equipo de Desarrollo: equipo.md
     - Funcionalidades: modulos.md
     - Roadmap: roadmap.md
 
