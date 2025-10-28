@@ -1,0 +1,57 @@
+site_name: Sistema de Acompañamiento Tutorial (SAT)
+site_author: UPIICSA
+site_description: Documentación del prototipo digital para el Programa Institucional de Tutorías.
+
+# --------------------------
+# Configuración del Tema
+# --------------------------
+theme:
+    name: material
+    language: es
+    features:
+        - navigation.tabs           # Menú superior
+        - navigation.sections       # Secciones plegables en el menú lateral
+        - search.suggest            # Sugerencias de búsqueda
+        - search.highlight          # Resaltar resultados de búsqueda
+        - content.tabs.link         # Tabs dentro del contenido
+    palette:
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          toggle:
+            icon: material/brightness-7
+            name: Cambiar a modo oscuro
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          toggle:
+            icon: material/brightness-4
+            name: Cambiar a modo claro
+    icon:
+        logo: material/book-open-page-variant # Puedes cambiar este icono
+
+# --------------------------
+# Estructura del Menú (NAV)
+# --------------------------
+nav:
+    - Inicio: index.md
+    - Visión General:
+          - Stack Tecnológico: stack.md
+          - Equipo de Desarrollo: index.md#equipo-de-desarrollo
+    - Funcionalidades: modulos.md
+    - Roadmap: roadmap.md
+
+# --------------------------
+# Extensiones de Markdown (para tablas, emojis, etc.)
+# --------------------------
+markdown_extensions:
+    - admonition
+    - pymdownx.details
+    - pymdownx.superfences
+    - attr_list
+    - pymdownx.critic
+    - pymdownx.caret
+    - pymdownx.mark
+    - pymdownx.tilde
+    - def_list
+    - toc:
+        permalink: true
+    - footnotes
