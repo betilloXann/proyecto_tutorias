@@ -6,7 +6,7 @@ Este es el repositorio de código fuente para el **Sistema de Acompañamiento Tu
 
 Toda la información detallada sobre la visión general, el stack tecnológico, los módulos principales y la hoja de ruta del desarrollo se encuentra en nuestro sitio de documentación oficial, generado con MkDocs.
 
-**[🌐 VISITAR LA DOCUMENTACIÓN COMPLETA AQUÍ 🌐](https://albertohc.github.io/proyecto_tutorias/)**
+**[🌐 VISITAR LA DOCUMENTACIÓN COMPLETA AQUÍ 🌐](https://betilloxann.github.io/proyecto_tutorias/)**
 
 ---
 
