@@ -16,6 +16,7 @@ import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
 // --- Tu Repositorio (Asegúrate que la ruta sea correcta) ---
 // (Probablemente 'lib/data/repositories/auth_repository.dart')
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
+import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
 
 void main() async {
 
@@ -28,17 +29,25 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // Proveedor para tu repositorio de autenticación
+        // Repositorio de autenticación
         Provider<AuthRepository>(
           create: (_) => AuthRepository(firebaseAuth: FirebaseAuth.instance),
         ),
-        // Proveedor del Stream que nos dice si el usuario cambió
+
+        // Provider DEL LOGIN VIEWMODEL ← ESTE FALTABA
+        ChangeNotifierProvider<LoginViewModel>(
+          create: (context) => LoginViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+
+        // Stream del usuario actual
         StreamProvider<User?>(
           create: (context) => context.read<AuthRepository>().authStateChanges,
           initialData: null,
         ),
       ],
-      child: const MyApp(), // Tu app normal
+      child: const MyApp(),
     ),
   );
 }
