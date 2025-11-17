@@ -48,12 +48,6 @@ flutter {
 dependencies {
     // Importa el "BOM" (Bill of Materials) de Firebase
     // Esto asegura que todas tus librerías de Firebase sean compatibles.
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-analytics")
-
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     // Dependencia para Firebase Authentication (usamos -ktx para Kotlin)
-    implementation("com.google.firebase:firebase-auth-ktx")
-
-    // Dependencia para Firebase Core
-    implementation("com.google.firebase:firebase-core-ktx")
 }
