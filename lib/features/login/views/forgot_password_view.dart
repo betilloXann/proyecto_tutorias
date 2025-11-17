@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
 import '../../../theme/primary_button.dart';
 import '../../../theme/text_input_field.dart';
 
-class RegisterView extends StatelessWidget {
-  final nameCtrl = TextEditingController();
+class ForgotPasswordView extends StatelessWidget {
   final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
 
-  RegisterView({super.key});
+  ForgotPasswordView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: const Color(0xFFE6EEF8),
 
       appBar: AppBar(
+        backgroundColor: const Color(0xFFE6EEF8),
         elevation: 0,
         leading: Container(
           margin: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
@@ -44,55 +42,52 @@ class RegisterView extends StatelessWidget {
         ),
       ),
 
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            SvgPicture.asset(
+              'assets/images/logo.svg',
+              height: 120,
+            ),
             const SizedBox(height: 20),
 
-            SvgPicture.asset("assets/images/logo.svg", height: 120),
+            const Text(
+              "Recuperar contraseña",
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
 
-            const SizedBox(height: 24),
-
-            Text(
-              "Crear Cuenta",
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onBackground,
-              ),
+            const Text(
+              "Ingresa tu correo y te enviaremos un código para restablecer tu contraseña.",
+              style: TextStyle(fontSize: 16, color: Colors.black54),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 30),
 
-            const SizedBox(height: 32),
-
+            /// 🔵 Ya usa tu TextInputField
             TextInputField(
-              label: "Nombre Completo",
-              controller: nameCtrl,
-              icon: Icons.person_outline,
-            ),
-
-            const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Correo Institucional",
+              label: "Correo electrónico",
               controller: emailCtrl,
               icon: Icons.email_outlined,
             ),
 
-            const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Contraseña",
-              controller: passCtrl,
-              icon: Icons.lock_outline,
-              obscure: true,
-            ),
-
-            const SizedBox(height: 32),
+            const SizedBox(height: 30),
 
             PrimaryButton(
-              text: "Registrarme",
-              onPressed: () => Navigator.pushNamed(context, "/verify"),
+              text: "Enviar código",
+              onPressed: () => Navigator.pushNamed(context, "/new_password"),
+            ),
+
+            const SizedBox(height: 20),
+
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                "¿No recibiste el correo?",
+                style: TextStyle(color: Color(0xFF0D47A1)),
+              ),
             ),
           ],
         ),
