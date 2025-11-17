@@ -1,8 +1,55 @@
-import 'package:flutter/material.dart';
-import '../routes/routes.dart';
+// lib/main.dart
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+
+// --- Tus rutas (para que 'routes: appRoutes' funcione) ---
+import 'package:proyecto_tutorias/routes/routes.dart';
+
+// --- Tus vistas (¡ESTAS SON LAS LÍNEAS CORREGIDAS!) ---
+import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
+import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
+
+// --- Tu Repositorio (Asegúrate que la ruta sea correcta) ---
+// (Probablemente 'lib/data/repositories/auth_repository.dart')
+import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
+import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
+
+void main() async {
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // Repositorio de autenticación
+        Provider<AuthRepository>(
+          create: (_) => AuthRepository(firebaseAuth: FirebaseAuth.instance),
+        ),
+
+        // Provider DEL LOGIN VIEWMODEL ← ESTE FALTABA
+        ChangeNotifierProvider<LoginViewModel>(
+          create: (context) => LoginViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+
+        // Stream del usuario actual
+        StreamProvider<User?>(
+          create: (context) => context.read<AuthRepository>().authStateChanges,
+          initialData: null,
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,8 +65,35 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFE6EEF8),
         useMaterial3: true,
       ),
-      initialRoute: '/welcome',   // <--- Pantalla inicial
-      routes: appRoutes,          // <--- Rutas definidas
+
+      // 'AuthGate' ahora decide la pantalla de inicio
+      home: const AuthGate(),
+
+      // Tus rutas siguen funcionando para la navegación interna
+      // (Ej. Navigator.pushNamed(context, '/login'))
+      routes: appRoutes,
     );
+  }
+}
+
+// --- --- --- --- --- --- --- --- --- --- --- ---
+//       WIDGET 'AUTHGATE' (CORREGIDO)
+// --- --- --- --- --- --- --- --- --- --- --- ---
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+
+    // Escucha el Stream de 'User?' que proveímos
+    final User? user = context.watch<User?>();
+
+    if (user == null) {
+      // No hay usuario, mostramos tu WelcomeView
+      return const WelcomeView();
+    } else {
+      // Hay un usuario, mostramos tu HomeMenuView
+      return const HomeMenuView();
+    }
   }
 }

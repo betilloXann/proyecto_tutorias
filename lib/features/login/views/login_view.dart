@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../theme/primary_button.dart';
-import '../../../theme/text_input_field.dart';
+import 'package:provider/provider.dart';
+
+// Widgets
+import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/text_input_field.dart';
+
+// ViewModel
+import '../viewmodels/login_viewmodel.dart';
 
 class LoginView extends StatelessWidget {
   final emailCtrl = TextEditingController();
@@ -12,6 +18,7 @@ class LoginView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final vm = context.watch<LoginViewModel>();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -104,9 +111,26 @@ class LoginView extends StatelessWidget {
             const SizedBox(height: 16),
 
             /// BOTÓN PRINCIPAL
-            PrimaryButton(
-              text: "Ingresar",
-              onPressed: () {},
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: vm.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : PrimaryButton(
+                text: "Ingresar",
+                onPressed: () async {
+                  final error = await vm.login(
+                    emailCtrl.text,
+                    passwordCtrl.text,
+                  );
+
+                  if (error != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(error)),
+                    );
+                  }
+                },
+              ),
             ),
 
             const SizedBox(height: 16),

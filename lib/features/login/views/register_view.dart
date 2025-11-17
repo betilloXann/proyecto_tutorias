@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../theme/primary_button.dart';
-import '../../../theme/text_input_field.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/text_input_field.dart';
 
 class RegisterView extends StatelessWidget {
   final nameCtrl = TextEditingController();
