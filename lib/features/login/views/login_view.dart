@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto_tutorias/widgets/primary_button.dart';
-import 'package:proyecto_tutorias/widgets/text_input_field.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../../theme/primary_button.dart';
+import '../../../theme/text_input_field.dart';
 
 class LoginView extends StatelessWidget {
   final emailCtrl = TextEditingController();
@@ -10,38 +11,117 @@ class LoginView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Color(0xFFE6EEF8),
+      backgroundColor: theme.colorScheme.background,
+
+      appBar: AppBar(
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0xFFDDE6F3),
+                offset: Offset(4, 4),
+                blurRadius: 10,
+              ),
+              BoxShadow(
+                color: Colors.white,
+                offset: Offset(-4, -4),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset("assets/logo.png", height: 80),
-            SizedBox(height: 20),
-            Text("Iniciar Sesión",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
+
+            /// LOGO SVG
+            SvgPicture.asset(
+              "assets/images/logo.svg",
+              height: 120,
+            ),
+
+            const SizedBox(height: 24),
+
+            /// TÍTULO
+            Text(
+              "Iniciar Sesión",
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onBackground,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 32),
+
+            /// EMAIL
             TextInputField(
               label: "Correo Institucional",
               controller: emailCtrl,
               icon: Icons.email_outlined,
             ),
-            SizedBox(height: 16),
+
+            const SizedBox(height: 16),
+
+            /// PASSWORD
             TextInputField(
               label: "Contraseña",
               controller: passwordCtrl,
               icon: Icons.lock_outline,
               obscure: true,
             ),
-            SizedBox(height: 20),
+
+            /// OLVIDÉ MI CONTRASEÑA
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.pushNamed(context, "/recover"),
+                child: Text(
+                  "¿Olvidaste tu contraseña?",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// BOTÓN PRINCIPAL
             PrimaryButton(
               text: "Ingresar",
               onPressed: () {},
             ),
+
+            const SizedBox(height: 16),
+
+            /// TEXTO SECUNDARIO
             TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/register"),
-                child: Text("¿No tienes cuenta? Regístrate")),
+              onPressed: () => Navigator.pushNamed(context, "/register"),
+              child: Text(
+                "¿No tienes cuenta? Regístrate",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),

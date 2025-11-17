@@ -1,33 +1,68 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/primary_button.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../../theme/primary_button.dart';
 
 class WelcomeView extends StatelessWidget {
   const WelcomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Color(0xFFE6EEF8),
+      backgroundColor: theme.colorScheme.background,
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset("assets/logo.png", height: 120),
-            SizedBox(height: 20),
+            // LOGO
+            SvgPicture.asset(
+              'assets/images/logo.svg',
+              height: 120,
+            ),
+
+            const SizedBox(height: 20),
+
+            // TITULO
             Text(
               "Bienvenido",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            Text("Inicia sesión o crea una cuenta para continuar."),
-            SizedBox(height: 40),
+
+            const SizedBox(height: 8),
+
+            // SUBTITULO
+            Text(
+              "Inicia sesión o crea una cuenta para continuar.",
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 40),
+
+            // BOTÓN PRINCIPAL
             PrimaryButton(
               text: "Continuar",
-              onPressed: () => Navigator.pushNamed(context, "/login"),
+              onPressed: () => Navigator.pushNamed(context, "/register"),
             ),
+
+            const SizedBox(height: 12),
+
+            // TEXTO SECUNDARIO
             TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/login"),
-                child: Text("¿Ya tienes cuenta? Inicia sesión"))
+              onPressed: () => Navigator.pushNamed(context, "/login"),
+              child: Text(
+                "¿Ya tienes cuenta? Inicia sesión",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
