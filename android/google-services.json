@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "70051656301",
+    "firebase_url": "https://upipets-ffc92-default-rtdb.firebaseio.com",
+    "project_id": "upipets-ffc92",
+    "storage_bucket": "upipets-ffc92.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70051656301:android:980e2c6c66a478635d8564",
+        "android_client_info": {
+          "package_name": "com.alberto.proyecto.proyecto_tutorias"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5rMr0MBXsR0Sk-Djy9eajuoD9OHeta6w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
