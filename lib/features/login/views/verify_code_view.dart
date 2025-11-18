@@ -34,7 +34,7 @@ class _VerifyCodeViewState extends State<VerifyCodeView> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -43,7 +43,10 @@ class _VerifyCodeViewState extends State<VerifyCodeView> {
           icon: SvgPicture.asset(
             "assets/icons/back.svg",
             height: 20,
-            color: theme.colorScheme.primary,
+            colorFilter: ColorFilter.mode(
+              theme.colorScheme.primary,
+              BlendMode.srcIn,
+            ),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -66,7 +69,7 @@ class _VerifyCodeViewState extends State<VerifyCodeView> {
               "Verificar Código",
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -104,7 +107,7 @@ class _VerifyCodeViewState extends State<VerifyCodeView> {
             PrimaryButton(
               text: "Enviar código",
               onPressed: () {
-                print("Código ingresado: $fullCode");
+                //print("Código ingresado: $fullCode");
               },
             ),
 
@@ -153,12 +156,12 @@ class _CodeBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.25),
+            color: theme.colorScheme.shadow.withAlpha((0.25 * 255).round()),
             offset: const Offset(3, 3),
             blurRadius: 6,
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withAlpha((0.9 * 255).round()),
             offset: const Offset(-3, -3),
             blurRadius: 6,
           ),
@@ -172,7 +175,7 @@ class _CodeBox extends StatelessWidget {
         maxLength: 1,
         style: theme.textTheme.headlineSmall?.copyWith(
           fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onBackground,
+          color: theme.colorScheme.onSurface,
         ),
         decoration: const InputDecoration(
           counterText: "",
