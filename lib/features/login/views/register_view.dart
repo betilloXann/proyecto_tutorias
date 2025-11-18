@@ -15,7 +15,7 @@ class RegisterView extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
 
       appBar: AppBar(
         elevation: 0,
@@ -58,7 +58,7 @@ class RegisterView extends StatelessWidget {
               "Crear Cuenta",
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onBackground,
+                color: theme.colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),

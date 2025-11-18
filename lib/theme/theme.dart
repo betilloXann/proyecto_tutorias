@@ -53,7 +53,7 @@ class AppTheme {
       primaryColor: bluePrimary,
       hintColor: blueMedium,
       disabledColor: textDisabled,
-      dividerColor: blueSoft.withOpacity(0.4),
+      dividerColor: blueSoft.withAlpha((0.4 * 255).round()),
 
       // ----------------------------
       // TIPOGRAFÍA
@@ -88,7 +88,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: bluePrimary,
           foregroundColor: Colors.white,
-          shadowColor: bluePrimary.withOpacity(0.2),
+          shadowColor: bluePrimary.withAlpha((0.2 * 255).round()),
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -117,7 +117,7 @@ class AppTheme {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
-            color: blueSoft.withOpacity(0.5),
+            color: blueSoft.withAlpha((0.5 * 255).round()),
           ),
         ),
         focusedBorder: OutlineInputBorder(
