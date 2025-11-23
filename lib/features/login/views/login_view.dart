@@ -177,7 +177,7 @@ class _LoginViewState extends State<LoginView> {
             /// TEXTO SECUNDARIO (ACTIVACIÓN)
             TextButton(
               // Este lleva a la HU-03 Activación de Cuenta
-              onPressed: () => Navigator.pushNamed(context, "/activation"),
+              onPressed: () => Navigator.pushNamed(context, "/register"),
               child: Text(
                 "¿Eres nuevo? Activa tu cuenta aquí",
                 style: theme.textTheme.bodyMedium?.copyWith(

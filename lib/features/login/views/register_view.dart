@@ -67,7 +67,7 @@ class _RegisterViewState extends State<RegisterView> {
             SvgPicture.asset("assets/images/logo.svg", height: 120),
             const SizedBox(height: 24),
             Text(
-              "Crear Cuenta", // Nota: Esto será 'Activar Cuenta' según tu HU-03
+              "Activar Cuenta",
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF2F5A93),
