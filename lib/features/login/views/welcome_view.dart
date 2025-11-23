@@ -47,7 +47,7 @@ class WelcomeView extends StatelessWidget {
             // BOTÓN PRINCIPAL
             PrimaryButton(
               text: "Activar cuenta",
-              onPressed: () => Navigator.pushNamed(context, "/register"),
+              onPressed: () => Navigator.pushNamed(context, "/activation"),
             ),
 
             const SizedBox(height: 12),
