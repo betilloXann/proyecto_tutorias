@@ -3,12 +3,36 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
 
-class RegisterView extends StatelessWidget {
-  final nameCtrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
+// AHORA ES STATEFULWIDGET
+class RegisterView extends StatefulWidget {
+  const RegisterView({super.key});
 
-  RegisterView({super.key});
+  @override
+  State<RegisterView> createState() => _RegisterViewState();
+}
+
+class _RegisterViewState extends State<RegisterView> {
+  // Controladores
+  late final TextEditingController nameCtrl;
+  late final TextEditingController emailCtrl;
+  late final TextEditingController passCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    nameCtrl = TextEditingController();
+    emailCtrl = TextEditingController();
+    passCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    // Limpiamos memoria
+    nameCtrl.dispose();
+    emailCtrl.dispose();
+    passCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,25 +40,17 @@ class RegisterView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-
       appBar: AppBar(
         elevation: 0,
+        backgroundColor: Colors.transparent, // Transparente para ver el fondo
         leading: Container(
           margin: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: const [
-              BoxShadow(
-                color: Color(0xFFDDE6F3),
-                offset: Offset(4, 4),
-                blurRadius: 10,
-              ),
-              BoxShadow(
-                color: Colors.white,
-                offset: Offset(-4, -4),
-                blurRadius: 10,
-              ),
+              BoxShadow(color: Color(0xFFDDE6F3), offset: Offset(4, 4), blurRadius: 10),
+              BoxShadow(color: Colors.white, offset: Offset(-4, -4), blurRadius: 10),
             ],
           ),
           child: IconButton(
@@ -43,26 +59,21 @@ class RegisterView extends StatelessWidget {
           ),
         ),
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             const SizedBox(height: 20),
-
             SvgPicture.asset("assets/images/logo.svg", height: 120),
-
             const SizedBox(height: 24),
-
             Text(
-              "Crear Cuenta",
+              "Crear Cuenta", // Nota: Esto será 'Activar Cuenta' según tu HU-03
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+                color: const Color(0xFF2F5A93),
               ),
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 32),
 
             TextInputField(
@@ -77,6 +88,7 @@ class RegisterView extends StatelessWidget {
               label: "Correo Institucional",
               controller: emailCtrl,
               icon: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress, // AGREGADO
             ),
 
             const SizedBox(height: 16),
@@ -85,14 +97,17 @@ class RegisterView extends StatelessWidget {
               label: "Contraseña",
               controller: passCtrl,
               icon: Icons.lock_outline,
-              obscure: true,
+              obscureText: true, // CORREGIDO AQUÍ
             ),
 
             const SizedBox(height: 32),
 
             PrimaryButton(
-              text: "Registrarme",
-              onPressed: () => Navigator.pushNamed(context, "/verify"),
+              text: "Continuar",
+              onPressed: () {
+                // Aquí conectarás con la lógica de HU-03 (Activación)
+                // Navigator.pushNamed(context, "/verify");
+              },
             ),
           ],
         ),

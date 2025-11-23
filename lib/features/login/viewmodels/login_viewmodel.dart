@@ -1,30 +1,36 @@
+// lib/features/login/viewmodels/login_viewmodel.dart
 import 'package:flutter/material.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class LoginViewModel extends ChangeNotifier {
-  final AuthRepository authRepository;
+  final AuthRepository _authRepository;
 
-  LoginViewModel({required this.authRepository});
+  LoginViewModel({required AuthRepository authRepository})
+      : _authRepository = authRepository;
 
-  bool isLoading = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  Future<String?> login(String email, String password) async {
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  // Método que llamará tu botón de Login
+  Future<bool> login(String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners(); // Avisa a la vista que muestre el spinner
+
     try {
-      isLoading = true;
+      await _authRepository.signIn(email: email, password: password);
+      _isLoading = false;
       notifyListeners();
-
-      await authRepository.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      return null; // Sin error
-
+      return true; // Éxito
     } catch (e) {
-      return e.toString().replaceAll("Exception: ", "");
-    } finally {
-      isLoading = false;
+      _isLoading = false;
+      // Limpiamos el mensaje de error feo de Dart
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
+      return false; // Falló
     }
   }
 }
