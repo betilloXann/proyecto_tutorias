@@ -125,7 +125,7 @@ class _LoginViewState extends State<LoginView> {
               child: TextButton(
                 onPressed: () {
                   // TODO: Implementar ruta de recuperación
-                  // Navigator.pushNamed(context, "/recover");
+                  Navigator.pushNamed(context, "/recover");
                 },
                 child: Text(
                   "¿Olvidaste tu contraseña?",
@@ -148,31 +148,36 @@ class _LoginViewState extends State<LoginView> {
                   : PrimaryButton(
                 text: "Ingresar",
                 onPressed: () async {
-                  // Ocultar teclado al presionar
+                  // 1. Ocultar teclado
                   FocusScope.of(context).unfocus();
 
-                  //final navigator = Navigator.of(context);
-                  final messenger = ScaffoldMessenger.of(context);
-
-                  // CAMBIO 2: Lógica correcta con el ViewModel
+                  // 2. Ejecutar Login
                   final success = await vm.login(
-                    emailCtrl.text.trim(), // trim() quita espacios accidentales
+                    emailCtrl.text.trim(),
                     passwordCtrl.text.trim(),
                   );
 
-                  // Si falló y el widget sigue vivo, mostramos error
+                  // Si la pantalla ya no existe, no hacemos nada
                   if (!mounted) return;
 
-                  if (!success) {
-                    messenger.showSnackBar(
+                  // 3. DECISIÓN
+                  if (success) {
+                    // ÉXITO: Borramos toda la pila (Login, Welcome, etc.)
+                    // y ponemos el Home como única pantalla.
+                    Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/home',
+                            (route) => false // Esto borra el historial hacia atrás
+                    );
+                  } else {
+                    // ERROR: Mostramos el mensaje
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(vm.errorMessage ?? "Error desconocido"),
                         backgroundColor: Colors.red,
                       ),
                     );
                   }
-                  // NOTA: Si success == true, el AuthGate en main.dart
-                  // detectará el cambio de usuario y redirigirá solo.
                 },
               ),
             ),
