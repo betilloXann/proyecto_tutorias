@@ -7,11 +7,13 @@ class RegisterView extends StatefulWidget {
   // VARIABLES QUE RECIBE DE LA PANTALLA ANTERIOR
   final String boleta;
   final String foundName;
+  final String docId;
 
   const RegisterView({
     super.key,
     required this.boleta,
-    required this.foundName
+    required this.foundName,
+    required this.docId,
   });
 
   @override

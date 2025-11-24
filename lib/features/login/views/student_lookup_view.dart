@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart'; // Importante para acceder al repo
+
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
-import 'register_view.dart'; // Importamos la siguiente pantalla
+import '../../../data/repositories/auth_repository.dart'; // Tu repositorio real
+import 'register_view.dart';
 
 class StudentLookupView extends StatefulWidget {
   const StudentLookupView({super.key});
@@ -14,35 +17,58 @@ class StudentLookupView extends StatefulWidget {
 class _StudentLookupViewState extends State<StudentLookupView> {
   final boletaCtrl = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   void _searchStudent() async {
     final boleta = boletaCtrl.text.trim();
-    if (boleta.isEmpty) return;
+    if (boleta.isEmpty) {
+      setState(() => _errorMessage = "Escribe una boleta");
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // --- SIMULACIÓN DE BACKEND (Firebase) ---
-    // Aquí consultaríamos a Firestore: collections('usuarios').where('boleta', isEqualTo: boleta)
-    await Future.delayed(const Duration(seconds: 1)); // Simulamos espera
+    try {
+      // 1. OBTENEMOS EL REPOSITORIO
+      final authRepo = context.read<AuthRepository>();
 
-    // CASO DE ÉXITO: Encontramos al alumno
-    // Supongamos que la BD nos devolvió: { nombre: "Juan Pérez", estatus: "PRE_REGISTRO" }
+      // 2. CONSULTAMOS A FIREBASE DE VERDAD
+      final user = await authRepo.checkStudentStatus(boleta);
 
-    if (mounted) {
+      if (!mounted) return;
+
       setState(() => _isLoading = false);
 
-      // Navegamos a la siguiente pantalla PASANDO LOS DATOS
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RegisterView(
-            boleta: boleta,
-            foundName: "Juan Pérez González", // Este dato vendría de la BD
+      if (user == null) {
+        // Caso: No existe la boleta en la BD
+        setState(() => _errorMessage = "Boleta no encontrada en el pre-registro.");
+      } else if (user.status != 'PRE_REGISTRO') {
+        // Caso: Ya se registró antes
+        setState(() => _errorMessage = "Esta cuenta ya fue activada. Intenta iniciar sesión.");
+      } else {
+        // 3. ÉXITO: Pasamos el nombre REAL que vino de Firebase
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RegisterView(
+              boleta: user.boleta,      // Dato real de FB
+              foundName: user.name,     // Dato real de FB ("Tu Nombre Real")
+              docId: user.id,           // IMPORTANTE: Pasamos el ID del documento para actualizarlo luego
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Error de conexión: $e";
+        });
+      }
     }
-    // ----------------------------------------
   }
 
   @override
@@ -90,6 +116,17 @@ class _StudentLookupViewState extends State<StudentLookupView> {
               icon: Icons.numbers,
               keyboardType: TextInputType.number,
             ),
+
+            // Muestra mensaje de error si existe
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
 
             const SizedBox(height: 30),
 
