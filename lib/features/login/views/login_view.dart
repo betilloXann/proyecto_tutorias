@@ -151,6 +151,9 @@ class _LoginViewState extends State<LoginView> {
                   // Ocultar teclado al presionar
                   FocusScope.of(context).unfocus();
 
+                  //final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
                   // CAMBIO 2: Lógica correcta con el ViewModel
                   final success = await vm.login(
                     emailCtrl.text.trim(), // trim() quita espacios accidentales
@@ -158,8 +161,10 @@ class _LoginViewState extends State<LoginView> {
                   );
 
                   // Si falló y el widget sigue vivo, mostramos error
-                  if (!success && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (!mounted) return;
+
+                  if (!success) {
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(vm.errorMessage ?? "Error desconocido"),
                         backgroundColor: Colors.red,
