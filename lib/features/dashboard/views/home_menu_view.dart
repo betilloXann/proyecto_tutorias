@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 // Importamos lo necesario para traer los datos
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/models/user_model.dart';
+import '../../../features/dashboard/views/upload_evidence_view.dart';
+
 
 class HomeMenuView extends StatelessWidget {
   const HomeMenuView({super.key});
@@ -110,8 +112,9 @@ class HomeMenuView extends StatelessWidget {
                       color: Colors.blue,
                       onTap: () {
                         // TODO: Navegar a pantalla de subir bitácora
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Próximamente: Subir Evidencia"))
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const UploadEvidenceView())
                         );
                       },
                     ),

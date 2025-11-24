@@ -124,4 +124,42 @@ class AuthRepository {
       return null;
     }
   }
+
+  // ---------------------------------------------------
+  // 4. SUBIR EVIDENCIA MENSUAL
+  // ---------------------------------------------------
+  Future<void> uploadEvidence({
+    required String materia,
+    required String mes,
+    required File file,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception("No hay usuario logueado");
+
+      // 1. Subir Archivo a Storage
+      // Ruta: evidencias/UID_DEL_ALUMNO/NOMBRE_MATERIA/mes_nombre.pdf
+      // Usamos Timestamp para que no se sobrescriban si sube 2 veces
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      String fileExt = file.path.split('.').last;
+
+      Reference ref = _storage.ref().child('evidencias/${user.uid}/$timestamp.$fileExt');
+      await ref.putFile(file);
+      String downloadUrl = await ref.getDownloadURL();
+
+      // 2. Guardar Registro en Firestore (Colección 'evidencias')
+      await _db.collection('evidencias').add({
+        'uid': user.uid,
+        'materia': materia,
+        'mes': mes,
+        'file_url': downloadUrl,
+        'status': 'EN_REVISION', // Inicialmente está en revisión
+        'feedback': '',          // Retroalimentación vacía
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+    } catch (e) {
+      throw Exception("Error al subir evidencia: $e");
+    }
+  }
 }
