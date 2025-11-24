@@ -68,4 +68,5 @@ class DefaultFirebaseOptions {
     databaseURL: 'https://upipets-ffc92-default-rtdb.firebaseio.com',
     storageBucket: 'upipets-ffc92.firebasestorage.app',
   );
+
 }
