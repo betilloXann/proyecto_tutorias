@@ -164,7 +164,7 @@ class _StatusCard extends StatelessWidget {
       case 'ACREDITADO':
         cardColor = Colors.green;
         title = "¡Acreditado!";
-        desc = "Felicidades, has completado tu recursamiento.";
+        desc = "Felicidades, has completado tu recuperación";
         icon = Icons.check_circle;
         break;
       default:
