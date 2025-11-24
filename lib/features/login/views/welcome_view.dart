@@ -37,7 +37,7 @@ class WelcomeView extends StatelessWidget {
 
             // SUBTITULO
             Text(
-              "Inicia sesión o crea una cuenta para continuar.",
+              "Inicia sesión o activa tu cuenta para continuar",
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -46,8 +46,8 @@ class WelcomeView extends StatelessWidget {
 
             // BOTÓN PRINCIPAL
             PrimaryButton(
-              text: "Continuar",
-              onPressed: () => Navigator.pushNamed(context, "/register"),
+              text: "Activar cuenta",
+              onPressed: () => Navigator.pushNamed(context, "/activation"),
             ),
 
             const SizedBox(height: 12),
@@ -56,7 +56,7 @@ class WelcomeView extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pushNamed(context, "/login"),
               child: Text(
-                "¿Ya tienes cuenta? Inicia sesión",
+                "Inicia sesión",
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
