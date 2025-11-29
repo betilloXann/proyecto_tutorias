@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart'; // Importante para acceder al repo
+import 'package:provider/provider.dart';
 
+// IMPORTS QUE NECESITAS (Ajusta las rutas si es necesario)
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
-import '../../../data/repositories/auth_repository.dart'; // Tu repositorio real
-import 'register_view.dart';
+import '../../../data/repositories/auth_repository.dart';
+import '../viewmodels/student_lookup_viewmodel.dart'; // Tu nuevo ViewModel
+// import 'register_view.dart'; // Descomenta cuando tengas la vista de registro
 
+// Volvemos a Stateful SOLO para manejar el controller del input (UI State)
 class StudentLookupView extends StatefulWidget {
   const StudentLookupView({super.key});
 
@@ -15,132 +18,116 @@ class StudentLookupView extends StatefulWidget {
 }
 
 class _StudentLookupViewState extends State<StudentLookupView> {
+  // El controlador pertenece a la UI, no al ViewModel
   final boletaCtrl = TextEditingController();
-  bool _isLoading = false;
-  String? _errorMessage;
 
-  void _searchStudent() async {
-    final boleta = boletaCtrl.text.trim();
-    if (boleta.isEmpty) {
-      setState(() => _errorMessage = "Escribe una boleta");
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // 1. OBTENEMOS EL REPOSITORIO
-      final authRepo = context.read<AuthRepository>();
-
-      // 2. CONSULTAMOS A FIREBASE DE VERDAD
-      final user = await authRepo.checkStudentStatus(boleta);
-
-      if (!mounted) return;
-
-      setState(() => _isLoading = false);
-
-      if (user == null) {
-        // Caso: No existe la boleta en la BD
-        setState(() => _errorMessage = "Boleta no encontrada en el pre-registro.");
-      } else if (user.status != 'PRE_REGISTRO') {
-        // Caso: Ya se registró antes
-        setState(() => _errorMessage = "Esta cuenta ya fue activada. Intenta iniciar sesión.");
-      } else {
-        // 3. ÉXITO: Pasamos el nombre REAL que vino de Firebase
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RegisterView(
-              boleta: user.boleta,      // Dato real de FB
-              foundName: user.name,     // Dato real de FB ("Tu Nombre Real")
-              docId: user.id,           // IMPORTANTE: Pasamos el ID del documento para actualizarlo luego
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = "Error de conexión: $e";
-        });
-      }
-    }
+  @override
+  void dispose() {
+    boletaCtrl.dispose(); // Siempre hay que limpiar los controllers
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+    // 1. Inyectamos el ViewModel aquí
+    return ChangeNotifierProvider(
+      create: (context) => StudentLookupViewModel(
+        context.read<AuthRepository>(),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            SvgPicture.asset("assets/images/logo.svg", height: 100),
-            const SizedBox(height: 30),
+      child: Scaffold(
+        // backgroundColor: Colors.white, // O usa theme.colorScheme.surface
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        // 2. Usamos Consumer para reconstruir SOLO cuando el ViewModel cambie
+        body: Consumer<StudentLookupViewModel>(
+          builder: (context, viewModel, child) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  // Asegúrate que esta imagen existe o comenta la línea si da error
+                  SvgPicture.asset("assets/images/logo.svg", height: 100),
 
-            Text(
-              "Validación de Estudiante",
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF2F5A93),
+                  const SizedBox(height: 30),
+                  const Text(
+                    "Validación de Estudiante",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2F5A93),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Ingresa tu número de boleta para verificar que estás en el sistema.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  TextInputField(
+                    label: "Número de Boleta",
+                    controller: boletaCtrl, // Ahora sí existe
+                    icon: Icons.numbers,
+                    keyboardType: TextInputType.number,
+                    // Opcional: Limpiar error al escribir
+                    // onChanged: (_) => viewModel.clearError(),
+                  ),
+
+                  // Mostrar error desde el ViewModel
+                  if (viewModel.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Text(
+                        viewModel.errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                  const SizedBox(height: 30),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: viewModel.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : PrimaryButton(
+                      text: "Buscar y Continuar",
+                      onPressed: () async {
+                        // Llamamos a la lógica del ViewModel
+                        final success = await viewModel.searchStudent(boletaCtrl.text);
+
+                        // Verificamos si el widget sigue montado antes de navegar
+                        if (success && context.mounted) {
+                          // Navegación
+                          // Navigator.pushNamed(context, '/register', arguments: ...);
+                          // O tu navegación manual:
+                          /*
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RegisterView(...),
+                                  ),
+                                );
+                                */
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Ingresa tu número de boleta para verificar que estás en el sistema.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-
-            const SizedBox(height: 40),
-
-            TextInputField(
-              label: "Número de Boleta",
-              controller: boletaCtrl,
-              icon: Icons.numbers,
-              keyboardType: TextInputType.number,
-            ),
-
-            // Muestra mensaje de error si existe
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : PrimaryButton(
-                text: "Buscar y Continuar",
-                onPressed: _searchStudent,
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
