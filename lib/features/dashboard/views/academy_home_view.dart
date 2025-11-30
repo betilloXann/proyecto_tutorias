@@ -37,7 +37,7 @@ class AcademyHomeView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle_outline, size: 80, color: Colors.green.withOpacity(0.5)),
+                    Icon(Icons.check_circle_outline, size: 80, color: Colors.green.withValues(alpha: 0.5)),
                     const SizedBox(height: 20),
                     const Text("Sin pendientes", style: TextStyle(fontSize: 18, color: Colors.grey)),
                     const Text("Todos los alumnos tienen carga académica."),
@@ -204,7 +204,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
           // 1. Dropdown Materia
           DropdownButtonFormField<String>(
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: widget.vm.availableSubjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
             onChanged: (val) => setState(() => _selectedSubject = val),
@@ -213,7 +213,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
           // 2. Dropdown Profesor
           DropdownButtonFormField<String>(
-            value: _selectedProfessor,
+            initialValue: _selectedProfessor,
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
             items: widget.vm.availableProfessors.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
             onChanged: (val) => setState(() => _selectedProfessor = val),

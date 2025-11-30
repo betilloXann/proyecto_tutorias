@@ -161,13 +161,14 @@ class _LoginViewState extends State<LoginView> {
                   if (!mounted) return;
 
                   // 3. DECISIÓN
+                  if (!context.mounted) return;
+
                   if (success) {
-                    // ÉXITO: Borramos toda la pila (Login, Welcome, etc.)
-                    // y ponemos el Home como única pantalla.
+                    // ÉXITO: Borramos la pila y navegamos al Home
                     Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/home',
-                            (route) => false // Esto borra el historial hacia atrás
+                      context,
+                      '/home',
+                          (route) => false,
                     );
                   } else {
                     // ERROR: Mostramos el mensaje
