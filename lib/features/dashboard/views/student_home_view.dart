@@ -14,7 +14,6 @@ class StudentHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Accedemos al ViewModel del padre (HomeMenuView) para el logout
     final viewModel = context.read<HomeMenuViewModel>();
     final theme = Theme.of(context);
 

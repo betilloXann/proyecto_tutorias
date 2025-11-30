@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 // LOGIN FLOW
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/login/views/login_view.dart';
@@ -19,4 +18,5 @@ Map<String, WidgetBuilder> appRoutes = {
   "/recover": (_) => ForgotPasswordView(),
   "/new_password": (_) => const NewPasswordView(),
   "/home": (_) => const HomeMenuView(),
+  // "/register": NO AGREGAR ESTO AQUÍ, usaremos navegación manual.
 };

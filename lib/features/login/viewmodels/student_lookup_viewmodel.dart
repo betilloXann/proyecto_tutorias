@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../data/models/user_model.dart';
 
 // Este es tu VIEWMODEL
 class StudentLookupViewModel extends ChangeNotifier {
@@ -10,9 +11,15 @@ class StudentLookupViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // 1. VARIABLE PARA GUARDAR EL USUARIO ENCONTRADO
+  UserModel? _foundUser;
+
   // Getters para que la vista consuma los datos
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  // 2. GETTER PÚBLICO
+  UserModel? get foundUser => _foundUser;
 
   Future<bool> searchStudent(String boleta) async {
     if (boleta.isEmpty) {
@@ -23,6 +30,7 @@ class StudentLookupViewModel extends ChangeNotifier {
 
     _isLoading = true;
     _errorMessage = null;
+    _foundUser = null; // Reseteamos búsqueda anterior
     notifyListeners();
 
     try {
@@ -38,9 +46,10 @@ class StudentLookupViewModel extends ChangeNotifier {
         notifyListeners();
         return false;
       } else {
-        // Todo salió bien
+        // 3. ¡ÉXITO! GUARDAMOS EL USUARIO
+        _foundUser = user;
         notifyListeners();
-        return true; // Retornamos true para que la vista sepa que debe navegar
+        return true;
       }
     } catch (e) {
       _isLoading = false;

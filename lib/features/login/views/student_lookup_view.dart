@@ -1,15 +1,13 @@
+// IMPORTS
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-
-// IMPORTS QUE NECESITAS (Ajusta las rutas si es necesario)
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
 import '../../../data/repositories/auth_repository.dart';
-import '../viewmodels/student_lookup_viewmodel.dart'; // Tu nuevo ViewModel
-// import 'register_view.dart'; // Descomenta cuando tengas la vista de registro
+import '../viewmodels/student_lookup_viewmodel.dart';
+import 'register_view.dart'; // <--- 1. DESCOMENTA ESTO
 
-// Volvemos a Stateful SOLO para manejar el controller del input (UI State)
 class StudentLookupView extends StatefulWidget {
   const StudentLookupView({super.key});
 
@@ -18,24 +16,19 @@ class StudentLookupView extends StatefulWidget {
 }
 
 class _StudentLookupViewState extends State<StudentLookupView> {
-  // El controlador pertenece a la UI, no al ViewModel
   final boletaCtrl = TextEditingController();
 
   @override
   void dispose() {
-    boletaCtrl.dispose(); // Siempre hay que limpiar los controllers
+    boletaCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Inyectamos el ViewModel aquí
     return ChangeNotifierProvider(
-      create: (context) => StudentLookupViewModel(
-        context.read<AuthRepository>(),
-      ),
+      create: (context) => StudentLookupViewModel(context.read<AuthRepository>()),
       child: Scaffold(
-        // backgroundColor: Colors.white, // O usa theme.colorScheme.surface
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -44,7 +37,6 @@ class _StudentLookupViewState extends State<StudentLookupView> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        // 2. Usamos Consumer para reconstruir SOLO cuando el ViewModel cambie
         body: Consumer<StudentLookupViewModel>(
           builder: (context, viewModel, child) {
             return Padding(
@@ -52,9 +44,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
               child: Column(
                 children: [
                   const SizedBox(height: 40),
-                  // Asegúrate que esta imagen existe o comenta la línea si da error
                   SvgPicture.asset("assets/images/logo.svg", height: 100),
-
                   const SizedBox(height: 30),
                   const Text(
                     "Validación de Estudiante",
@@ -76,14 +66,11 @@ class _StudentLookupViewState extends State<StudentLookupView> {
 
                   TextInputField(
                     label: "Número de Boleta",
-                    controller: boletaCtrl, // Ahora sí existe
+                    controller: boletaCtrl,
                     icon: Icons.numbers,
                     keyboardType: TextInputType.number,
-                    // Opcional: Limpiar error al escribir
-                    // onChanged: (_) => viewModel.clearError(),
                   ),
 
-                  // Mostrar error desde el ViewModel
                   if (viewModel.errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -104,22 +91,28 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                         : PrimaryButton(
                       text: "Buscar y Continuar",
                       onPressed: () async {
-                        // Llamamos a la lógica del ViewModel
+                        // A. Ejecutar búsqueda
                         final success = await viewModel.searchStudent(boletaCtrl.text);
 
-                        // Verificamos si el widget sigue montado antes de navegar
+                        // B. Verificar éxito y montaje
                         if (success && context.mounted) {
-                          // Navegación
-                          // Navigator.pushNamed(context, '/register', arguments: ...);
-                          // O tu navegación manual:
-                          /*
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => RegisterView(...),
-                                  ),
-                                );
-                                */
+                          // C. OBTENER EL USUARIO QUE ENCONTRÓ EL VIEWMODEL
+                          final user = viewModel.foundUser;
+
+                          if (user != null) {
+                            // D. NAVEGACIÓN MANUAL (PUSH) PARA PASAR DATOS
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RegisterView(
+                                  // Pasamos los datos que RegisterView necesita
+                                  boleta: user.boleta,
+                                  foundName: user.name,
+                                  docId: user.id,
+                                ),
+                              ),
+                            );
+                          }
                         }
                       },
                     ),

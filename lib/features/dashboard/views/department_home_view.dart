@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/theme.dart'; // Tu tema
+import '../../../theme/theme.dart';
 
 class DepartmentHomeView extends StatelessWidget {
   const DepartmentHomeView({super.key});
