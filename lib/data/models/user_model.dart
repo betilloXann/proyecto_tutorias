@@ -4,7 +4,7 @@ class UserModel {
   final String name;
   final String emailInst;
   final String status; // PRE_REGISTRO, PENDIENTE_ASIGNACION, EN_CURSO...
-  final String role;   // student, admin, professor
+  final String role;   // student, admin
 
   UserModel({
     required this.id,

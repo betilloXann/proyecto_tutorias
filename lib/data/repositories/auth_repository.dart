@@ -2,28 +2,25 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../models/user_model.dart'; // Asegúrate que esta ruta sea correcta
+import '../models/user_model.dart';
+import 'dart:developer';
 
 class AuthRepository {
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
   final FirebaseStorage _storage;
 
-  // CONSTRUCTOR: Aquí arreglamos el error 'firebaseAuth not defined'
-  // Inicializamos Firestore y Storage aquí mismo
   AuthRepository({required FirebaseAuth firebaseAuth})
       : _auth = firebaseAuth,
         _db = FirebaseFirestore.instance,
         _storage = FirebaseStorage.instance;
 
-  // Stream para escuchar cambios de sesión (Login/Logout)
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // ---------------------------------------------------
-  // 1. MÉTODOS DE AUTENTICACIÓN BÁSICA (LOGIN)
+  // 1. LOGIN Y LOGOUT
   // ---------------------------------------------------
 
-  // Aquí arreglamos el error 'signIn not defined'
   Future<User?> signIn({required String email, required String password}) async {
     try {
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -48,10 +45,9 @@ class AuthRepository {
   }
 
   // ---------------------------------------------------
-  // 2. MÉTODOS DE ACTIVACIÓN (NUEVOS)
+  // 2. ACTIVACIÓN (TU FLUJO DE ONBOARDING)
   // ---------------------------------------------------
 
-  // Buscar si la boleta existe en el pre-registro
   Future<UserModel?> checkStudentStatus(String boleta) async {
     try {
       final snapshot = await _db
@@ -61,15 +57,12 @@ class AuthRepository {
           .get();
 
       if (snapshot.docs.isEmpty) return null;
-
-      // Convertimos el documento a nuestro Modelo
       return UserModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
     } catch (e) {
       throw Exception("Error al buscar estudiante: $e");
     }
   }
 
-  // Activar la cuenta (Crear Auth + Subir Archivo + Actualizar BD)
   Future<void> activateAccount({
     required String docId,
     required String email,
@@ -79,22 +72,20 @@ class AuthRepository {
     required File dictamenFile,
   }) async {
     try {
-      // A) Crear usuario en Firebase Authentication
+      // A) Auth
       UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
       String uid = cred.user!.uid;
 
-      // B) Subir el Dictamen a Storage
-      // (Ojo: requiere tener la regla de storage configurada en consola)
+      // B) Storage
       String fileExt = dictamenFile.path.split('.').last;
       Reference ref = _storage.ref().child('dictamenes/$uid.$fileExt');
-      UploadTask uploadTask = ref.putFile(dictamenFile);
-      TaskSnapshot snapshot = await uploadTask;
-      String downloadUrl = await snapshot.ref.getDownloadURL();
+      await ref.putFile(dictamenFile);
+      String downloadUrl = await ref.getDownloadURL();
 
-      // C) Actualizar el documento en Firestore
+      // C) Firestore
       await _db.collection('users').doc(docId).update({
         'uid': uid,
         'email_inst': email,
@@ -104,9 +95,71 @@ class AuthRepository {
         'status': 'PENDIENTE_ASIGNACION',
         'updated_at': FieldValue.serverTimestamp(),
       });
+    } catch (e) {
+      throw Exception("Error al activar: $e");
+    }
+  }
+
+  // ---------------------------------------------------
+  // 3. OBTENER DATOS (ESTA ES LA QUE FALTABA)
+  // ---------------------------------------------------
+  Future<UserModel?> getCurrentUserData() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return null;
+
+      // Buscamos al usuario por su UID de Auth
+      final snapshot = await _db
+          .collection('users')
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return UserModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
+      }
+      return null;
+    } catch (e) {
+      log("Error obteniendo datos", error: e);
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------
+  // 4. SUBIR EVIDENCIA MENSUAL
+  // ---------------------------------------------------
+  Future<void> uploadEvidence({
+    required String materia,
+    required String mes,
+    required File file,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception("No hay usuario logueado");
+
+      // 1. Subir Archivo a Storage
+      // Ruta: evidencias/UID_DEL_ALUMNO/NOMBRE_MATERIA/mes_nombre.pdf
+      // Usamos Timestamp para que no se sobrescriban si sube 2 veces
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      String fileExt = file.path.split('.').last;
+
+      Reference ref = _storage.ref().child('evidencias/${user.uid}/$timestamp.$fileExt');
+      await ref.putFile(file);
+      String downloadUrl = await ref.getDownloadURL();
+
+      // 2. Guardar Registro en Firestore (Colección 'evidencias')
+      await _db.collection('evidencias').add({
+        'uid': user.uid,
+        'materia': materia,
+        'mes': mes,
+        'file_url': downloadUrl,
+        'status': 'EN_REVISION', // Inicialmente está en revisión
+        'feedback': '',          // Retroalimentación vacía
+        'created_at': FieldValue.serverTimestamp(),
+      });
 
     } catch (e) {
-      throw Exception("Error al activar cuenta: $e");
+      throw Exception("Error al subir evidencia: $e");
     }
   }
 }

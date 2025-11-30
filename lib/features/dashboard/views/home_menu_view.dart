@@ -1,49 +1,74 @@
 import 'package:flutter/material.dart';
-//import 'package:proyecto_tutorias/theme/primary_button.dart';
+import 'package:provider/provider.dart';
+
+import '../../../data/repositories/auth_repository.dart';
+import '../viewmodels/home_menu_viewmodel.dart';
+
+// Vistas
+import 'student_home_view.dart';
+import 'department_home_view.dart';
+import 'academy_home_view.dart';
 
 class HomeMenuView extends StatelessWidget {
   const HomeMenuView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFE6EEF8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("Bienvenido"),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.person))],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            _item(Icons.calendar_today, "Mis Tutorías"),
-            _item(Icons.person_add_alt_1, "Solicitar Tutor"),
-            _item(Icons.history, "Historial"),
-            _item(Icons.notifications, "Avisos"),
-          ],
-        ),
-      ),
-    );
-  }
+    return ChangeNotifierProvider(
+      create: (context) => HomeMenuViewModel(context.read<AuthRepository>()),
+      child: Scaffold(
+        body: Consumer<HomeMenuViewModel>(
+          builder: (context, viewModel, child) {
 
-  Widget _item(IconData icon, String title) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40),
-          SizedBox(height: 10),
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-        ],
+            // 1. CARGANDO
+            if (viewModel.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // 2. ERROR O SIN SESIÓN
+            if (viewModel.currentUser == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacementNamed(context, '/login');
+              });
+              return const Center(child: Text("Error de sesión"));
+            }
+
+            final user = viewModel.currentUser!;
+
+            // 3. SWITCH DE ROLES (Ajustado a tu UserModel)
+            // Asegúrate que en Firebase el campo 'role' tenga estos valores exactos
+            switch (user.role) {
+              case 'student':
+              // Pasamos el usuario como argumento para no volver a buscarlo
+                return StudentHomeView(user: user);
+
+              case 'tutorias':       // Depto. de Tutorías
+              case 'gestion_escolar': // Gestión Escolar
+              case 'admin':          // Admin general
+                return const DepartmentHomeView();
+
+              case 'jefe_academia':   // Jefes de Academia
+                return const AcademyHomeView();
+
+              default:
+              // Si el rol está mal escrito en la BD o es nuevo
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 50, color: Colors.orange),
+                      const SizedBox(height: 10),
+                      Text("Rol no autorizado o desconocido: ${user.role}"),
+                      TextButton(
+                          onPressed: () => viewModel.logout(),
+                          child: const Text("Cerrar Sesión")
+                      )
+                    ],
+                  ),
+                );
+            }
+          },
+        ),
       ),
     );
   }
