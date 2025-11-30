@@ -321,7 +321,6 @@ class _ActionItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                // Corregido: usamos .withValues en lugar de .withOpacity
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
