@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // Imports necesarios
 import '../../../data/models/user_model.dart';
@@ -8,7 +9,7 @@ import '../viewmodels/home_menu_viewmodel.dart';
 import 'upload_evidence_view.dart';
 
 class StudentHomeView extends StatelessWidget {
-  final UserModel user; // Recibimos el usuario YA cargado
+  final UserModel user;
 
   const StudentHomeView({super.key, required this.user});
 
@@ -20,13 +21,13 @@ class StudentHomeView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.baseLight,
       appBar: AppBar(
+        // ... (Tu configuración de AppBar igual que antes) ...
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.blueDark),
-            tooltip: "Cerrar Sesión",
             onPressed: () async {
               await viewModel.logout();
               if (context.mounted) {
@@ -42,47 +43,28 @@ class StudentHomeView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- HEADER ---
-            Text(
-              "Hola,",
-              style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontSize: 20
-              ),
-            ),
-            Text(
-              user.name,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.blueDark,
-              ),
-            ),
+            Text("Hola,", style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.textSecondary, fontSize: 20)),
+            Text(user.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
 
             const SizedBox(height: 30),
 
-            // --- TARJETA DE ESTATUS ---
+            // --- ESTATUS ---
             _StatusCard(status: user.status),
 
             const SizedBox(height: 20),
 
-            // --- TARJETA DEL TUTOR ---
-            if (user.status != 'PENDIENTE_ASIGNACION' && user.status != 'PRE_REGISTRO')
-              _TutorCard(user: user)
-            else
-              const _WaitingCard(),
+            // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE ---
+            // En lugar de _TutorCard, ponemos la lista de clases
+            // Usamos user.id (que es el ID del documento del alumno)
+            _ClassesList(studentUid: user.id),
 
             const SizedBox(height: 30),
 
             // --- ACCIONES RÁPIDAS ---
-            Text(
-              "Acciones Rápidas",
-              style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary
-              ),
-            ),
+            Text("Acciones Rápidas", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             const SizedBox(height: 15),
 
-            // Grid de Botones
+            // ... (Tu GridView de botones igual que antes) ...
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -105,9 +87,7 @@ class StudentHomeView extends StatelessWidget {
                   icon: Icons.history,
                   label: "Historial",
                   color: AppTheme.purpleMist,
-                  onTap: () {
-                    // TODO: Implementar Historial
-                  },
+                  onTap: () {},
                 ),
               ],
             ),
@@ -246,49 +226,6 @@ class _WaitingCard extends StatelessWidget {
   }
 }
 
-class _TutorCard extends StatelessWidget {
-  final UserModel user;
-  const _TutorCard({required this.user});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0,5))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Tu Tutor Asignado", style: TextStyle(color: AppTheme.textSecondary)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const CircleAvatar(
-                backgroundColor: AppTheme.baseLight,
-                child: Icon(Icons.person, color: AppTheme.blueDark),
-              ),
-              const SizedBox(width: 15),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text("Prof. Pendiente", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text("Materia: Pendiente", style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                ],
-              )
-            ],
-          )
-        ],
-      ),
-    );
-  }
-}
-
 class _ActionItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -330,6 +267,103 @@ class _ActionItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ClassesList extends StatelessWidget {
+  final String studentUid;
+
+  const _ClassesList({required this.studentUid});
+
+  @override
+  Widget build(BuildContext context) {
+    // Escuchamos en tiempo real la colección 'enrollments'
+    final query = FirebaseFirestore.instance
+        .collection('enrollments')
+        .where('uid', isEqualTo: studentUid); // Filtramos por el ID del alumno
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const Text("Error cargando horario");
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: LinearProgressIndicator());
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+
+        // Si NO tiene materias, mostramos la tarjeta de "Buscando..."
+        if (docs.isEmpty) {
+          return const _WaitingCard();
+        }
+
+        // Si SÍ tiene materias, pintamos la lista
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Mis Clases y Horarios", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.blueDark)),
+            const SizedBox(height: 10),
+
+            ...docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 5, offset: const Offset(0, 4))
+                    ]
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(color: AppTheme.baseLight, shape: BoxShape.circle),
+                      child: const Icon(Icons.book, color: AppTheme.bluePrimary),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(data['subject'] ?? 'Materia', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 4),
+                          Text("Prof: ${data['professor']}", style: const TextStyle(color: Colors.grey)),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 14, color: AppTheme.bluePrimary),
+                              const SizedBox(width: 4),
+                              Text(
+                                  data['schedule'] ?? '--:--',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)
+                              ),
+                              const SizedBox(width: 15),
+                              const Icon(Icons.location_on, size: 14, color: Colors.orange),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  data['salon'] ?? 'Sin Salón',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis, // Pone "..." si no cabe
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              );
+            }), // .toList() no es necesario con el spread operator (...)
+          ],
+        );
+      },
     );
   }
 }

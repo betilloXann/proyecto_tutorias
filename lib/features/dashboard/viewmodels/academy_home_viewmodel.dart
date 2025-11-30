@@ -71,4 +71,37 @@ class AcademyViewModel extends ChangeNotifier {
       return false;
     }
   }
+  // Nueva función para asignar materia con horario
+  Future<bool> assignSubject({
+    required String studentId,
+    required String subjectName,
+    required String professorName,
+    required String schedule, // Nuevo dato
+    required String salon,    // Nuevo dato
+  }) async {
+    try {
+      // 1. Crear el registro de inscripción
+      await _db.collection('enrollments').add({
+        'uid': studentId,
+        'subject': subjectName,
+        'professor': professorName,
+        'schedule': schedule,
+        'salon': salon,
+        'status': 'EN_CURSO',
+        'assigned_at': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Actualizar estatus global del alumno (si estaba pendiente)
+      // Nota: Si ya tenía una materia asignada, esto no afecta, solo confirma.
+      await _db.collection('users').doc(studentId).update({
+        'status': 'EN_CURSO',
+      });
+
+      return true;
+    } catch (e) {
+      _errorMessage = "Error asignando: $e";
+      notifyListeners();
+      return false;
+    }
+  }
 }

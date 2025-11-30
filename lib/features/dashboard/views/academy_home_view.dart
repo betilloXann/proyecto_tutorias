@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 import '../../../theme/theme.dart';
 import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
-// import '../viewmodels/home_menu_viewmodel.dart'; // Si necesitas logout
+import '../viewmodels/home_menu_viewmodel.dart'; // Si necesitas logout
 
 class AcademyHomeView extends StatelessWidget {
   const AcademyHomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.read<HomeMenuViewModel>();
+
     // Inyectamos el VM específico de Academia
     return ChangeNotifierProvider(
       create: (_) => AcademyViewModel(),
@@ -20,8 +22,11 @@ class AcademyHomeView extends StatelessWidget {
           automaticallyImplyLeading: false, // Quitamos flecha atrás si es root
           actions: [
             // Aquí podrías poner el botón de Logout igual que en StudentHomeView
-            IconButton(icon: Icon(Icons.logout), onPressed: (){
-              // Lógica de logout...
+            IconButton(icon: Icon(Icons.logout), onPressed: () async {
+              await viewModel.logout();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              }
             })
           ],
         ),
