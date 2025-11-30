@@ -1,43 +1,100 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+//import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class UploadEvidenceViewModel extends ChangeNotifier {
   final AuthRepository _authRepo;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  //final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  UploadEvidenceViewModel({required AuthRepository authRepo}) : _authRepo = authRepo;
+  UploadEvidenceViewModel({required AuthRepository authRepo}) : _authRepo = authRepo {
+    // Al iniciar, cargamos las materias reales del alumno
+    _loadStudentClasses();
+  }
 
-  // --- ESTADO (Variables) ---
+  // --- ESTADO ---
   bool _isLoading = false;
-  String? _selectedSubject;
+  bool _isLoadingClasses = true; // Nuevo estado para cargar materias
+
+  // Guardamos el objeto completo de la clase (Materia + Profe)
+  Map<String, dynamic>? _selectedClassData;
+
   String? _selectedMonth;
   File? _selectedFile;
   String? _fileName;
   String? _errorMessage;
 
-  // Listas (Simuladas por ahora)
-  final List<String> subjects = [
-    "Programación Orientada a Objetos - Prof. Alan Turing",
-    "Circuitos Lógicos - Prof. Nikola Tesla",
-  ];
+  // Lista de materias traída de Firebase
+  List<Map<String, dynamic>> _availableClasses = [];
 
+  // Lista estática de meses
   final List<String> months = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
   // Getters
   bool get isLoading => _isLoading;
-  String? get selectedSubject => _selectedSubject;
+  bool get isLoadingClasses => _isLoadingClasses;
+  Map<String, dynamic>? get selectedClassData => _selectedClassData;
   String? get selectedMonth => _selectedMonth;
   File? get selectedFile => _selectedFile;
   String? get fileName => _fileName;
   String? get errorMessage => _errorMessage;
+  List<Map<String, dynamic>> get availableClasses => _availableClasses;
 
-  // --- MÉTODOS (Acciones) ---
+  // --- MÉTODOS ---
 
-  void setSubject(String? val) {
-    _selectedSubject = val;
+// 1. Cargar Materias Reales (Corregido)
+  Future<void> _loadStudentClasses() async {
+    _isLoadingClasses = true;
+    notifyListeners();
+
+    try {
+      // PASO CLAVE: Primero obtenemos el usuario completo para sacar su ID de documento
+      // (No usamos _auth.currentUser.uid directamente porque difiere de tu BD)
+      final userModel = await _authRepo.getCurrentUserData();
+
+      if (userModel == null) {
+        _errorMessage = "No se pudo identificar al alumno";
+        return;
+      }
+
+      // Ahora buscamos usando userModel.id (El ID del documento, ej: 8Pd2VM4...)
+      final snapshot = await _db
+          .collection('enrollments')
+          .where('uid', isEqualTo: userModel.id)
+          .where('status', isEqualTo: 'EN_CURSO')
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        // Opcional: Manejar caso vacío
+        //print("No se encontraron materias para el ID: ${userModel.id}");
+      }
+
+      _availableClasses = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'subject': data['subject'] ?? 'Materia',
+          'professor': data['professor'] ?? 'Profesor',
+          'display': "${data['subject']} \n(Prof. ${data['professor']})"
+        };
+      }).toList();
+
+    } catch (e) {
+      _errorMessage = "No se pudieron cargar las materias: $e";
+    } finally {
+      _isLoadingClasses = false;
+      notifyListeners();
+    }
+  }
+
+  void setClass(Map<String, dynamic>? val) {
+    _selectedClassData = val;
     notifyListeners();
   }
 
@@ -49,56 +106,54 @@ class UploadEvidenceViewModel extends ChangeNotifier {
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'png'],
+      allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
     );
 
     if (result != null) {
       _selectedFile = File(result.files.single.path!);
       _fileName = result.files.single.name;
-      notifyListeners(); // Avisamos a la vista que ya hay archivo
+      notifyListeners();
     }
   }
 
-  // Retorna TRUE si subió bien, FALSE si falló
   Future<bool> uploadEvidence() async {
     _errorMessage = null;
 
-    if (_selectedSubject == null || _selectedMonth == null || _selectedFile == null) {
-      _errorMessage = "Selecciona materia, mes y archivo";
+    if (_selectedClassData == null || _selectedMonth == null || _selectedFile == null) {
+      _errorMessage = "Por favor selecciona materia, mes y adjunta un archivo.";
       notifyListeners();
       return false;
     }
 
     _isLoading = true;
-    notifyListeners(); // Activar spinner
+    notifyListeners();
 
     try {
+      // Usamos el repositorio, pasando la materia seleccionada
       await _authRepo.uploadEvidence(
-        materia: _selectedSubject!,
+        materia: _selectedClassData!['subject'], // Mandamos solo el nombre de la materia
         mes: _selectedMonth!,
         file: _selectedFile!,
       );
 
       _isLoading = false;
       notifyListeners();
-      return true; // Éxito
+      return true;
 
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString().replaceAll("Exception: ", "");
       notifyListeners();
-      return false; // Error
+      return false;
     }
   }
 
-  // Limpiar formulario al salir
   void clear() {
-    _selectedSubject = null;
+    _selectedClassData = null;
     _selectedMonth = null;
     _selectedFile = null;
     _fileName = null;
     _errorMessage = null;
     _isLoading = false;
-    // No llamamos notifyListeners aquí porque usualmente se usa al desmontar
   }
 }

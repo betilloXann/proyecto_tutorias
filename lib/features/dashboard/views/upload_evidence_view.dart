@@ -1,142 +1,257 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../viewmodels/upload_evidence_viewmodel.dart'; // Importa el VM
+import '../../../data/repositories/auth_repository.dart';
+import '../viewmodels/upload_evidence_viewmodel.dart';
+import '../../../theme/theme.dart'; // Importamos tu tema
 
 class UploadEvidenceView extends StatelessWidget {
   const UploadEvidenceView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Usamos watch para reconstruir la pantalla cuando cambie el estado
-    final vm = context.watch<UploadEvidenceViewModel>();
-    final theme = Theme.of(context);
+    // Inyectamos el VM
+    return ChangeNotifierProvider(
+      create: (context) => UploadEvidenceViewModel(
+        authRepo: context.read<AuthRepository>(),
+      ),
+      child: Scaffold(
+        backgroundColor: AppTheme.baseLight, // Color de fondo del tema
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text("Nueva Evidencia",
+              style: TextStyle(color: AppTheme.blueDark, fontWeight: FontWeight.bold)
+          ),
+          leading: Consumer<UploadEvidenceViewModel>(
+            builder: (context, vm, _) => IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: AppTheme.blueDark, size: 20),
+              onPressed: () {
+                vm.clear();
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ),
+        body: Consumer<UploadEvidenceViewModel>(
+          builder: (context, vm, child) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- TARJETA INFORMATIVA ---
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                        color: AppTheme.bluePrimary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.bluePrimary.withValues(alpha: 0.3))
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: AppTheme.bluePrimary),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            "Recuerda que tu evidencia debe estar firmada por el tutor asignado.",
+                            style: TextStyle(color: AppTheme.blueDark, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFE6EEF8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text("Subir Evidencia", style: TextStyle(color: Color(0xFF2F5A93), fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
-          onPressed: () {
-            vm.clear(); // Limpiamos al salir
-            Navigator.pop(context);
+                  // --- 1. SELECCIONAR MATERIA ---
+                  const Text("Materia y Profesor", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 10),
+
+                  // Spinner si está cargando materias
+                  if (vm.isLoadingClasses)
+                    const Center(child: LinearProgressIndicator())
+                  else
+                    _CustomDropdown(
+                      hint: "Selecciona tu clase",
+                      value: vm.selectedClassData,
+                      // Mapeamos la lista compleja a DropdownItems
+                      items: vm.availableClasses.map((item) {
+                        return DropdownMenuItem<Map<String, dynamic>>(
+                          value: item,
+                          child: Text(item['display'], style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (val) => vm.setClass(val),
+                      icon: Icons.school_outlined,
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // --- 2. SELECCIONAR MES ---
+                  const Text("Mes a Reportar", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 10),
+                  _CustomDropdown(
+                    hint: "Selecciona el mes",
+                    value: vm.selectedMonth,
+                    items: vm.months.map((String mes) {
+                      return DropdownMenuItem<String>(value: mes, child: Text(mes));
+                    }).toList(),
+                    onChanged: (val) => vm.setMonth(val),
+                    icon: Icons.calendar_today_outlined,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // --- 3. ÁREA DE SUBIDA (VISUALMENTE MEJORADA) ---
+                  const Text("Adjuntar Archivo", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 10),
+
+                  InkWell(
+                    onTap: vm.pickFile,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          // Borde diferente si ya hay archivo
+                          border: Border.all(
+                              color: vm.selectedFile != null ? Colors.green : AppTheme.blueSoft,
+                              width: 2,
+                              style: BorderStyle.solid // Podrías usar un paquete para 'dashed'
+                          ),
+                          boxShadow: [
+                            BoxShadow(color: AppTheme.blueSoft.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5))
+                          ]
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: vm.selectedFile != null ? Colors.green.withValues(alpha: 0.1) : AppTheme.baseLight,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              vm.selectedFile != null ? Icons.check : Icons.cloud_upload_outlined,
+                              size: 40,
+                              color: vm.selectedFile != null ? Colors.green : AppTheme.bluePrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            vm.fileName ?? "Toca para buscar PDF o Imagen",
+                            style: TextStyle(
+                                color: vm.selectedFile != null ? Colors.green : AppTheme.textSecondary,
+                                fontWeight: FontWeight.w600
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (vm.selectedFile == null)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8.0),
+                              child: Text("(Máx 5MB)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            )
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Error
+                  if (vm.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error, color: Colors.red, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 40),
+
+                  // --- BOTÓN ---
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: vm.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : PrimaryButton(
+                        text: "Subir Evidencia",
+                        onPressed: () async {
+                          final success = await vm.uploadEvidence();
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("¡Evidencia enviada exitosamente!"), backgroundColor: Colors.green),
+                            );
+                            vm.clear();
+                            Navigator.pop(context);
+                          }
+                        }
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
           },
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Completa la información para reportar tu avance mensualmente."),
-            const SizedBox(height: 20),
+    );
+  }
+}
 
-            // --- 1. SELECCIONAR MATERIA ---
-            const Text("Materia Asignada", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: const Text("Selecciona una materia"),
-                  value: vm.selectedSubject, // Leemos del VM
-                  items: vm.subjects.map((String materia) {
-                    return DropdownMenuItem<String>(value: materia, child: Text(materia));
-                  }).toList(),
-                  onChanged: (val) => vm.setSubject(val), // Avisamos al VM
-                ),
-              ),
-            ),
+// --- WIDGET PERSONALIZADO PARA DROPDOWNS ---
+class _CustomDropdown<T> extends StatelessWidget {
+  final String hint;
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final IconData icon;
 
-            const SizedBox(height: 20),
+  const _CustomDropdown({
+    required this.hint,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.icon,
+  });
 
-            // --- 2. SELECCIONAR MES ---
-            const Text("Mes a Reportar", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: const Text("Selecciona el mes"),
-                  value: vm.selectedMonth, // Leemos del VM
-                  items: vm.months.map((String mes) {
-                    return DropdownMenuItem<String>(value: mes, child: Text(mes));
-                  }).toList(),
-                  onChanged: (val) => vm.setMonth(val), // Avisamos al VM
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // --- 3. SUBIR ARCHIVO ---
-            const Text("Evidencia (Foto firmada)", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: vm.pickFile, // Acción del VM
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      vm.selectedFile != null ? Icons.check_circle : Icons.cloud_upload,
-                      size: 50,
-                      color: vm.selectedFile != null ? Colors.green : Colors.blue,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      vm.fileName ?? "Toca para buscar archivo...",
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Mensaje de Error (Si existe)
-            if (vm.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red)),
-              ),
-
-            const SizedBox(height: 40),
-
-            // --- BOTÓN ENVIAR ---
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: vm.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : PrimaryButton(
-                  text: "Enviar Evidencia",
-                  onPressed: () async {
-                    final success = await vm.uploadEvidence();
-                    if (success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Evidencia subida correctamente"), backgroundColor: Colors.green),
-                      );
-                      vm.clear();
-                      Navigator.pop(context);
-                    }
-                  }
-              ),
-            ),
-          ],
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: AppTheme.blueSoft.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))
+          ]
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          hint: Row(
+            children: [
+              Icon(icon, size: 20, color: AppTheme.textSecondary),
+              const SizedBox(width: 10),
+              Text(hint, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+            ],
+          ),
+          icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.bluePrimary),
+          items: items,
+          onChanged: onChanged,
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
