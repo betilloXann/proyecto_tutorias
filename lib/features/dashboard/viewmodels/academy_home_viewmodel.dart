@@ -9,10 +9,12 @@ class AcademyViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   List<UserModel> _pendingStudents = [];
+  List<UserModel> _assignedStudents = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
+  List<UserModel> get assignedStudents => _assignedStudents;
 
   // --- DATOS PARA EL FORMULARIO ---
   // En el futuro esto podría venir de una colección 'subjects' y 'professors' en Firebase
@@ -32,24 +34,34 @@ class AcademyViewModel extends ChangeNotifier {
   ];
 
   AcademyViewModel() {
-    loadPendingStudents();
+    loadStudents();
   }
 
-  Future<void> loadPendingStudents() async {
+  Future<void> loadStudents() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      final snapshot = await _db.collection('users')
+      // Obtenemos los alumnos pendientes
+      final pendingSnapshot = await _db.collection('users')
           .where('role', isEqualTo: 'student')
           .where('academy', isEqualTo: currentAcademy)
-      // Nota: Si quieres seguir asignando materias a alumnos que YA tienen estatus EN_CURSO,
-      // deberías quitar este filtro o hacer una vista aparte de "Alumnos Activos".
-      // Por ahora lo dejamos así para el flujo inicial.
           .where('status', isEqualTo: 'PENDIENTE_ASIGNACION')
           .get();
 
-      _pendingStudents = snapshot.docs
+      _pendingStudents = pendingSnapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
+          .toList();
+          
+      // Obtenemos los alumnos que ya tienen una materia asignada
+      final assignedSnapshot = await _db.collection('users')
+          .where('role', isEqualTo: 'student')
+          .where('academy', isEqualTo: currentAcademy)
+          .where('status', isEqualTo: 'EN_CURSO')
+          .get();
+
+      _assignedStudents = assignedSnapshot.docs
           .map((doc) => UserModel.fromMap(doc.data(), doc.id))
           .toList();
 
@@ -87,10 +99,8 @@ class AcademyViewModel extends ChangeNotifier {
         'status': 'EN_CURSO',
       });
 
-      // Opcional: No recargamos la lista inmediatamente si quieres asignarle
-      // otra materia al mismo alumno antes de que desaparezca de la lista.
-      // Pero para este ejemplo, recargaremos para mostrar que ya cambió.
-      await loadPendingStudents();
+      // Recargamos ambas listas para que la UI se actualice al momento.
+      await loadStudents();
 
       return true;
     } catch (e) {
