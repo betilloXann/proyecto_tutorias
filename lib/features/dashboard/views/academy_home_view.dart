@@ -17,7 +17,7 @@ class AcademyHomeView extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          title: const Text("Gestión Académica"), // Changed title for clarity
+          title: const Text("Gestión Académica"),
           automaticallyImplyLeading: false,
           actions: [
             IconButton(icon: const Icon(Icons.logout), onPressed: () async {
@@ -39,7 +39,8 @@ class AcademyHomeView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.school_outlined, size: 80, color: Colors.grey.withOpacity(0.5)),
+                    // FIX 1: Replaced deprecated withOpacity
+                    Icon(Icons.school_outlined, size: 80, color: Colors.grey.withAlpha(128)),
                     const SizedBox(height: 20),
                     const Text("No hay alumnos registrados", style: TextStyle(fontSize: 18, color: Colors.grey)),
                     const Text("Los alumnos de la academia aparecerán aquí."),
@@ -60,7 +61,8 @@ class AcademyHomeView extends StatelessWidget {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.bluePrimary),
                     ),
                     const SizedBox(height: 10),
-                    ...vm.pendingStudents.map((student) => _StudentCard(student: student, vm: vm)).toList(),
+                    // FIX 2: Removed unnecessary .toList()
+                    ...vm.pendingStudents.map((student) => _StudentCard(student: student, vm: vm)),
                   ],
 
                   // Spacer if both lists are visible
@@ -74,7 +76,8 @@ class AcademyHomeView extends StatelessWidget {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
                     ),
                     const SizedBox(height: 10),
-                    ...vm.assignedStudents.map((student) => _AssignedStudentCard(student: student)).toList(),
+                    // FIX 3: Removed unnecessary .toList()
+                    ...vm.assignedStudents.map((student) => _AssignedStudentCard(student: student)),
                   ]
                 ],
               ),
