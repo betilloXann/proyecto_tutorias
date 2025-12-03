@@ -1,17 +1,18 @@
-import 'dart:io'; // IMPORTANTE: Para manejar el archivo File
-import 'package:file_picker/file_picker.dart'; // IMPORTANTE: Para seleccionar archivos
+import 'dart:io';
+import 'package:flutter/foundation.dart'; // Import for kIsWeb and Uint8List
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
-import '../../../data/repositories/auth_repository.dart'; // Tu Repo
+import '../../../data/repositories/auth_repository.dart';
 
 class RegisterView extends StatefulWidget {
   final String boleta;
   final String foundName;
-  final String docId; // El ID del documento a actualizar
+  final String docId;
 
   const RegisterView({
     super.key,
@@ -25,21 +26,18 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  late final TextEditingController nameCtrl;
-  late final TextEditingController emailCtrl;
-  late final TextEditingController personalEmailCtrl;
-  late final TextEditingController phoneCtrl;
-  late final TextEditingController passCtrl;
+  late final TextEditingController nameCtrl, emailCtrl, personalEmailCtrl, phoneCtrl, passCtrl;
 
-  // Variables para el archivo y carga
-  File? _selectedFile;
+  // --- UPDATED State for Web/Mobile file handling ---
   String? _fileName;
+  // FIX: Renamed to camelCase
+  File? _selectedFileMobile;
+  Uint8List? _selectedFileWeb;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Pre-llenamos el nombre
     nameCtrl = TextEditingController(text: widget.foundName);
     emailCtrl = TextEditingController();
     personalEmailCtrl = TextEditingController();
@@ -57,9 +55,8 @@ class _RegisterViewState extends State<RegisterView> {
     super.dispose();
   }
 
-  // --- 1. LÓGICA PARA SELECCIONAR ARCHIVO ---
+  // --- UPDATED file picking logic ---
   Future<void> _pickDictamen() async {
-    // Abre el selector de archivos (PDF, JPG, PNG)
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
@@ -67,56 +64,63 @@ class _RegisterViewState extends State<RegisterView> {
 
     if (result != null) {
       setState(() {
-        _selectedFile = File(result.files.single.path!);
         _fileName = result.files.single.name;
+        if (kIsWeb) {
+          _selectedFileWeb = result.files.single.bytes;
+          _selectedFileMobile = null;
+        } else {
+          _selectedFileMobile = File(result.files.single.path!);
+          _selectedFileWeb = null;
+        }
       });
     }
   }
 
-  // --- 2. LÓGICA PARA ENVIAR TODO A FIREBASE ---
+  // --- UPDATED submission logic ---
   Future<void> _submitActivation() async {
-    // Validaciones básicas
-    if (emailCtrl.text.isEmpty ||
-        personalEmailCtrl.text.isEmpty ||
-        phoneCtrl.text.isEmpty ||
-        passCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor llena todos los campos"), backgroundColor: Colors.red),
-      );
+    // FIX: Added context.mounted check before showing snackbar
+    if (emailCtrl.text.isEmpty || personalEmailCtrl.text.isEmpty || phoneCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Por favor llena todos los campos"), backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 
-    if (_selectedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Debes subir tu Dictamen escaneado"), backgroundColor: Colors.red),
-      );
+    // FIX: Updated validation to camelCase and added context.mounted check
+    if (_selectedFileMobile == null && _selectedFileWeb == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Debes subir tu Dictamen escaneado"), backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Llamamos al repositorio
+      // FIX: Updated activateAccount call to use camelCase parameters
       await context.read<AuthRepository>().activateAccount(
         docId: widget.docId,
         email: emailCtrl.text.trim(),
         password: passCtrl.text.trim(),
         phone: phoneCtrl.text.trim(),
         personalEmail: personalEmailCtrl.text.trim(),
-        dictamenFile: _selectedFile!,
+        dictamenFileName: _fileName!,
+        dictamenFileMobile: _selectedFileMobile,
+        dictamenFileWeb: _selectedFileWeb,
       );
 
       if (!mounted) return;
 
-      // ¡ÉXITO!
-      // Navegamos al Home y borramos todo el historial de login para que no pueda regresar
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
 
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      // Mostrar error amigable
       String message = e.toString().replaceAll("Exception: ", "");
       if (message.contains("email-already-in-use")) {
         message = "Este correo ya está registrado en otra cuenta.";
@@ -163,49 +167,17 @@ class _RegisterViewState extends State<RegisterView> {
             ),
             const SizedBox(height: 30),
 
-            // CAMPO NOMBRE (BLOQUEADO)
-            TextInputField(
-              label: "Nombre Completo",
-              controller: nameCtrl,
-              icon: Icons.person,
-              readOnly: true,
-            ),
+            TextInputField(label: "Nombre Completo", controller: nameCtrl, icon: Icons.person, readOnly: true),
             const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Correo Institucional",
-              controller: emailCtrl,
-              icon: Icons.school_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
+            TextInputField(label: "Correo Institucional", controller: emailCtrl, icon: Icons.school_outlined, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Correo Personal",
-              controller: personalEmailCtrl,
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
+            TextInputField(label: "Correo Personal", controller: personalEmailCtrl, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Teléfono Celular",
-              controller: phoneCtrl,
-              icon: Icons.phone_android_outlined,
-              keyboardType: TextInputType.phone,
-            ),
+            TextInputField(label: "Teléfono Celular", controller: phoneCtrl, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
-
-            TextInputField(
-              label: "Crear Contraseña",
-              controller: passCtrl,
-              icon: Icons.lock_outline,
-              obscureText: true,
-            ),
-
+            TextInputField(label: "Crear Contraseña", controller: passCtrl, icon: Icons.lock_outline, obscureText: true),
             const SizedBox(height: 24),
 
-            // SECCIÓN DICTAMEN
             const Align(
               alignment: Alignment.centerLeft,
               child: Text("Dictamen Escaneado (PDF/Foto)",
@@ -245,7 +217,6 @@ class _RegisterViewState extends State<RegisterView> {
 
             const SizedBox(height: 32),
 
-            // BOTÓN PRINCIPAL
             SizedBox(
               width: double.infinity,
               height: 56,
