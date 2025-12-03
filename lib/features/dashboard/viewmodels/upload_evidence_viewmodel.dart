@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/auth_repository.dart';
 
@@ -23,8 +22,8 @@ class UploadEvidenceViewModel extends ChangeNotifier {
   String? _errorMessage;
 
   // --- Platform-specific file data ---
-  File? _selectedFileMobile; // For mobile
-  Uint8List? _selectedFileWeb; // For web
+  File? _selectedFileMobile;
+  Uint8List? _selectedFileWeb;
 
   List<Map<String, dynamic>> _availableClasses = [];
   final List<String> months = [
@@ -121,8 +120,8 @@ class UploadEvidenceViewModel extends ChangeNotifier {
         materia: _selectedClassData!['subject'],
         mes: _selectedMonth!,
         fileName: _fileName!,
-        fileMobile: _selectedFileMobile,      // Pass the mobile file
-        fileWeb: _selectedFileWeb,          // Pass the web bytes
+        fileMobile: _selectedFileMobile,
+        fileWeb: _selectedFileWeb,
       );
       return true;
     } catch (e) {
