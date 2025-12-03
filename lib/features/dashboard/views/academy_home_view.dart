@@ -17,7 +17,7 @@ class AcademyHomeView extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          title: const Text("Asignación de Carga"),
+          title: const Text("Gestión Académica"), // Changed title for clarity
           automaticallyImplyLeading: false,
           actions: [
             IconButton(icon: const Icon(Icons.logout), onPressed: () async {
@@ -30,32 +30,54 @@ class AcademyHomeView extends StatelessWidget {
         ),
         body: Consumer<AcademyViewModel>(
           builder: (context, vm, child) {
-            if (vm.isLoading) return const Center(child: CircularProgressIndicator());
+            if (vm.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            if (vm.pendingStudents.isEmpty) {
+            if (vm.pendingStudents.isEmpty && vm.assignedStudents.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle_outline, size: 80, color: Colors.green.withValues(alpha: 0.5)),
+                    Icon(Icons.school_outlined, size: 80, color: Colors.grey.withOpacity(0.5)),
                     const SizedBox(height: 20),
-                    const Text("Sin pendientes", style: TextStyle(fontSize: 18, color: Colors.grey)),
-                    const Text("Todos los alumnos tienen carga académica."),
+                    const Text("No hay alumnos registrados", style: TextStyle(fontSize: 18, color: Colors.grey)),
+                    const Text("Los alumnos de la academia aparecerán aquí."),
                   ],
                 ),
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: vm.pendingStudents.length,
-              itemBuilder: (context, index) {
-                final student = vm.pendingStudents[index];
-                return _StudentCard(
-                  student: student,
-                  vm: vm, // Pasamos el VM para acceder a las listas
-                );
-              },
+            return RefreshIndicator(
+              onRefresh: vm.loadStudents, // Add pull-to-refresh
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // --- Section 1: Pending Students ---
+                  if (vm.pendingStudents.isNotEmpty) ...[
+                    const Text(
+                      "PENDIENTES DE ASIGNACIÓN",
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.bluePrimary),
+                    ),
+                    const SizedBox(height: 10),
+                    ...vm.pendingStudents.map((student) => _StudentCard(student: student, vm: vm)).toList(),
+                  ],
+
+                  // Spacer if both lists are visible
+                  if (vm.pendingStudents.isNotEmpty && vm.assignedStudents.isNotEmpty)
+                    const SizedBox(height: 24),
+
+                  // --- Section 2: Assigned Students ---
+                  if (vm.assignedStudents.isNotEmpty) ...[
+                    const Text(
+                      "ALUMNOS CON CARGA ACADÉMICA",
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                    const SizedBox(height: 10),
+                    ...vm.assignedStudents.map((student) => _AssignedStudentCard(student: student)).toList(),
+                  ]
+                ],
+              ),
             );
           },
         ),
@@ -64,7 +86,47 @@ class AcademyHomeView extends StatelessWidget {
   }
 }
 
-// Tarjeta del Alumno
+// --- Card for Assigned Students (New) ---
+class _AssignedStudentCard extends StatelessWidget {
+  final UserModel student;
+  const _AssignedStudentCard({required this.student});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      color: const Color(0xffe8f5e9), // A light green background
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Colors.green),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              backgroundColor: Colors.green,
+              child: Icon(Icons.check, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Tarjeta del Alumno (Unchanged)
 class _StudentCard extends StatelessWidget {
   final UserModel student;
   final AcademyViewModel vm;
@@ -136,7 +198,7 @@ class _StudentCard extends StatelessWidget {
   }
 }
 
-// --- EL FORMULARIO DE ASIGNACIÓN (Stateful para manejar sus inputs) ---
+// --- EL FORMULARIO DE ASIGNACIÓN (Unchanged) ---
 class _AssignmentForm extends StatefulWidget {
   final UserModel student;
   final AcademyViewModel vm;
