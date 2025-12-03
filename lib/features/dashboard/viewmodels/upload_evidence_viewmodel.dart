@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart'; // Import for kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,8 +23,8 @@ class UploadEvidenceViewModel extends ChangeNotifier {
   String? _errorMessage;
 
   // --- Platform-specific file data ---
-  File? _selectedFile_mobile; // For mobile
-  Uint8List? _selectedFile_web; // For web
+  File? _selectedFileMobile; // For mobile
+  Uint8List? _selectedFileWeb; // For web
 
   List<Map<String, dynamic>> _availableClasses = [];
   final List<String> months = [
@@ -85,7 +85,6 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- UPDATED FILE PICKER ---
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -95,23 +94,20 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     if (result != null) {
       _fileName = result.files.single.name;
       if (kIsWeb) {
-        // On Web, we get the bytes directly
-        _selectedFile_web = result.files.single.bytes;
-        _selectedFile_mobile = null;
+        _selectedFileWeb = result.files.single.bytes;
+        _selectedFileMobile = null;
       } else {
-        // On Mobile, we get the file path
-        _selectedFile_mobile = File(result.files.single.path!);
-        _selectedFile_web = null;
+        _selectedFileMobile = File(result.files.single.path!);
+        _selectedFileWeb = null;
       }
       notifyListeners();
     }
   }
 
-  // --- UPDATED UPLOAD METHOD ---
   Future<bool> uploadEvidence() async {
     _errorMessage = null;
 
-    if (_selectedClassData == null || _selectedMonth == null || (_selectedFile_mobile == null && _selectedFile_web == null)) {
+    if (_selectedClassData == null || _selectedMonth == null || (_selectedFileMobile == null && _selectedFileWeb == null)) {
       _errorMessage = "Por favor selecciona materia, mes y adjunta un archivo.";
       notifyListeners();
       return false;
@@ -125,18 +121,16 @@ class UploadEvidenceViewModel extends ChangeNotifier {
         materia: _selectedClassData!['subject'],
         mes: _selectedMonth!,
         fileName: _fileName!,
-        file_mobile: _selectedFile_mobile, // Pass the mobile file
-        file_web: _selectedFile_web,      // Pass the web bytes
+        fileMobile: _selectedFileMobile,      // Pass the mobile file
+        fileWeb: _selectedFileWeb,          // Pass the web bytes
       );
-
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
-      _isLoading = false;
       _errorMessage = e.toString().replaceAll("Exception: ", "");
-      notifyListeners();
       return false;
+    } finally {
+       _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -146,7 +140,7 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     _fileName = null;
     _errorMessage = null;
     _isLoading = false;
-    _selectedFile_mobile = null;
-    _selectedFile_web = null;
+    _selectedFileMobile = null;
+    _selectedFileWeb = null;
   }
 }

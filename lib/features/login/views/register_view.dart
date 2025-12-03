@@ -30,8 +30,9 @@ class _RegisterViewState extends State<RegisterView> {
 
   // --- UPDATED State for Web/Mobile file handling ---
   String? _fileName;
-  File? _selectedFile_mobile;
-  Uint8List? _selectedFile_web;
+  // FIX: Renamed to camelCase
+  File? _selectedFileMobile;
+  Uint8List? _selectedFileWeb;
   bool _isLoading = false;
 
   @override
@@ -65,11 +66,11 @@ class _RegisterViewState extends State<RegisterView> {
       setState(() {
         _fileName = result.files.single.name;
         if (kIsWeb) {
-          _selectedFile_web = result.files.single.bytes;
-          _selectedFile_mobile = null;
+          _selectedFileWeb = result.files.single.bytes;
+          _selectedFileMobile = null;
         } else {
-          _selectedFile_mobile = File(result.files.single.path!);
-          _selectedFile_web = null;
+          _selectedFileMobile = File(result.files.single.path!);
+          _selectedFileWeb = null;
         }
       });
     }
@@ -77,25 +78,30 @@ class _RegisterViewState extends State<RegisterView> {
 
   // --- UPDATED submission logic ---
   Future<void> _submitActivation() async {
+    // FIX: Added context.mounted check before showing snackbar
     if (emailCtrl.text.isEmpty || personalEmailCtrl.text.isEmpty || phoneCtrl.text.isEmpty || passCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor llena todos los campos"), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Por favor llena todos los campos"), backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 
-    // Updated validation
-    if (_selectedFile_mobile == null && _selectedFile_web == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Debes subir tu Dictamen escaneado"), backgroundColor: Colors.red),
-      );
+    // FIX: Updated validation to camelCase and added context.mounted check
+    if (_selectedFileMobile == null && _selectedFileWeb == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Debes subir tu Dictamen escaneado"), backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Updated activateAccount call to match the repository
+      // FIX: Updated activateAccount call to use camelCase parameters
       await context.read<AuthRepository>().activateAccount(
         docId: widget.docId,
         email: emailCtrl.text.trim(),
@@ -103,8 +109,8 @@ class _RegisterViewState extends State<RegisterView> {
         phone: phoneCtrl.text.trim(),
         personalEmail: personalEmailCtrl.text.trim(),
         dictamenFileName: _fileName!,
-        dictamenFile_mobile: _selectedFile_mobile,
-        dictamenFile_web: _selectedFile_web,
+        dictamenFileMobile: _selectedFileMobile,
+        dictamenFileWeb: _selectedFileWeb,
       );
 
       if (!mounted) return;

@@ -57,8 +57,9 @@ class AuthRepository {
     required String phone,
     required String personalEmail,
     required String dictamenFileName,
-    File? dictamenFile_mobile,
-    Uint8List? dictamenFile_web,
+    // FIX: Renamed to camelCase
+    File? dictamenFileMobile,
+    Uint8List? dictamenFileWeb,
   }) async {
     try {
       UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -68,11 +69,11 @@ class AuthRepository {
       Reference ref = _storage.ref().child('dictamenes/$uid.$fileExt');
 
       if (kIsWeb) {
-        if (dictamenFile_web == null) throw Exception("El archivo del dictamen es requerido para la web.");
-        await ref.putData(dictamenFile_web);
+        if (dictamenFileWeb == null) throw Exception("El archivo del dictamen es requerido para la web.");
+        await ref.putData(dictamenFileWeb);
       } else {
-        if (dictamenFile_mobile == null) throw Exception("El archivo del dictamen es requerido para móvil.");
-        await ref.putFile(dictamenFile_mobile);
+        if (dictamenFileMobile == null) throw Exception("El archivo del dictamen es requerido para móvil.");
+        await ref.putFile(dictamenFileMobile);
       }
       
       String downloadUrl = await ref.getDownloadURL();
@@ -112,8 +113,9 @@ class AuthRepository {
     required String materia,
     required String mes,
     required String fileName,
-    File? file_mobile,
-    Uint8List? file_web,
+    // FIX: Renamed to camelCase
+    File? fileMobile,
+    Uint8List? fileWeb,
   }) async {
     try {
       final userModel = await getCurrentUserData();
@@ -124,11 +126,11 @@ class AuthRepository {
       Reference ref = _storage.ref().child('evidencias/${userModel.id}/$mes/$uniqueFileName');
 
       if (kIsWeb) {
-        if (file_web == null) throw Exception("El archivo es requerido para la web.");
-        await ref.putData(file_web);
+        if (fileWeb == null) throw Exception("El archivo es requerido para la web.");
+        await ref.putData(fileWeb);
       } else {
-        if (file_mobile == null) throw Exception("El archivo es requerido para móvil.");
-        await ref.putFile(file_mobile);
+        if (fileMobile == null) throw Exception("El archivo es requerido para móvil.");
+        await ref.putFile(fileMobile);
       }
       
       String downloadUrl = await ref.getDownloadURL();

@@ -131,14 +131,17 @@ class StudentDetailView extends StatelessWidget {
     );
   }
 
-  // FIX: Removed the launch mode to let the browser handle it (opens in new tab)
   Future<void> _launchUrl(BuildContext context, String? urlString) async {
     if (urlString == null || urlString.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay un archivo para mostrar.')));
       return;
     }
-    if (!await launchUrl(Uri.parse(urlString))) {
-       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo abrir el enlace: $urlString')));
+    final uri = Uri.parse(urlString);
+    // FIX: Added context.mounted check
+    if (!await launchUrl(uri)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo abrir el enlace: $urlString')));
+      }
     }
   }
 }
@@ -163,7 +166,6 @@ class _EvidenceCard extends StatelessWidget {
         onTap: () {
           showDialog(
             context: context,
-            // Use a larger dialog for better viewing
             builder: (_) => Dialog.fullscreen(
               child: ChangeNotifierProvider.value(
                 value: context.read<StudentDetailViewModel>(),
@@ -188,7 +190,7 @@ class _EvidenceCard extends StatelessWidget {
   }
 }
 
-// --- NEW: Full-screen Review Screen (instead of small dialog) ---
+// --- Full-screen Review Screen ---
 class _ReviewScreen extends StatefulWidget {
   final EvidenceModel evidence;
   const _ReviewScreen({required this.evidence});
@@ -221,8 +223,9 @@ class _ReviewScreenState extends State<_ReviewScreen> {
       feedback: _feedbackController.text,
     );
 
-    if (mounted && success) {
-      Navigator.of(context).pop(); // Close the screen
+    // FIX: Added context.mounted check
+    if (context.mounted && success) {
+      Navigator.of(context).pop();
     }
   }
 
@@ -233,124 +236,70 @@ class _ReviewScreenState extends State<_ReviewScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Revisar: ${widget.evidence.fileName}"),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // --- Viewer ---
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: _isImage
-                    // If it's an image, display it
-                    ? InteractiveViewer(
-                        child: Image.network(
-                          widget.evidence.fileUrl,
-                          fit: BoxFit.contain,
-                           loadingBuilder: (context, child, progress) {
-                            return progress == null ? child : const Center(child: CircularProgressIndicator());
-                          },
-                        ),
-                      )
-                    // If it's not an image (PDF), show a button
-                    : Center(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.open_in_new),
-                          label: const Text("Abrir PDF en nueva pestaña"),
-                          onPressed: () async {
-                            if (!await launchUrl(Uri.parse(widget.evidence.fileUrl))) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace.')));
-                            }
-                          },
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // --- Review Actions ---
-            if (vm.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              _buildReviewActions(context),
-          ],
-        ),
+        child: Column(children: [
+          Expanded(child: Container(
+            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+            alignment: Alignment.center,
+            child: _isImage
+                ? InteractiveViewer(child: Image.network(widget.evidence.fileUrl, fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator())))
+                : Center(child: ElevatedButton.icon(
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text("Abrir PDF en nueva pestaña"),
+                    onPressed: () async {
+                      final uri = Uri.parse(widget.evidence.fileUrl);
+                      // FIX: Added context.mounted check
+                      if (!await launchUrl(uri)) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace.')));
+                        }
+                      }
+                    },
+                  ),),
+          )),
+          const SizedBox(height: 16),
+          if (vm.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            _buildReviewActions(context),
+        ]),
       ),
     );
   }
 
   Widget _buildReviewActions(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("¿La evidencia es correcta?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.close),
-                    label: const Text("Rechazar"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                    onPressed: () => _showFeedbackDialog(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.check),
-                    label: const Text("Aprobar"),
-                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    onPressed: () => _submitReview(context, true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    return Card(elevation: 4, child: Padding(padding: const EdgeInsets.all(16.0), child: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Text("¿La evidencia es correcta?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 16),
+      Row(children: [
+        Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.close), label: const Text("Rechazar"),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: () => _showFeedbackDialog(context))),
+        const SizedBox(width: 16),
+        Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.check), label: const Text("Aprobar"),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white), onPressed: () => _submitReview(context, true))),
+      ]),
+    ])));
   }
 
-  // --- Dialog to get feedback for rejection ---
   void _showFeedbackDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text("Motivo del Rechazo"),
-          content: TextField(
-            controller: _feedbackController,
-            decoration: const InputDecoration(labelText: "Escribe una breve explicación...", border: OutlineInputBorder()),
-            autofocus: true,
-            maxLines: 3,
-          ),
-          actions: [
-            TextButton(child: const Text("Cancelar"), onPressed: () => Navigator.of(dialogContext).pop()),
-            ElevatedButton(
-              child: const Text("Confirmar Rechazo"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(); // Close feedback dialog
-                _submitReview(context, false); // Submit with the feedback
-              },
-            ),
-          ],
-        );
-      },
-    );
+    showDialog(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text("Motivo del Rechazo"),
+      content: TextField(controller: _feedbackController, decoration: const InputDecoration(labelText: "Escribe una breve explicación...", border: OutlineInputBorder()), autofocus: true, maxLines: 3),
+      actions: [
+        TextButton(child: const Text("Cancelar"), onPressed: () => Navigator.of(dialogContext).pop()),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            _submitReview(context, false);
+          }, 
+          child: const Text("Confirmar Rechazo"),
+        ),
+      ],
+    ));
   }
 }

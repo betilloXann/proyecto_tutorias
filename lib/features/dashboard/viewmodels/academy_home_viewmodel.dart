@@ -9,14 +9,15 @@ class AcademyViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   List<UserModel> _pendingStudents = [];
-  List<UserModel> _assignedStudents = []; // This was missing
+  List<UserModel> _assignedStudents = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
-  List<UserModel> get assignedStudents => _assignedStudents; // This was missing
+  List<UserModel> get assignedStudents => _assignedStudents;
 
-  // Data for the assignment form
+  // --- DATOS PARA EL FORMULARIO ---
+  // En el futuro esto podría venir de una colección 'subjects' y 'professors' en Firebase
   final List<String> availableSubjects = [
     "Programación Orientada a Objetos",
     "Estructuras de Datos",
@@ -33,31 +34,36 @@ class AcademyViewModel extends ChangeNotifier {
   ];
 
   AcademyViewModel() {
-    loadStudents(); // Correct method name
+    loadStudents();
   }
 
-  // This method now loads both pending and assigned students
   Future<void> loadStudents() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Get pending students
+      // Obtenemos los alumnos pendientes
       final pendingSnapshot = await _db.collection('users')
           .where('role', isEqualTo: 'student')
           .where('academy', isEqualTo: currentAcademy)
           .where('status', isEqualTo: 'PENDIENTE_ASIGNACION')
           .get();
-      _pendingStudents = pendingSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
 
-      // Get assigned students
+      _pendingStudents = pendingSnapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
+          .toList();
+          
+      // Obtenemos los alumnos que ya tienen una materia asignada
       final assignedSnapshot = await _db.collection('users')
           .where('role', isEqualTo: 'student')
           .where('academy', isEqualTo: currentAcademy)
           .where('status', isEqualTo: 'EN_CURSO')
           .get();
-      _assignedStudents = assignedSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
+
+      _assignedStudents = assignedSnapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
+          .toList();
 
     } catch (e) {
       _errorMessage = "Error cargando alumnos: $e";
@@ -67,6 +73,7 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
+  // ESTA ES LA FUNCIÓN CLAVE (Ya la tenías, solo aseguramos que notifique)
   Future<bool> assignSubject({
     required String studentId,
     required String subjectName,
@@ -75,6 +82,7 @@ class AcademyViewModel extends ChangeNotifier {
     required String salon,
   }) async {
     try {
+      // 1. Crear el registro en 'enrollments'
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -86,9 +94,12 @@ class AcademyViewModel extends ChangeNotifier {
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
-      await _db.collection('users').doc(studentId).update({'status': 'EN_CURSO'});
+      // 2. Liberar al alumno (cambiar status global)
+      await _db.collection('users').doc(studentId).update({
+        'status': 'EN_CURSO',
+      });
 
-      // After assigning, reload both lists to update the UI
+      // Recargamos ambas listas para que la UI se actualice al momento.
       await loadStudents();
 
       return true;

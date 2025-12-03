@@ -25,8 +25,9 @@ class RegisterViewModel extends ChangeNotifier {
   final phoneController = TextEditingController();
   final personalEmailController = TextEditingController();
   String? _dictamenFileName;
-  File? _dictamenFile_mobile;
-  Uint8List? _dictamenFile_web;
+  // FIX: Renamed to camelCase
+  File? _dictamenFileMobile;
+  Uint8List? _dictamenFileWeb;
 
   // --- GETTERS ---
   int get currentStep => _currentStep;
@@ -72,11 +73,11 @@ class RegisterViewModel extends ChangeNotifier {
     if (result != null) {
       _dictamenFileName = result.files.single.name;
       if (kIsWeb) {
-        _dictamenFile_web = result.files.single.bytes;
-        _dictamenFile_mobile = null;
+        _dictamenFileWeb = result.files.single.bytes;
+        _dictamenFileMobile = null;
       } else {
-        _dictamenFile_mobile = File(result.files.single.path!);
-        _dictamenFile_web = null;
+        _dictamenFileMobile = File(result.files.single.path!);
+        _dictamenFileWeb = null;
       }
       notifyListeners();
     }
@@ -85,7 +86,7 @@ class RegisterViewModel extends ChangeNotifier {
   // STEP 1: Activate the account (Web & Mobile compatible)
   Future<bool> activateAccount() async {
     // Validation
-    if (emailController.text.isEmpty || passwordController.text.isEmpty || phoneController.text.isEmpty || personalEmailController.text.isEmpty || (_dictamenFile_mobile == null && _dictamenFile_web == null)) {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty || phoneController.text.isEmpty || personalEmailController.text.isEmpty || (_dictamenFileMobile == null && _dictamenFileWeb == null)) {
       _errorMessage = "Todos los campos, incluyendo el dictamen, son obligatorios.";
       notifyListeners();
       return false;
@@ -103,8 +104,8 @@ class RegisterViewModel extends ChangeNotifier {
         phone: phoneController.text.trim(),
         personalEmail: personalEmailController.text.trim(),
         dictamenFileName: _dictamenFileName!,
-        dictamenFile_mobile: _dictamenFile_mobile,
-        dictamenFile_web: _dictamenFile_web,
+        dictamenFileMobile: _dictamenFileMobile,
+        dictamenFileWeb: _dictamenFileWeb,
       );
       return true;
     } catch (e) {
