@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // Import for kIsWeb
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -17,10 +18,7 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // ---------------------------------------------------
-  // 1. LOGIN Y LOGOUT
-  // ---------------------------------------------------
-
+  // --- LOGIN & LOGOUT ---
   Future<User?> signIn({required String email, required String password}) async {
     try {
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -29,11 +27,8 @@ class AuthRepository {
       );
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw Exception('No se encontró usuario con ese correo.');
-      } else if (e.code == 'wrong-password') {
-        throw Exception('Contraseña incorrecta.');
-      }
+      if (e.code == 'user-not-found') throw Exception('No se encontró usuario con ese correo.');
+      if (e.code == 'wrong-password') throw Exception('Contraseña incorrecta.');
       throw Exception(e.message ?? 'Error de autenticación.');
     } catch (e) {
       throw Exception('Error desconocido: $e');
@@ -44,18 +39,10 @@ class AuthRepository {
     await _auth.signOut();
   }
 
-  // ---------------------------------------------------
-  // 2. ACTIVACIÓN (TU FLUJO DE ONBOARDING)
-  // ---------------------------------------------------
-
+  // --- ACCOUNT ACTIVATION ---
   Future<UserModel?> checkStudentStatus(String boleta) async {
     try {
-      final snapshot = await _db
-          .collection('users')
-          .where('boleta', isEqualTo: boleta)
-          .limit(1)
-          .get();
-
+      final snapshot = await _db.collection('users').where('boleta', isEqualTo: boleta).limit(1).get();
       if (snapshot.docs.isEmpty) return null;
       return UserModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
     } catch (e) {
@@ -69,23 +56,27 @@ class AuthRepository {
     required String password,
     required String phone,
     required String personalEmail,
-    required File dictamenFile,
+    required String dictamenFileName,
+    File? dictamenFile_mobile,
+    Uint8List? dictamenFile_web,
   }) async {
     try {
-      // A) Auth
-      UserCredential cred = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       String uid = cred.user!.uid;
 
-      // B) Storage
-      String fileExt = dictamenFile.path.split('.').last;
+      String fileExt = dictamenFileName.split('.').last;
       Reference ref = _storage.ref().child('dictamenes/$uid.$fileExt');
-      await ref.putFile(dictamenFile);
+
+      if (kIsWeb) {
+        if (dictamenFile_web == null) throw Exception("El archivo del dictamen es requerido para la web.");
+        await ref.putData(dictamenFile_web);
+      } else {
+        if (dictamenFile_mobile == null) throw Exception("El archivo del dictamen es requerido para móvil.");
+        await ref.putFile(dictamenFile_mobile);
+      }
+      
       String downloadUrl = await ref.getDownloadURL();
 
-      // C) Firestore
       await _db.collection('users').doc(docId).update({
         'uid': uid,
         'email_inst': email,
@@ -100,66 +91,80 @@ class AuthRepository {
     }
   }
 
-  // ---------------------------------------------------
-  // 3. OBTENER DATOS (ESTA ES LA QUE FALTABA)
-  // ---------------------------------------------------
+  // --- GET USER DATA ---
   Future<UserModel?> getCurrentUserData() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return null;
-
-      // Buscamos al usuario por su UID de Auth
-      final snapshot = await _db
-          .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-
+      final snapshot = await _db.collection('users').where('uid', isEqualTo: user.uid).limit(1).get();
       if (snapshot.docs.isNotEmpty) {
         return UserModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
       }
       return null;
     } catch (e) {
-      log("Error obteniendo datos", error: e);
+      log("Error obteniendo datos de usuario", error: e);
       return null;
     }
   }
 
-  // ---------------------------------------------------
-  // 4. SUBIR EVIDENCIA MENSUAL
-  // ---------------------------------------------------
+  // --- UPLOAD EVIDENCE (Web-Compatible) ---
   Future<void> uploadEvidence({
     required String materia,
     required String mes,
-    required File file,
+    required String fileName,
+    File? file_mobile,
+    Uint8List? file_web,
   }) async {
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception("No hay usuario logueado");
+      final userModel = await getCurrentUserData();
+      if (userModel == null) throw Exception("No se pudo identificar al usuario.");
 
-      // 1. Subir Archivo a Storage
-      // Ruta: evidencias/UID_DEL_ALUMNO/NOMBRE_MATERIA/mes_nombre.pdf
-      // Usamos Timestamp para que no se sobrescriban si sube 2 veces
-      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String fileExt = file.path.split('.').last;
+      String fileExt = fileName.split('.').last;
+      String uniqueFileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      Reference ref = _storage.ref().child('evidencias/${userModel.id}/$mes/$uniqueFileName');
 
-      Reference ref = _storage.ref().child('evidencias/${user.uid}/$timestamp.$fileExt');
-      await ref.putFile(file);
+      if (kIsWeb) {
+        if (file_web == null) throw Exception("El archivo es requerido para la web.");
+        await ref.putData(file_web);
+      } else {
+        if (file_mobile == null) throw Exception("El archivo es requerido para móvil.");
+        await ref.putFile(file_mobile);
+      }
+      
       String downloadUrl = await ref.getDownloadURL();
 
-      // 2. Guardar Registro en Firestore (Colección 'evidencias')
       await _db.collection('evidencias').add({
-        'uid': user.uid,
+        'uid': userModel.id,
         'materia': materia,
         'mes': mes,
+        'file_name': fileName,
         'file_url': downloadUrl,
-        'status': 'EN_REVISION', // Inicialmente está en revisión
-        'feedback': '',          // Retroalimentación vacía
-        'created_at': FieldValue.serverTimestamp(),
+        'status': 'EN_REVISION', // Default status
+        'feedback': '', // Default empty feedback
+        'uploaded_at': FieldValue.serverTimestamp(),
       });
 
     } catch (e) {
       throw Exception("Error al subir evidencia: $e");
+    }
+  }
+  
+  // --- NEW: REVIEW EVIDENCE ---
+  Future<void> reviewEvidence({
+    required String evidenceId,
+    required String newStatus, // e.g., 'APROBADA' or 'RECHAZADA'
+    String? feedback,
+  }) async {
+    try {
+      final dataToUpdate = {
+        'status': newStatus,
+        'feedback': feedback ?? '',
+      };
+
+      await _db.collection('evidencias').doc(evidenceId).update(dataToUpdate);
+
+    } catch (e) {
+      throw Exception("Error al revisar la evidencia: $e");
     }
   }
 }

@@ -1,79 +1,62 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart'; // Import for kIsWeb
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class UploadEvidenceViewModel extends ChangeNotifier {
   final AuthRepository _authRepo;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  //final FirebaseAuth _auth = FirebaseAuth.instance;
 
   UploadEvidenceViewModel({required AuthRepository authRepo}) : _authRepo = authRepo {
-    // Al iniciar, cargamos las materias reales del alumno
     _loadStudentClasses();
   }
 
-  // --- ESTADO ---
+  // --- STATE ---
   bool _isLoading = false;
-  bool _isLoadingClasses = true; // Nuevo estado para cargar materias
+  bool _isLoadingClasses = true;
 
-  // Guardamos el objeto completo de la clase (Materia + Profe)
   Map<String, dynamic>? _selectedClassData;
-
   String? _selectedMonth;
-  File? _selectedFile;
   String? _fileName;
   String? _errorMessage;
 
-  // Lista de materias traída de Firebase
-  List<Map<String, dynamic>> _availableClasses = [];
+  // --- Platform-specific file data ---
+  File? _selectedFile_mobile; // For mobile
+  Uint8List? _selectedFile_web; // For web
 
-  // Lista estática de meses
+  List<Map<String, dynamic>> _availableClasses = [];
   final List<String> months = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
-  // Getters
+  // --- GETTERS ---
   bool get isLoading => _isLoading;
   bool get isLoadingClasses => _isLoadingClasses;
   Map<String, dynamic>? get selectedClassData => _selectedClassData;
   String? get selectedMonth => _selectedMonth;
-  File? get selectedFile => _selectedFile;
   String? get fileName => _fileName;
   String? get errorMessage => _errorMessage;
   List<Map<String, dynamic>> get availableClasses => _availableClasses;
 
-  // --- MÉTODOS ---
+  // --- METHODS ---
 
-// 1. Cargar Materias Reales (Corregido)
   Future<void> _loadStudentClasses() async {
     _isLoadingClasses = true;
     notifyListeners();
-
     try {
-      // PASO CLAVE: Primero obtenemos el usuario completo para sacar su ID de documento
-      // (No usamos _auth.currentUser.uid directamente porque difiere de tu BD)
       final userModel = await _authRepo.getCurrentUserData();
-
       if (userModel == null) {
         _errorMessage = "No se pudo identificar al alumno";
         return;
       }
-
-      // Ahora buscamos usando userModel.id (El ID del documento, ej: 8Pd2VM4...)
       final snapshot = await _db
           .collection('enrollments')
           .where('uid', isEqualTo: userModel.id)
           .where('status', isEqualTo: 'EN_CURSO')
           .get();
-
-      if (snapshot.docs.isEmpty) {
-        // Opcional: Manejar caso vacío
-        //print("No se encontraron materias para el ID: ${userModel.id}");
-      }
 
       _availableClasses = snapshot.docs.map((doc) {
         final data = doc.data();
@@ -84,7 +67,6 @@ class UploadEvidenceViewModel extends ChangeNotifier {
           'display': "${data['subject']} \n(Prof. ${data['professor']})"
         };
       }).toList();
-
     } catch (e) {
       _errorMessage = "No se pudieron cargar las materias: $e";
     } finally {
@@ -103,6 +85,7 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- UPDATED FILE PICKER ---
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -110,16 +93,25 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     );
 
     if (result != null) {
-      _selectedFile = File(result.files.single.path!);
       _fileName = result.files.single.name;
+      if (kIsWeb) {
+        // On Web, we get the bytes directly
+        _selectedFile_web = result.files.single.bytes;
+        _selectedFile_mobile = null;
+      } else {
+        // On Mobile, we get the file path
+        _selectedFile_mobile = File(result.files.single.path!);
+        _selectedFile_web = null;
+      }
       notifyListeners();
     }
   }
 
+  // --- UPDATED UPLOAD METHOD ---
   Future<bool> uploadEvidence() async {
     _errorMessage = null;
 
-    if (_selectedClassData == null || _selectedMonth == null || _selectedFile == null) {
+    if (_selectedClassData == null || _selectedMonth == null || (_selectedFile_mobile == null && _selectedFile_web == null)) {
       _errorMessage = "Por favor selecciona materia, mes y adjunta un archivo.";
       notifyListeners();
       return false;
@@ -129,17 +121,17 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Usamos el repositorio, pasando la materia seleccionada
       await _authRepo.uploadEvidence(
-        materia: _selectedClassData!['subject'], // Mandamos solo el nombre de la materia
+        materia: _selectedClassData!['subject'],
         mes: _selectedMonth!,
-        file: _selectedFile!,
+        fileName: _fileName!,
+        file_mobile: _selectedFile_mobile, // Pass the mobile file
+        file_web: _selectedFile_web,      // Pass the web bytes
       );
 
       _isLoading = false;
       notifyListeners();
       return true;
-
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString().replaceAll("Exception: ", "");
@@ -151,9 +143,10 @@ class UploadEvidenceViewModel extends ChangeNotifier {
   void clear() {
     _selectedClassData = null;
     _selectedMonth = null;
-    _selectedFile = null;
     _fileName = null;
     _errorMessage = null;
     _isLoading = false;
+    _selectedFile_mobile = null;
+    _selectedFile_web = null;
   }
 }
