@@ -16,12 +16,13 @@ import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
 // --- Tu Repositorio ---
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
 
-// --- TUS VIEWMODELS (AQUÍ AGREGAS EL NUEVO) ---
+// --- TUS VIEWMODELS ---
 import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
-import 'package:proyecto_tutorias/features/dashboard/viewmodels/upload_evidence_viewmodel.dart'; // <--- 1. IMPORTA ESTO
+import 'package:proyecto_tutorias/features/dashboard/viewmodels/upload_evidence_viewmodel.dart';
+// 1. IMPORTA EL NUEVO VIEWMODEL DE RECUPERACIÓN:
+import 'package:proyecto_tutorias/features/login/viewmodels/forgot_password_viewmodel.dart';
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
@@ -43,14 +44,21 @@ void main() async {
           ),
         ),
 
-        // 3. Provider de SUBIR EVIDENCIA (¡NUEVO!)
+        // 3. Provider de SUBIR EVIDENCIA
         ChangeNotifierProvider<UploadEvidenceViewModel>(
           create: (context) => UploadEvidenceViewModel(
             authRepo: context.read<AuthRepository>(),
           ),
         ),
 
-        // 4. Stream del usuario actual (Para el AuthGate)
+        // 4. Provider de RECUPERAR CONTRASEÑA (¡NUEVO!)
+        ChangeNotifierProvider<ForgotPasswordViewModel>(
+          create: (context) => ForgotPasswordViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
+
+        // 5. Stream del usuario actual (Para el AuthGate)
         StreamProvider<User?>(
           create: (context) => context.read<AuthRepository>().authStateChanges,
           initialData: null,

@@ -169,4 +169,20 @@ class AuthRepository {
       throw Exception("Error al revisar la evidencia: $e");
     }
   }
+
+  // --- PASSWORD RECOVERY ---
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        throw Exception('No existe una cuenta con este correo.');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('El formato del correo no es válido.');
+      }
+      throw Exception(e.message ?? 'Error al enviar correo de recuperación.');
+    } catch (e) {
+      throw Exception('Error desconocido: $e');
+    }
+  }
 }
