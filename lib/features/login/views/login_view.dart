@@ -97,7 +97,7 @@ class _LoginViewState extends State<LoginView> {
             const SizedBox(height: 32),
 
             TextInputField(
-              label: "Correo Institucional",
+              label: "Correo Personal",
               controller: emailCtrl,
               focusNode: _emailFocusNode,
               icon: Icons.email_outlined,

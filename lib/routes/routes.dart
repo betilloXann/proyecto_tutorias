@@ -16,5 +16,4 @@ Map<String, WidgetBuilder> appRoutes = {
   "/recover": (_) => ForgotPasswordView(),
   "/new_password": (_) => const NewPasswordView(),
   "/home": (_) => const HomeMenuView(),
-  // "/register": NO AGREGAR ESTO AQUÍ, usaremos navegación manual.
 };
