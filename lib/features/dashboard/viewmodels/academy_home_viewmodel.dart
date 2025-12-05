@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/user_model.dart';
-import '../../../data/models/subject_model.dart'; // <-- Import SubjectModel
+import '../../../data/models/subject_model.dart';
 
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -11,15 +11,17 @@ class AcademyViewModel extends ChangeNotifier {
   String? _errorMessage;
   List<UserModel> _pendingStudents = [];
   List<UserModel> _assignedStudents = [];
-
-  // --- NEW: Load subjects from Firestore ---
+  List<UserModel> _accreditedStudents = []; // <-- NEW
+  List<UserModel> _notAccreditedStudents = []; // <-- NEW
   List<SubjectModel> _subjects = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
   List<UserModel> get assignedStudents => _assignedStudents;
-  List<SubjectModel> get subjects => _subjects; // Getter for the new list
+  List<UserModel> get accreditedStudents => _accreditedStudents; // <-- NEW
+  List<UserModel> get notAccreditedStudents => _notAccreditedStudents; // <-- NEW
+  List<SubjectModel> get subjects => _subjects;
 
   AcademyViewModel() {
     loadInitialData();
@@ -31,11 +33,7 @@ class AcademyViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Using Future.wait to load both simultaneously
-      await Future.wait([
-        _loadStudents(),
-        _loadSubjects(),
-      ]);
+      await Future.wait([_loadStudents(), _loadSubjects()]);
     } catch (e) {
       _errorMessage = "Error cargando datos: $e";
     } finally {
@@ -45,29 +43,41 @@ class AcademyViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadStudents() async {
-    final pendingSnapshot = await _db.collection('users')
+    final allStudentsSnapshot = await _db
+        .collection('users')
         .where('role', isEqualTo: 'student')
         .where('academy', isEqualTo: currentAcademy)
-        .where('status', isEqualTo: 'PENDIENTE_ASIGNACION')
         .get();
-    _pendingStudents = pendingSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
 
-    final assignedSnapshot = await _db.collection('users')
-        .where('role', isEqualTo: 'student')
-        .where('academy', isEqualTo: currentAcademy)
-        .where('status', isEqualTo: 'EN_CURSO')
-        .get();
-    _assignedStudents = assignedSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
+    // Clear lists before populating
+    _pendingStudents = [];
+    _assignedStudents = [];
+    _accreditedStudents = [];
+    _notAccreditedStudents = [];
+
+    for (var doc in allStudentsSnapshot.docs) {
+      final student = UserModel.fromMap(doc.data(), doc.id);
+      switch (student.status) {
+        case 'PENDIENTE_ASIGNACION':
+          _pendingStudents.add(student);
+          break;
+        case 'EN_CURSO':
+          _assignedStudents.add(student);
+          break;
+        case 'ACREDITADO':
+          _accreditedStudents.add(student);
+          break;
+        case 'NO_ACREDITADO':
+          _notAccreditedStudents.add(student);
+          break;
+      }
+    }
   }
 
   Future<void> _loadSubjects() async {
-    final snapshot = await _db
-        .collection('subjects')
-        .where('academy', isEqualTo: currentAcademy)
-        .get();
+    final snapshot = await _db.collection('subjects').where('academy', isEqualTo: currentAcademy).get();
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
   }
-
 
   Future<bool> assignSubject({
     required String studentId,
@@ -89,9 +99,7 @@ class AcademyViewModel extends ChangeNotifier {
       });
 
       await _db.collection('users').doc(studentId).update({'status': 'EN_CURSO'});
-
-      await loadInitialData(); // Reload all data
-
+      await loadInitialData();
       return true;
     } catch (e) {
       _errorMessage = "Error asignando: $e";

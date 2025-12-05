@@ -19,12 +19,12 @@ class StudentDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => StudentDetailViewModel(
+        initialStudent: student,
         studentId: student.id,
         authRepo: context.read<AuthRepository>(),
       ),
       child: Scaffold(
-        backgroundColor: AppTheme.baseLight,
-        appBar: AppBar(title: Text(student.name)),
+        appBar: AppBar(title: Consumer<StudentDetailViewModel>(builder: (context, vm, _) => Text(vm.student.name))),
         body: Consumer<StudentDetailViewModel>(
           builder: (context, vm, child) {
             if (vm.isLoading) {
@@ -39,7 +39,7 @@ class StudentDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStudentInfoCard(context, student),
+                  _buildStudentInfoCard(context, vm.student),
                   const SizedBox(height: 24),
                   _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
                   _buildEnrollmentsList(vm),
@@ -64,19 +64,20 @@ class StudentDetailView extends StatelessWidget {
   }
 
   Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
+    final bool isGraded = student.finalGrade != null;
+
     return Card(elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: Padding(padding: const EdgeInsets.all(16.0), child: Column(
       children: [
         _buildInfoRow(Icons.person_outline, "Nombre", student.name),
         _buildInfoRow(Icons.badge_outlined, "Boleta", student.boleta),
         _buildInfoRow(Icons.email_outlined, "Correo", student.email),
         _buildInfoRow(Icons.school_outlined, "Academia", student.academy),
-        _buildInfoRow(Icons.check_circle_outline, "Estatus", student.status, isStatus: true),
-        if (student.finalGrade != null) // Show final grade if it exists
-          _buildInfoRow(Icons.star, "Calificación Final", student.finalGrade.toString()),
+        _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
+        if (isGraded)
+          _buildInfoRow(Icons.star_border, "Calificación Final", student.finalGrade.toString()),
         
         const Divider(height: 20),
 
-        // --- Actions ---
         if (student.dictamenUrl != null) ...[
           SizedBox(
             width: double.infinity,
@@ -92,9 +93,12 @@ class StudentDetailView extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton.icon(
             icon: const Icon(Icons.grading_outlined, size: 18),
-            label: const Text("Asignar Calificación Final"),
+            label: Text(isGraded ? "Editar Calificación Final" : "Asignar Calificación Final"),
             onPressed: () => _showFinalGradeDialog(context, student),
-             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.blueDark, foregroundColor: Colors.white),
+             style: ElevatedButton.styleFrom(
+               backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
+               foregroundColor: Colors.white
+             ),
           ),
         ),
       ],
@@ -102,16 +106,29 @@ class StudentDetailView extends StatelessWidget {
   }
   
   Widget _buildInfoRow(IconData icon, String label, String value, {bool isStatus = false}) {
+    Color statusColor = Colors.orange;
+    IconData statusIcon = icon;
+
+    if (isStatus) {
+      if (value == 'ACREDITADO') {
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+      } else if (value == 'NO_ACREDITADO') {
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+      } else if (value == 'EN_CURSO'){
+        statusIcon = Icons.hourglass_top;
+      }
+    }
+
     return Padding(padding: const EdgeInsets.symmetric(vertical: 8.0), child: Row(children: [
-      Icon(icon, color: Colors.grey.shade600, size: 20),
+      Icon(statusIcon, color: isStatus ? statusColor : Colors.grey.shade600, size: 20),
       const SizedBox(width: 16),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(
-          color: isStatus
-              ? (value.contains('ACREDITADO') ? Colors.green : (value.contains('CURSO') ? Colors.orange : Colors.red)) 
-              : Colors.black54,
+          color: isStatus ? statusColor : Colors.black54,
           fontSize: 16,
           fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
         )),
@@ -159,7 +176,7 @@ class StudentDetailView extends StatelessWidget {
   }
 }
 
-// DIALOG FOR FINAL GRADE
+
 class _FinalGradeDialog extends StatefulWidget {
   final UserModel student;
   const _FinalGradeDialog({required this.student});
@@ -169,8 +186,15 @@ class _FinalGradeDialog extends StatefulWidget {
 }
 
 class _FinalGradeDialogState extends State<_FinalGradeDialog> {
-  final _gradeController = TextEditingController();
-  bool _isAccredited = true;
+  late final TextEditingController _gradeController;
+  late bool _isAccredited;
+
+  @override
+  void initState() {
+    super.initState();
+    _gradeController = TextEditingController(text: widget.student.finalGrade?.toString() ?? '');
+    _isAccredited = widget.student.status == 'ACREDITADO';
+  }
 
   @override
   void dispose() {
@@ -193,7 +217,7 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
           ),
           const SizedBox(height: 16),
           SwitchListTile(
-            title: Text(_isAccredited ? "ACREDITADO" : "NO ACREDITADO"),
+            title: Text(_isAccredited ? "ACREDITADO" : "NO ACREDITADO", style: TextStyle(color: _isAccredited ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
             value: _isAccredited,
             onChanged: (value) => setState(() => _isAccredited = value),
             activeColor: Colors.green,
@@ -221,8 +245,7 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
   }
 }
 
-
-// --- EVIDENCE WIDGETS (UNCHANGED) ---
+// --- EVIDENCE WIDGETS --- 
 
 class _EvidencePageView extends StatefulWidget {
   final Map<String, Map<String, List<EvidenceModel>>> groupedEvidences;
@@ -249,14 +272,34 @@ class _EvidencePageViewState extends State<_EvidencePageView> {
       children: [
         SizedBox(
           height: 400,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: subjects.length,
-            itemBuilder: (context, index) {
-              final subject = subjects[index].key;
-              final statuses = subjects[index].value;
-              return _buildSubjectCard(context, subject, statuses);
-            },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PageView.builder(
+                controller: _controller,
+                itemCount: subjects.length,
+                itemBuilder: (context, index) {
+                  final subject = subjects[index].key;
+                  final statuses = subjects[index].value;
+                  return _buildSubjectCard(context, subject, statuses);
+                },
+              ),
+              // --- Navigation Arrows for Desktop/Web ---
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  onPressed: () => _controller.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios_rounded),
+                  onPressed: () => _controller.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -266,7 +309,7 @@ class _EvidencePageViewState extends State<_EvidencePageView> {
           effect: const WormEffect(
             dotHeight: 8,
             dotWidth: 8,
-            activeDotColor: AppTheme.bluePrimary
+            activeDotColor: AppTheme.bluePrimary,
           ), 
         ),
       ],

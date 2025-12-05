@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/evidence_model.dart';
+import '../../../data/models/user_model.dart'; // Import UserModel
 import '../../../data/repositories/auth_repository.dart';
 
 class StudentDetailViewModel extends ChangeNotifier {
@@ -10,10 +11,13 @@ class StudentDetailViewModel extends ChangeNotifier {
 
   bool _isLoading = true;
   String? _errorMessage;
-  List<EnrollmentModel> _enrollments = [];
 
+  // --- STATE ---
+  late UserModel student; // It will hold the student's data
+  List<EnrollmentModel> _enrollments = [];
   Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
 
+  // --- GETTERS ---
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<EnrollmentModel> get enrollments => _enrollments;
@@ -21,8 +25,9 @@ class StudentDetailViewModel extends ChangeNotifier {
 
   final String studentId;
 
-  StudentDetailViewModel({required this.studentId, required AuthRepository authRepo})
-      : _authRepo = authRepo {
+  StudentDetailViewModel({required UserModel initialStudent, required this.studentId, required AuthRepository authRepo})
+      : student = initialStudent, // Initialize with the passed student
+        _authRepo = authRepo {
     loadStudentData();
   }
 
@@ -32,20 +37,20 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final enrollmentsSnapshot = await _db
-          .collection('enrollments')
-          .where('uid', isEqualTo: studentId)
-          .orderBy('assigned_at', descending: true)
-          .get();
-      _enrollments = enrollmentsSnapshot.docs
-          .map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id))
-          .toList();
+      // --- NEW: Reload the student's own data --- 
+      final studentDoc = await _db.collection('users').doc(studentId).get();
+      if (studentDoc.exists) {
+        student = UserModel.fromMap(studentDoc.data()!, studentDoc.id);
+      } else {
+        throw Exception("No se pudo encontrar al estudiante.");
+      }
 
-      final evidencesSnapshot = await _db
-          .collection('evidencias')
-          .where('uid', isEqualTo: studentId)
-          .get();
+      // Load enrollments
+      final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', isEqualTo: studentId).get();
+      _enrollments = enrollmentsSnapshot.docs.map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id)).toList();
 
+      // Load and group evidences
+      final evidencesSnapshot = await _db.collection('evidencias').where('uid', isEqualTo: studentId).get();
       _groupedEvidences.clear();
       for (var doc in evidencesSnapshot.docs) {
         final evidence = EvidenceModel.fromMap(doc.data(), doc.id);
@@ -58,15 +63,9 @@ class StudentDetailViewModel extends ChangeNotifier {
         });
 
         switch (evidence.status) {
-          case 'APROBADA':
-            _groupedEvidences[subject]!['approved']!.add(evidence);
-            break;
-          case 'RECHAZADA':
-            _groupedEvidences[subject]!['rejected']!.add(evidence);
-            break;
-          default:
-            _groupedEvidences[subject]!['pending']!.add(evidence);
-            break;
+          case 'APROBADA': _groupedEvidences[subject]!['approved']!.add(evidence); break;
+          case 'RECHAZADA': _groupedEvidences[subject]!['rejected']!.add(evidence); break;
+          default: _groupedEvidences[subject]!['pending']!.add(evidence); break;
         }
       }
 
@@ -88,11 +87,7 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _authRepo.reviewEvidence(
-        evidenceId: evidenceId,
-        newStatus: isApproved ? 'APROBADA' : 'RECHAZADA',
-        feedback: feedback,
-      );
+      await _authRepo.reviewEvidence(evidenceId: evidenceId, newStatus: isApproved ? 'APROBADA' : 'RECHAZADA', feedback: feedback);
       await loadStudentData();
       return true;
     } catch (e) {
@@ -103,25 +98,14 @@ class StudentDetailViewModel extends ChangeNotifier {
     }
   }
 
-  // --- NEW: Function to assign final grade ---
-  Future<bool> assignFinalGrade({
-    required double grade,
-    required bool isAccredited,
-  }) async {
+  Future<bool> assignFinalGrade({required double grade, required bool isAccredited}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authRepo.assignFinalGrade(
-        studentId: studentId,
-        finalGrade: grade,
-        finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO',
-      );
-      // No need to reload data, as this is a final action.
-      // We could navigate away or show a success message.
-      _isLoading = false;
-      notifyListeners();
+      await _authRepo.assignFinalGrade(studentId: studentId, finalGrade: grade, finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO');
+      await loadStudentData();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
