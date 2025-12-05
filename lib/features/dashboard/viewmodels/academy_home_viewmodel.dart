@@ -30,6 +30,7 @@ class AcademyViewModel extends ChangeNotifier {
   Future<void> loadInitialData() async {
     _isLoading = true;
     _errorMessage = null;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -108,3 +109,4 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 }
+

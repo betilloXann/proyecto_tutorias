@@ -56,7 +56,9 @@ class AcademyHomeView extends StatelessWidget {
         ),
         body: Consumer<AcademyViewModel>(
           builder: (context, vm, child) {
-            if (vm.isLoading) return const Center(child: CircularProgressIndicator());
+            if (vm.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
             bool allListsEmpty = vm.pendingStudents.isEmpty &&
                                  vm.assignedStudents.isEmpty &&
@@ -324,3 +326,4 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
   }
 }
+
