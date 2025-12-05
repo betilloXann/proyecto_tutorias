@@ -169,9 +169,9 @@ class _RegisterViewState extends State<RegisterView> {
 
             TextInputField(label: "Nombre Completo", controller: nameCtrl, icon: Icons.person, readOnly: true),
             const SizedBox(height: 16),
-            TextInputField(label: "Correo Institucional", controller: emailCtrl, icon: Icons.school_outlined, keyboardType: TextInputType.emailAddress),
+            TextInputField(label: "Correo Personal", controller: emailCtrl, icon: Icons.school_outlined, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
-            TextInputField(label: "Correo Personal", controller: personalEmailCtrl, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+            TextInputField(label: "Correo Institucional", controller: personalEmailCtrl, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
             TextInputField(label: "Teléfono Celular", controller: phoneCtrl, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
