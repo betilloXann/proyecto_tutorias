@@ -59,7 +59,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          title: Text("Academia ${currentUser.academy}"), 
+          title: Text("ACADEMIA ${currentUser.academy}"), 
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
