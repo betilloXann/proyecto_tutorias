@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/evidence_model.dart';
-import '../../../data/repositories/auth_repository.dart'; // Import AuthRepository
+import '../../../data/repositories/auth_repository.dart';
 
 class StudentDetailViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final AuthRepository _authRepo; // Add repository instance
+  final AuthRepository _authRepo;
 
   bool _isLoading = true;
   String? _errorMessage;
   List<EnrollmentModel> _enrollments = [];
-  List<EvidenceModel> _evidences = [];
+
+  Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<EnrollmentModel> get enrollments => _enrollments;
-  List<EvidenceModel> get evidences => _evidences;
+  Map<String, Map<String, List<EvidenceModel>>> get groupedEvidences => _groupedEvidences;
 
   final String studentId;
 
-  // Updated constructor to accept the repository
   StudentDetailViewModel({required this.studentId, required AuthRepository authRepo})
       : _authRepo = authRepo {
     loadStudentData();
@@ -44,11 +44,31 @@ class StudentDetailViewModel extends ChangeNotifier {
       final evidencesSnapshot = await _db
           .collection('evidencias')
           .where('uid', isEqualTo: studentId)
-          .orderBy('uploaded_at', descending: true)
           .get();
-      _evidences = evidencesSnapshot.docs
-          .map((doc) => EvidenceModel.fromMap(doc.data(), doc.id))
-          .toList();
+
+      _groupedEvidences.clear();
+      for (var doc in evidencesSnapshot.docs) {
+        final evidence = EvidenceModel.fromMap(doc.data(), doc.id);
+        final subject = evidence.subject;
+
+        _groupedEvidences.putIfAbsent(subject, () => {
+          'pending': [],
+          'approved': [],
+          'rejected': [],
+        });
+
+        switch (evidence.status) {
+          case 'APROBADA':
+            _groupedEvidences[subject]!['approved']!.add(evidence);
+            break;
+          case 'RECHAZADA':
+            _groupedEvidences[subject]!['rejected']!.add(evidence);
+            break;
+          default:
+            _groupedEvidences[subject]!['pending']!.add(evidence);
+            break;
+        }
+      }
 
     } catch (e) {
       _errorMessage = "Error cargando los datos del alumno: $e";
@@ -58,7 +78,6 @@ class StudentDetailViewModel extends ChangeNotifier {
     }
   }
 
-  // --- NEW: Method to review an evidence ---
   Future<bool> reviewEvidence({
     required String evidenceId,
     required bool isApproved,
@@ -74,7 +93,6 @@ class StudentDetailViewModel extends ChangeNotifier {
         newStatus: isApproved ? 'APROBADA' : 'RECHAZADA',
         feedback: feedback,
       );
-      // Reload data to reflect the change in the UI immediately
       await loadStudentData();
       return true;
     } catch (e) {

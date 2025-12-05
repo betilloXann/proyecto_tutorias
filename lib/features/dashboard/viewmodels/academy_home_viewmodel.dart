@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/subject_model.dart'; // <-- Import SubjectModel
 
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -11,69 +12,63 @@ class AcademyViewModel extends ChangeNotifier {
   List<UserModel> _pendingStudents = [];
   List<UserModel> _assignedStudents = [];
 
+  // --- NEW: Load subjects from Firestore ---
+  List<SubjectModel> _subjects = [];
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
   List<UserModel> get assignedStudents => _assignedStudents;
-
-  // --- DATOS PARA EL FORMULARIO ---
-  // En el futuro esto podría venir de una colección 'subjects' y 'professors' en Firebase
-  final List<String> availableSubjects = [
-    "Programación Orientada a Objetos",
-    "Estructuras de Datos",
-    "Calculo Diferencial",
-    "Ingeniería de Software",
-    "Base de Datos",
-  ];
-
-  final List<String> availableProfessors = [
-    "Prof. Alan Turing",
-    "Prof. Grace Hopper",
-    "Prof. John von Neumann",
-    "Prof. Ada Lovelace",
-  ];
+  List<SubjectModel> get subjects => _subjects; // Getter for the new list
 
   AcademyViewModel() {
-    loadStudents();
+    loadInitialData();
   }
 
-  Future<void> loadStudents() async {
+  Future<void> loadInitialData() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Obtenemos los alumnos pendientes
-      final pendingSnapshot = await _db.collection('users')
-          .where('role', isEqualTo: 'student')
-          .where('academy', isEqualTo: currentAcademy)
-          .where('status', isEqualTo: 'PENDIENTE_ASIGNACION')
-          .get();
-
-      _pendingStudents = pendingSnapshot.docs
-          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
-          .toList();
-          
-      // Obtenemos los alumnos que ya tienen una materia asignada
-      final assignedSnapshot = await _db.collection('users')
-          .where('role', isEqualTo: 'student')
-          .where('academy', isEqualTo: currentAcademy)
-          .where('status', isEqualTo: 'EN_CURSO')
-          .get();
-
-      _assignedStudents = assignedSnapshot.docs
-          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
-          .toList();
-
+      // Using Future.wait to load both simultaneously
+      await Future.wait([
+        _loadStudents(),
+        _loadSubjects(),
+      ]);
     } catch (e) {
-      _errorMessage = "Error cargando alumnos: $e";
+      _errorMessage = "Error cargando datos: $e";
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // ESTA ES LA FUNCIÓN CLAVE (Ya la tenías, solo aseguramos que notifique)
+  Future<void> _loadStudents() async {
+    final pendingSnapshot = await _db.collection('users')
+        .where('role', isEqualTo: 'student')
+        .where('academy', isEqualTo: currentAcademy)
+        .where('status', isEqualTo: 'PENDIENTE_ASIGNACION')
+        .get();
+    _pendingStudents = pendingSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
+
+    final assignedSnapshot = await _db.collection('users')
+        .where('role', isEqualTo: 'student')
+        .where('academy', isEqualTo: currentAcademy)
+        .where('status', isEqualTo: 'EN_CURSO')
+        .get();
+    _assignedStudents = assignedSnapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
+  }
+
+  Future<void> _loadSubjects() async {
+    final snapshot = await _db
+        .collection('subjects')
+        .where('academy', isEqualTo: currentAcademy)
+        .get();
+    _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+  }
+
+
   Future<bool> assignSubject({
     required String studentId,
     required String subjectName,
@@ -82,7 +77,6 @@ class AcademyViewModel extends ChangeNotifier {
     required String salon,
   }) async {
     try {
-      // 1. Crear el registro en 'enrollments'
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -94,13 +88,9 @@ class AcademyViewModel extends ChangeNotifier {
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
-      // 2. Liberar al alumno (cambiar status global)
-      await _db.collection('users').doc(studentId).update({
-        'status': 'EN_CURSO',
-      });
+      await _db.collection('users').doc(studentId).update({'status': 'EN_CURSO'});
 
-      // Recargamos ambas listas para que la UI se actualice al momento.
-      await loadStudents();
+      await loadInitialData(); // Reload all data
 
       return true;
     } catch (e) {

@@ -5,8 +5,9 @@ class EvidenceModel {
   final String fileName;
   final String fileUrl;
   final DateTime uploadedAt;
-  final String status; // e.g., 'EN_REVISION', 'APROBADA', 'RECHAZADA'
-  final String? feedback; // Reason for rejection
+  final String status;
+  final String? feedback;
+  final String subject; // <-- RESTORED
 
   EvidenceModel({
     required this.id,
@@ -14,6 +15,7 @@ class EvidenceModel {
     required this.fileUrl,
     required this.uploadedAt,
     required this.status,
+    required this.subject, // <-- RESTORED
     this.feedback,
   });
 
@@ -23,8 +25,9 @@ class EvidenceModel {
       fileName: data['file_name'] ?? 'Nombre de archivo no disponible',
       fileUrl: data['file_url'] ?? '',
       uploadedAt: (data['uploaded_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      status: data['status'] ?? 'EN_REVISION', // Default to 'EN_REVISION'
+      status: data['status'] ?? 'EN_REVISION',
       feedback: data['feedback'],
+      subject: data['materia'] ?? 'Materia Desconocida', // <-- RESTORED
     );
   }
 }
