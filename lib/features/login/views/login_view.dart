@@ -82,7 +82,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pushNamed(context, "/welcome"),
           ),
         ),
       ),
