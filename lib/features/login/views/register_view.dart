@@ -147,7 +147,7 @@ class _RegisterViewState extends State<RegisterView> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         child: Column(
           children: [
             SvgPicture.asset("assets/images/logo.svg", height: 80),
