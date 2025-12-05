@@ -160,7 +160,8 @@ class StudentDetailView extends StatelessWidget {
       return;
     }
     final uri = Uri.parse(urlString);
-    if (context.mounted && !await launchUrl(uri)) {
+    final launched = await launchUrl(uri);
+    if (context.mounted && !launched) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo abrir el enlace: $urlString')));
     }
   }
@@ -220,7 +221,7 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
             title: Text(_isAccredited ? "ACREDITADO" : "NO ACREDITADO", style: TextStyle(color: _isAccredited ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
             value: _isAccredited,
             onChanged: (value) => setState(() => _isAccredited = value),
-            activeColor: Colors.green,
+            activeTrackColor: Colors.green,
           ),
         ],
       ),
@@ -234,7 +235,8 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
               return;
             }
             final success = await vm.assignFinalGrade(grade: grade, isAccredited: _isAccredited);
-            if (mounted && success) {
+            if (!mounted) return;
+            if (success) {
               Navigator.of(context).pop();
             }
           },
@@ -421,9 +423,11 @@ class _ReviewScreenState extends State<_ReviewScreen> {
     final vm = context.read<StudentDetailViewModel>();
     
     if (!isApproved && _feedbackController.text.isEmpty) {
-      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("El motivo del rechazo es obligatorio."), backgroundColor: Colors.red),
-      );
+      if(context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("El motivo del rechazo es obligatorio."), backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 

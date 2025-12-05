@@ -47,8 +47,8 @@ class AcademyHomeView extends StatelessWidget {
               onPressed: () => _navigateToSubjectManagement(context),
             ),
             IconButton(icon: const Icon(Icons.logout), onPressed: () async {
+              await menuViewModel.logout();
               if (context.mounted) {
-                await menuViewModel.logout();
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
               }
             })
@@ -258,8 +258,11 @@ class _AssignmentFormState extends State<_AssignmentForm> {
       salon: _salonCtrl.text,
     );
 
-    if (mounted && success) Navigator.pop(context);
-    else if(mounted) setState(() => _isSaving = false);
+    if (mounted && success){ 
+    Navigator.pop(context);
+    } else if(mounted) {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -276,8 +279,10 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 20),
           
           DropdownButtonFormField<SubjectModel>(
+            key: ValueKey(_selectedSubject), 
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            value: _selectedSubject,
+            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue' (issue: deprecated_member_use)
+            initialValue: _selectedSubject,
             items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
@@ -288,8 +293,10 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 15),
 
           DropdownButtonFormField<ProfessorModel>(
+            key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
-            value: _selectedProfessor,
+            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue'
+            initialValue: _selectedProfessor,
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() => _selectedProfessor = val),
           ),

@@ -15,8 +15,7 @@ class StudentDetailViewModel extends ChangeNotifier {
   // --- STATE ---
   late UserModel student; // It will hold the student's data
   List<EnrollmentModel> _enrollments = [];
-  Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
-
+final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
   // --- GETTERS ---
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
