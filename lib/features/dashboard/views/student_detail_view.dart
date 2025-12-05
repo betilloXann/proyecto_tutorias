@@ -116,7 +116,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             _buildInfoRow(Icons.person_outline, "Nombre", student.name),
             _buildInfoRow(Icons.badge_outlined, "Boleta", student.boleta),
             _buildInfoRow(Icons.email_outlined, "Correo", student.email),
-            _buildInfoRow(Icons.school_outlined, "Academia", student.academy),
+            _buildInfoRow(Icons.school_outlined, "Academias", student.academies.join(", ")),
             _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
             if (isGraded)
               _buildInfoRow(Icons.star_border, "Calificación Final", student.finalGrade.toString()),

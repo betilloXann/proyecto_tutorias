@@ -5,7 +5,7 @@ class UserModel {
   final String email;
   final String status;
   final String role;
-  final String academy;
+  final List<String> academies;
   final String? dictamenUrl;
   final double? finalGrade; // <-- ADDED
 
@@ -16,7 +16,7 @@ class UserModel {
     required this.email,
     required this.status,
     required this.role,
-    required this.academy,
+    required this.academies,
     this.dictamenUrl,
     this.finalGrade,
   });
@@ -29,7 +29,7 @@ class UserModel {
       email: map['email_inst'] ?? 'No especificado',
       status: map['status'] ?? 'PRE_REGISTRO',
       role: map['role'] ?? 'student',
-      academy: map['academy'] ?? 'N/A',
+      academies: List<String>.from(map['academies'] ?? []),
       dictamenUrl: map['dictamen_url'],
       finalGrade: (map['final_grade'] as num?)?.toDouble(), // <-- ADDED
     );

@@ -54,12 +54,13 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
     }
 
     return ChangeNotifierProvider(
-      // Pasamos la academia del usuario al ViewModel
-      create: (_) => AcademyViewModel(currentAcademy: currentUser.academy),
-      child: Scaffold(
-        backgroundColor: AppTheme.baseLight,
-        appBar: AppBar(
-          title: Text("ACADEMIA ${currentUser.academy}"), 
+          // Pasamos la academia del usuario al ViewModel
+    create: (_) => AcademyViewModel(myAcademies: currentUser.academies),
+          child: Scaffold(
+            backgroundColor: AppTheme.baseLight,
+            appBar: AppBar(
+              // Título dinámico: Si tiene 2, muestra "SISTEMAS, ROBOTICA"
+              title: Text("Academia: ${currentUser.academies.join(', ')}"),
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
@@ -93,8 +94,8 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
                       const SizedBox(height: 100),
                       const Center(child: Text("No hay alumnos registrados en esta academia.")),
                       const SizedBox(height: 20),
-                      Center(child: Text("Buscando en: ${vm.currentAcademy}", style: const TextStyle(color: Colors.grey, fontSize: 12))),
-                    ]
+                      Center(child: Text("Buscando en: ${vm.myAcademies.join(', ')}", style: const TextStyle(color: Colors.grey, fontSize: 12))),                    
+                      ]
                   ),
               );
             }

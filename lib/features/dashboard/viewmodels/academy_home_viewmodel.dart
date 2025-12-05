@@ -6,8 +6,8 @@ import '../../../data/models/subject_model.dart';
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   
-  // 1. CAMBIO: Hacemos que esta variable sea 'final' y sin valor fijo
-  final String currentAcademy; 
+  // 1. CAMBIO: Ahora recibimos una LISTA de academias
+  final List<String> myAcademies; 
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -25,12 +25,19 @@ class AcademyViewModel extends ChangeNotifier {
   List<UserModel> get notAccreditedStudents => _notAccreditedStudents;
   List<SubjectModel> get subjects => _subjects;
 
-  // 2. CAMBIO: El constructor ahora exige recibir el nombre de la academia
-  AcademyViewModel({required this.currentAcademy}) {
+  // 2. CAMBIO: Constructor recibe la lista
+  AcademyViewModel({required this.myAcademies}) {
     loadInitialData();
   }
 
   Future<void> loadInitialData() async {
+    // Validación de seguridad por si la lista viene vacía
+    if (myAcademies.isEmpty) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -46,11 +53,12 @@ class AcademyViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadStudents() async {
-    // 3. CAMBIO: La consulta usa 'currentAcademy' que viene del login
+    // 3. CAMBIO: 'arrayContainsAny' busca coincidencia entre dos listas
+    // Trae alumnos cuya lista 'academies' contenga AL MENOS UNA de 'myAcademies'
     final allStudentsSnapshot = await _db
         .collection('users')
         .where('role', isEqualTo: 'student')
-        .where('academy', isEqualTo: currentAcademy)
+        .where('academies', arrayContainsAny: myAcademies) 
         .get();
 
     _pendingStudents = [];
@@ -60,9 +68,8 @@ class AcademyViewModel extends ChangeNotifier {
 
     for (var doc in allStudentsSnapshot.docs) {
       final student = UserModel.fromMap(doc.data(), doc.id);
-      
       switch (student.status) {
-        case 'PRE_REGISTRO': 
+        case 'PRE_REGISTRO':
         case 'PENDIENTE_ASIGNACION':
           _pendingStudents.add(student);
           break;
@@ -80,7 +87,12 @@ class AcademyViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadSubjects() async {
-    final snapshot = await _db.collection('subjects').where('academy', isEqualTo: currentAcademy).get();
+    // 4. CAMBIO: 'whereIn' busca materias cuya 'academy' (String) esté en mi lista
+    final snapshot = await _db
+        .collection('subjects')
+        .where('academy', whereIn: myAcademies)
+        .get();
+        
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
   }
 
@@ -92,6 +104,10 @@ class AcademyViewModel extends ChangeNotifier {
     required String salon,
   }) async {
     try {
+      // Nota: Aquí podrías necesitar lógica extra para decidir a qué academia
+      // se asigna si el jefe tiene varias. Por defecto tomamos la primera.
+      final targetAcademy = myAcademies.isNotEmpty ? myAcademies.first : 'SISTEMAS';
+
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -99,7 +115,7 @@ class AcademyViewModel extends ChangeNotifier {
         'schedule': schedule,
         'salon': salon,
         'status': 'EN_CURSO',
-        'academy': currentAcademy,
+        'academy': targetAcademy, // Se guarda la academia principal
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
