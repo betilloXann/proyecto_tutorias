@@ -52,22 +52,44 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadStudents() async {
-    // 3. CAMBIO: 'arrayContainsAny' busca coincidencia entre dos listas
-    // Trae alumnos cuya lista 'academies' contenga AL MENOS UNA de 'myAcademies'
-    final allStudentsSnapshot = await _db
+Future<void> _loadStudents() async {
+    // 1. Buscar por el campo NUEVO (lista)
+    final query1 = _db
         .collection('users')
         .where('role', isEqualTo: 'student')
-        .where('academies', arrayContainsAny: myAcademies) 
+        .where('academies', arrayContainsAny: myAcademies)
         .get();
+
+    // 2. Buscar por el campo VIEJO (texto) - Solo si myAcademies no está vacía
+    // Nota: Esto buscará coincidencias con cada academia de tu lista
+    final query2Futures = myAcademies.map((academy) => 
+      _db.collection('users')
+         .where('role', isEqualTo: 'student')
+         .where('academy', isEqualTo: academy)
+         .get()
+    );
+
+    // Ejecutamos todo en paralelo
+    final results = await Future.wait([query1, ...query2Futures]);
+    
+    // Usamos un Set para evitar duplicados (por si un alumno tiene ambos campos)
+    final uniqueDocs = <String, DocumentSnapshot>{};
+    
+    for (var snapshot in results) {
+      for (var doc in snapshot.docs) {
+        uniqueDocs[doc.id] = doc;
+      }
+    }
 
     _pendingStudents = [];
     _assignedStudents = [];
     _accreditedStudents = [];
     _notAccreditedStudents = [];
 
-    for (var doc in allStudentsSnapshot.docs) {
-      final student = UserModel.fromMap(doc.data(), doc.id);
+    // Procesamos la lista única de documentos
+    for (var doc in uniqueDocs.values) {
+      final student = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      
       switch (student.status) {
         case 'PRE_REGISTRO':
         case 'PENDIENTE_ASIGNACION':
