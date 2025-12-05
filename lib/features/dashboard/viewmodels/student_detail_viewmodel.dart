@@ -102,4 +102,32 @@ class StudentDetailViewModel extends ChangeNotifier {
       return false;
     }
   }
+
+  // --- NEW: Function to assign final grade ---
+  Future<bool> assignFinalGrade({
+    required double grade,
+    required bool isAccredited,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authRepo.assignFinalGrade(
+        studentId: studentId,
+        finalGrade: grade,
+        finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO',
+      );
+      // No need to reload data, as this is a final action.
+      // We could navigate away or show a success message.
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }

@@ -71,18 +71,32 @@ class StudentDetailView extends StatelessWidget {
         _buildInfoRow(Icons.email_outlined, "Correo", student.email),
         _buildInfoRow(Icons.school_outlined, "Academia", student.academy),
         _buildInfoRow(Icons.check_circle_outline, "Estatus", student.status, isStatus: true),
+        if (student.finalGrade != null) // Show final grade if it exists
+          _buildInfoRow(Icons.star, "Calificación Final", student.finalGrade.toString()),
+        
+        const Divider(height: 20),
+
+        // --- Actions ---
         if (student.dictamenUrl != null) ...[
-          const Divider(height: 20),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.picture_as_pdf_outlined),
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
               label: const Text("Ver Dictamen"),
               onPressed: () => _launchUrl(context, student.dictamenUrl),
               style: OutlinedButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
             ),
           ),
-        ]
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.grading_outlined, size: 18),
+            label: const Text("Asignar Calificación Final"),
+            onPressed: () => _showFinalGradeDialog(context, student),
+             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.blueDark, foregroundColor: Colors.white),
+          ),
+        ),
       ],
     )));
   }
@@ -94,7 +108,13 @@ class StudentDetailView extends StatelessWidget {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
         const SizedBox(height: 2),
-        Text(value, style: TextStyle(color: isStatus ? (value == 'EN_CURSO' ? Colors.green : Colors.orange) : Colors.black54, fontSize: 16)),
+        Text(value, style: TextStyle(
+          color: isStatus
+              ? (value.contains('ACREDITADO') ? Colors.green : (value.contains('CURSO') ? Colors.orange : Colors.red)) 
+              : Colors.black54,
+          fontSize: 16,
+          fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
+        )),
       ])),
     ]));
   }
@@ -127,7 +147,82 @@ class StudentDetailView extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo abrir el enlace: $urlString')));
     }
   }
+
+  void _showFinalGradeDialog(BuildContext context, UserModel student) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => ChangeNotifierProvider.value(
+        value: context.read<StudentDetailViewModel>(),
+        child: _FinalGradeDialog(student: student),
+      ),
+    );
+  }
 }
+
+// DIALOG FOR FINAL GRADE
+class _FinalGradeDialog extends StatefulWidget {
+  final UserModel student;
+  const _FinalGradeDialog({required this.student});
+
+  @override
+  State<_FinalGradeDialog> createState() => _FinalGradeDialogState();
+}
+
+class _FinalGradeDialogState extends State<_FinalGradeDialog> {
+  final _gradeController = TextEditingController();
+  bool _isAccredited = true;
+
+  @override
+  void dispose() {
+    _gradeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.read<StudentDetailViewModel>();
+    return AlertDialog(
+      title: const Text("Asignar Calificación Final"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _gradeController,
+            decoration: const InputDecoration(labelText: "Calificación (0-10)", border: OutlineInputBorder()),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: Text(_isAccredited ? "ACREDITADO" : "NO ACREDITADO"),
+            value: _isAccredited,
+            onChanged: (value) => setState(() => _isAccredited = value),
+            activeColor: Colors.green,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancelar")),
+        ElevatedButton(
+          onPressed: () async {
+            final grade = double.tryParse(_gradeController.text);
+            if (grade == null) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, introduce una calificación válida.")));
+              return;
+            }
+            final success = await vm.assignFinalGrade(grade: grade, isAccredited: _isAccredited);
+            if (mounted && success) {
+              Navigator.of(context).pop();
+            }
+          },
+          child: const Text("Guardar"),
+        ),
+      ],
+    );
+  }
+}
+
+
+// --- EVIDENCE WIDGETS (UNCHANGED) ---
 
 class _EvidencePageView extends StatefulWidget {
   final Map<String, Map<String, List<EvidenceModel>>> groupedEvidences;

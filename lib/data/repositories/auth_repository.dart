@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart'; // Import for kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -18,13 +18,9 @@ class AuthRepository {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // --- LOGIN & LOGOUT ---
   Future<User?> signIn({required String email, required String password}) async {
     try {
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(email: email, password: password);
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') throw Exception('No se encontró usuario con ese correo.');
@@ -39,7 +35,6 @@ class AuthRepository {
     await _auth.signOut();
   }
 
-  // --- ACCOUNT ACTIVATION ---
   Future<UserModel?> checkStudentStatus(String boleta) async {
     try {
       final snapshot = await _db.collection('users').where('boleta', isEqualTo: boleta).limit(1).get();
@@ -57,7 +52,6 @@ class AuthRepository {
     required String phone,
     required String personalEmail,
     required String dictamenFileName,
-    // FIX: Renamed to camelCase
     File? dictamenFileMobile,
     Uint8List? dictamenFileWeb,
   }) async {
@@ -92,7 +86,6 @@ class AuthRepository {
     }
   }
 
-  // --- GET USER DATA ---
   Future<UserModel?> getCurrentUserData() async {
     try {
       final user = _auth.currentUser;
@@ -108,12 +101,10 @@ class AuthRepository {
     }
   }
 
-  // --- UPLOAD EVIDENCE (Web-Compatible) ---
   Future<void> uploadEvidence({
     required String materia,
     required String mes,
     required String fileName,
-    // FIX: Renamed to camelCase
     File? fileMobile,
     Uint8List? fileWeb,
   }) async {
@@ -141,8 +132,8 @@ class AuthRepository {
         'mes': mes,
         'file_name': fileName,
         'file_url': downloadUrl,
-        'status': 'EN_REVISION', // Default status
-        'feedback': '', // Default empty feedback
+        'status': 'EN_REVISION',
+        'feedback': '',
         'uploaded_at': FieldValue.serverTimestamp(),
       });
 
@@ -151,35 +142,43 @@ class AuthRepository {
     }
   }
   
-  // --- NEW: REVIEW EVIDENCE ---
   Future<void> reviewEvidence({
     required String evidenceId,
-    required String newStatus, // e.g., 'APROBADA' or 'RECHAZADA'
+    required String newStatus,
     String? feedback,
   }) async {
     try {
-      final dataToUpdate = {
+      await _db.collection('evidencias').doc(evidenceId).update({
         'status': newStatus,
         'feedback': feedback ?? '',
-      };
-
-      await _db.collection('evidencias').doc(evidenceId).update(dataToUpdate);
-
+      });
     } catch (e) {
       throw Exception("Error al revisar la evidencia: $e");
     }
   }
 
-  // --- PASSWORD RECOVERY ---
+  // --- NEW: Function to assign final grade and status ---
+  Future<void> assignFinalGrade({
+    required String studentId,
+    required double finalGrade,
+    required String finalStatus, // 'ACREDITADO' or 'NO_ACREDITADO'
+  }) async {
+    try {
+      await _db.collection('users').doc(studentId).update({
+        'status': finalStatus,
+        'final_grade': finalGrade,
+      });
+    } catch (e) {
+      throw Exception("Error al asignar la calificación final: $e");
+    }
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw Exception('No existe una cuenta con este correo.');
-      } else if (e.code == 'invalid-email') {
-        throw Exception('El formato del correo no es válido.');
-      }
+      if (e.code == 'user-not-found') throw Exception('No existe una cuenta con este correo.');
+      if (e.code == 'invalid-email') throw Exception('El formato del correo no es válido.');
       throw Exception(e.message ?? 'Error al enviar correo de recuperación.');
     } catch (e) {
       throw Exception('Error desconocido: $e');

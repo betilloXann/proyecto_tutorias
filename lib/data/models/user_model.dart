@@ -6,7 +6,8 @@ class UserModel {
   final String status;
   final String role;
   final String academy;
-  final String? dictamenUrl; // <-- Added this field
+  final String? dictamenUrl;
+  final double? finalGrade; // <-- ADDED
 
   UserModel({
     required this.id,
@@ -17,6 +18,7 @@ class UserModel {
     required this.role,
     required this.academy,
     this.dictamenUrl,
+    this.finalGrade,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
@@ -28,7 +30,8 @@ class UserModel {
       status: map['status'] ?? 'PRE_REGISTRO',
       role: map['role'] ?? 'student',
       academy: map['academy'] ?? 'N/A',
-      dictamenUrl: map['dictamen_url'], // <-- Reads from Firestore
+      dictamenUrl: map['dictamen_url'],
+      finalGrade: (map['final_grade'] as num?)?.toDouble(), // <-- ADDED
     );
   }
 }
