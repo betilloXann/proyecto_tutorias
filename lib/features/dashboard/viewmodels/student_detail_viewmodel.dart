@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/evidence_model.dart';
-import '../../../data/models/user_model.dart'; // Import UserModel
+import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class StudentDetailViewModel extends ChangeNotifier {
@@ -13,9 +13,10 @@ class StudentDetailViewModel extends ChangeNotifier {
   String? _errorMessage;
 
   // --- STATE ---
-  late UserModel student; // It will hold the student's data
+  late UserModel student;
   List<EnrollmentModel> _enrollments = [];
-final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
+  final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
+
   // --- GETTERS ---
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -24,9 +25,12 @@ final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
 
   final String studentId;
 
-  StudentDetailViewModel({required UserModel initialStudent, required this.studentId, required AuthRepository authRepo})
-      : student = initialStudent, // Initialize with the passed student
-        _authRepo = authRepo {
+  StudentDetailViewModel({
+    required UserModel initialStudent, 
+    required this.studentId, 
+    required AuthRepository authRepo
+  }) : student = initialStudent,
+       _authRepo = authRepo {
     loadStudentData();
   }
 
@@ -36,7 +40,6 @@ final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
     notifyListeners();
 
     try {
-      // --- NEW: Reload the student's own data --- 
       final studentDoc = await _db.collection('users').doc(studentId).get();
       if (studentDoc.exists) {
         student = UserModel.fromMap(studentDoc.data()!, studentDoc.id);
@@ -44,11 +47,9 @@ final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
         throw Exception("No se pudo encontrar al estudiante.");
       }
 
-      // Load enrollments
       final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', isEqualTo: studentId).get();
       _enrollments = enrollmentsSnapshot.docs.map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id)).toList();
 
-      // Load and group evidences
       final evidencesSnapshot = await _db.collection('evidencias').where('uid', isEqualTo: studentId).get();
       _groupedEvidences.clear();
       for (var doc in evidencesSnapshot.docs) {
@@ -76,41 +77,66 @@ final Map<String, Map<String, List<EvidenceModel>>> _groupedEvidences = {};
     }
   }
 
-  Future<bool> reviewEvidence({
+  /// Retorna null si es exitoso, o un String con el error si falla o no valida.
+  Future<String?> reviewEvidence({
     required String evidenceId,
     required bool isApproved,
     String? feedback,
   }) async {
+    // 1. Lógica de validación en el ViewModel (MVVM puro)
+    if (!isApproved && (feedback == null || feedback.trim().isEmpty)) {
+      return "El motivo del rechazo es obligatorio.";
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authRepo.reviewEvidence(evidenceId: evidenceId, newStatus: isApproved ? 'APROBADA' : 'RECHAZADA', feedback: feedback);
+      await _authRepo.reviewEvidence(
+        evidenceId: evidenceId, 
+        newStatus: isApproved ? 'APROBADA' : 'RECHAZADA', 
+        feedback: feedback
+      );
       await loadStudentData();
-      return true;
+      return null; // Éxito
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return e.toString(); // Retornamos el error para que la UI sepa
     }
   }
 
-  Future<bool> assignFinalGrade({required double grade, required bool isAccredited}) async {
+  /// Retorna null si es exitoso, o un String con el error.
+  /// Recibe el String crudo del input para validar aquí.
+  Future<String?> assignFinalGrade({
+    required String gradeInput, 
+    required bool isAccredited
+  }) async {
+    // 1. Validación de negocio
+    final grade = double.tryParse(gradeInput);
+    if (grade == null || grade < 0 || grade > 10) {
+      return "Por favor, introduce una calificación válida (0-10).";
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _authRepo.assignFinalGrade(studentId: studentId, finalGrade: grade, finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO');
+      await _authRepo.assignFinalGrade(
+        studentId: studentId, 
+        finalGrade: grade, 
+        finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
+      );
       await loadStudentData();
-      return true;
+      return null; // Éxito
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return e.toString();
     }
   }
 }
