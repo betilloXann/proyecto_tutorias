@@ -5,31 +5,33 @@ import '../../../data/models/subject_model.dart';
 
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String currentAcademy = 'SISTEMAS';
+  
+  // 1. CAMBIO: Hacemos que esta variable sea 'final' y sin valor fijo
+  final String currentAcademy; 
 
   bool _isLoading = true;
   String? _errorMessage;
   List<UserModel> _pendingStudents = [];
   List<UserModel> _assignedStudents = [];
-  List<UserModel> _accreditedStudents = []; // <-- NEW
-  List<UserModel> _notAccreditedStudents = []; // <-- NEW
+  List<UserModel> _accreditedStudents = [];
+  List<UserModel> _notAccreditedStudents = [];
   List<SubjectModel> _subjects = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
   List<UserModel> get assignedStudents => _assignedStudents;
-  List<UserModel> get accreditedStudents => _accreditedStudents; // <-- NEW
-  List<UserModel> get notAccreditedStudents => _notAccreditedStudents; // <-- NEW
+  List<UserModel> get accreditedStudents => _accreditedStudents;
+  List<UserModel> get notAccreditedStudents => _notAccreditedStudents;
   List<SubjectModel> get subjects => _subjects;
 
-  AcademyViewModel() {
+  // 2. CAMBIO: El constructor ahora exige recibir el nombre de la academia
+  AcademyViewModel({required this.currentAcademy}) {
     loadInitialData();
   }
 
   Future<void> loadInitialData() async {
     _isLoading = true;
-    _errorMessage = null;
     _errorMessage = null;
     notifyListeners();
 
@@ -44,13 +46,13 @@ class AcademyViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadStudents() async {
+    // 3. CAMBIO: La consulta usa 'currentAcademy' que viene del login
     final allStudentsSnapshot = await _db
         .collection('users')
         .where('role', isEqualTo: 'student')
         .where('academy', isEqualTo: currentAcademy)
         .get();
 
-    // Clear lists before populating
     _pendingStudents = [];
     _assignedStudents = [];
     _accreditedStudents = [];
@@ -58,7 +60,9 @@ class AcademyViewModel extends ChangeNotifier {
 
     for (var doc in allStudentsSnapshot.docs) {
       final student = UserModel.fromMap(doc.data(), doc.id);
+      
       switch (student.status) {
+        case 'PRE_REGISTRO': 
         case 'PENDIENTE_ASIGNACION':
           _pendingStudents.add(student);
           break;
@@ -109,4 +113,3 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 }
-

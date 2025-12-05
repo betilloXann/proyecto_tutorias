@@ -6,24 +6,36 @@ import '../../../theme/theme.dart';
 import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
-import 'student_detail_view.dart';
 import 'subject_management_view.dart';
 
-class AcademyHomeView extends StatelessWidget {
+// IMPORTANTE: Esta importación conecta con tu otro archivo.
+// Asegúrate de que ambos archivos estén en la misma carpeta 'views'.
+import 'student_detail_view.dart'; 
+
+class AcademyHomeView extends StatefulWidget {
   const AcademyHomeView({super.key});
 
-  // --- UPDATED: Now it's async and calls a refresh on the vm ---
-  void _navigateToDetail(BuildContext context, UserModel student, AcademyViewModel vm) async {
-    // Wait for the detail page to be closed
+  @override
+  State<AcademyHomeView> createState() => _AcademyHomeViewState();
+}
+
+class _AcademyHomeViewState extends State<AcademyHomeView> {
+  
+  // Convertimos la navegación en una función asíncrona segura
+  Future<void> _navigateToDetail(UserModel student, AcademyViewModel vm) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
     );
-    // After returning, refresh the data on this screen
+    
+    // Verificación de seguridad: Si la pantalla ya no existe, no hacemos nada.
+    if (!mounted) return;
+    
+    // Si sigue activa, recargamos los datos.
     vm.loadInitialData();
   }
 
-  void _navigateToSubjectManagement(BuildContext context) {
+  void _navigateToSubjectManagement() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SubjectManagementView()),
@@ -32,33 +44,41 @@ class AcademyHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchamos el usuario actual (solo lectura, no redibujamos todo por esto)
+    final currentUser = context.select<HomeMenuViewModel, UserModel?>((vm) => vm.currentUser);
     final menuViewModel = context.read<HomeMenuViewModel>();
 
+    // Prevención de error si el usuario aún no carga
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return ChangeNotifierProvider(
-      create: (_) => AcademyViewModel(),
+      // Pasamos la academia del usuario al ViewModel
+      create: (_) => AcademyViewModel(currentAcademy: currentUser.academy),
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          title: const Text("Gestión Académica"),
+          title: Text("Academia ${currentUser.academy}"), 
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
               tooltip: "Gestionar Materias",
-              onPressed: () => _navigateToSubjectManagement(context),
+              onPressed: _navigateToSubjectManagement,
             ),
-            IconButton(icon: const Icon(Icons.logout), onPressed: () async {
-              await menuViewModel.logout();
-              if (context.mounted) {
+            IconButton(
+              icon: const Icon(Icons.logout), 
+              onPressed: () async {
+                await menuViewModel.logout();
+                if (!mounted) return;
                 Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
               }
-            })
+            )
           ],
         ),
         body: Consumer<AcademyViewModel>(
           builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            if (vm.isLoading) return const Center(child: CircularProgressIndicator());
 
             bool allListsEmpty = vm.pendingStudents.isEmpty &&
                                  vm.assignedStudents.isEmpty &&
@@ -66,10 +86,17 @@ class AcademyHomeView extends StatelessWidget {
                                  vm.notAccreditedStudents.isEmpty;
 
             if (allListsEmpty) {
-              return Center(child: RefreshIndicator(
+              return RefreshIndicator(
                   onRefresh: vm.loadInitialData,
-                  child: ListView(children: const [Center(child: Text("No hay alumnos para mostrar."))]),
-              ));
+                  child: ListView(
+                    children: [
+                      const SizedBox(height: 100),
+                      const Center(child: Text("No hay alumnos registrados en esta academia.")),
+                      const SizedBox(height: 20),
+                      Center(child: Text("Buscando en: ${vm.currentAcademy}", style: const TextStyle(color: Colors.grey, fontSize: 12))),
+                    ]
+                  ),
+              );
             }
 
             return RefreshIndicator(
@@ -77,11 +104,11 @@ class AcademyHomeView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Pass the vm to the navigation method
-                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), context, vm),
-                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), context, vm),
-                  _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), context, vm),
-                  _buildSection("HISTORIAL DE NO ACREDITADOS", vm.notAccreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: false), context, vm),
+                  // Pasamos 'vm' para poder recargar la lista al volver del detalle
+                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), vm),
+                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), vm),
+                  _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), vm),
+                  _buildSection("HISTORIAL DE NO ACREDITADOS", vm.notAccreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: false), vm),
                 ],
               ),
             );
@@ -91,7 +118,7 @@ class AcademyHomeView extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, List<UserModel> students, Widget Function(UserModel) cardBuilder, BuildContext context, AcademyViewModel vm) {
+  Widget _buildSection(String title, List<UserModel> students, Widget Function(UserModel) cardBuilder, AcademyViewModel vm) {
     if (students.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +127,10 @@ class AcademyHomeView extends StatelessWidget {
           padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
           child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _getTitleColor(title))),
         ),
-        ...students.map((student) => GestureDetector(onTap: () => _navigateToDetail(context, student, vm), child: cardBuilder(student))),
+        ...students.map((student) => GestureDetector(
+          onTap: () => _navigateToDetail(student, vm), 
+          child: cardBuilder(student)
+        )),
       ],
     );
   }
@@ -112,7 +142,7 @@ class AcademyHomeView extends StatelessWidget {
   }
 }
 
-// --- WIDGETS (UNCHANGED) ---
+// --- WIDGETS AUXILIARES (Sin cambios lógicos, solo visuales) ---
 
 class _FinishedStudentCard extends StatelessWidget {
   final UserModel student;
@@ -176,7 +206,8 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<AcademyViewModel>();
+    // Usamos read porque solo necesitamos el VM para pasar al formulario, no escuchamos cambios aquí
+    final vm = context.read<AcademyViewModel>(); 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -261,7 +292,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
 
     if (mounted && success){ 
-    Navigator.pop(context);
+      Navigator.pop(context);
     } else if(mounted) {
       setState(() => _isSaving = false);
     }
@@ -283,7 +314,6 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject), 
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue' (issue: deprecated_member_use)
             initialValue: _selectedSubject,
             items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
@@ -297,7 +327,6 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           DropdownButtonFormField<ProfessorModel>(
             key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
-            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue'
             initialValue: _selectedProfessor,
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() => _selectedProfessor = val),
@@ -326,4 +355,3 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
   }
 }
-
