@@ -1,12 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../data/models/professor_model.dart';
+import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
+import 'student_detail_view.dart';
+import 'subject_management_view.dart';
 
 class AcademyHomeView extends StatelessWidget {
   const AcademyHomeView({super.key});
+
+  // --- UPDATED: Now it's async and calls a refresh on the vm ---
+  void _navigateToDetail(BuildContext context, UserModel student, AcademyViewModel vm) async {
+    // Wait for the detail page to be closed
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
+    );
+    // After returning, refresh the data on this screen
+    vm.loadInitialData();
+  }
+
+  void _navigateToSubjectManagement(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SubjectManagementView()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,8 +40,12 @@ class AcademyHomeView extends StatelessWidget {
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
           title: const Text("Gestión Académica"),
-          automaticallyImplyLeading: false,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.ballot_outlined),
+              tooltip: "Gestionar Materias",
+              onPressed: () => _navigateToSubjectManagement(context),
+            ),
             IconButton(icon: const Icon(Icons.logout), onPressed: () async {
               await menuViewModel.logout();
               if (context.mounted) {
@@ -34,51 +60,28 @@ class AcademyHomeView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (vm.pendingStudents.isEmpty && vm.assignedStudents.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // FIX 1: Replaced deprecated withOpacity
-                    Icon(Icons.school_outlined, size: 80, color: Colors.grey.withAlpha(128)),
-                    const SizedBox(height: 20),
-                    const Text("No hay alumnos registrados", style: TextStyle(fontSize: 18, color: Colors.grey)),
-                    const Text("Los alumnos de la academia aparecerán aquí."),
-                  ],
-                ),
-              );
+            bool allListsEmpty = vm.pendingStudents.isEmpty &&
+                                 vm.assignedStudents.isEmpty &&
+                                 vm.accreditedStudents.isEmpty &&
+                                 vm.notAccreditedStudents.isEmpty;
+
+            if (allListsEmpty) {
+              return Center(child: RefreshIndicator(
+                  onRefresh: vm.loadInitialData,
+                  child: ListView(children: const [Center(child: Text("No hay alumnos para mostrar."))]),
+              ));
             }
 
             return RefreshIndicator(
-              onRefresh: vm.loadStudents, // Add pull-to-refresh
+              onRefresh: vm.loadInitialData,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // --- Section 1: Pending Students ---
-                  if (vm.pendingStudents.isNotEmpty) ...[
-                    const Text(
-                      "PENDIENTES DE ASIGNACIÓN",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.bluePrimary),
-                    ),
-                    const SizedBox(height: 10),
-                    // FIX 2: Removed unnecessary .toList()
-                    ...vm.pendingStudents.map((student) => _StudentCard(student: student, vm: vm)),
-                  ],
-
-                  // Spacer if both lists are visible
-                  if (vm.pendingStudents.isNotEmpty && vm.assignedStudents.isNotEmpty)
-                    const SizedBox(height: 24),
-
-                  // --- Section 2: Assigned Students ---
-                  if (vm.assignedStudents.isNotEmpty) ...[
-                    const Text(
-                      "ALUMNOS CON CARGA ACADÉMICA",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
-                    ),
-                    const SizedBox(height: 10),
-                    // FIX 3: Removed unnecessary .toList()
-                    ...vm.assignedStudents.map((student) => _AssignedStudentCard(student: student)),
-                  ]
+                  // Pass the vm to the navigation method
+                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), context, vm),
+                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), context, vm),
+                  _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), context, vm),
+                  _buildSection("HISTORIAL DE NO ACREDITADOS", vm.notAccreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: false), context, vm),
                 ],
               ),
             );
@@ -87,9 +90,59 @@ class AcademyHomeView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildSection(String title, List<UserModel> students, Widget Function(UserModel) cardBuilder, BuildContext context, AcademyViewModel vm) {
+    if (students.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+          child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _getTitleColor(title))),
+        ),
+        ...students.map((student) => GestureDetector(onTap: () => _navigateToDetail(context, student, vm), child: cardBuilder(student))),
+      ],
+    );
+  }
+
+  Color _getTitleColor(String title) {
+    if (title.contains("PENDIENTES")) return AppTheme.bluePrimary;
+    if (title.contains("CARGA ACADÉMICA")) return Colors.green;
+    return Colors.grey.shade700;
+  }
 }
 
-// --- Card for Assigned Students (New) ---
+// --- WIDGETS (UNCHANGED) ---
+
+class _FinishedStudentCard extends StatelessWidget {
+  final UserModel student;
+  final bool isAccredited;
+
+  const _FinishedStudentCard({required this.student, required this.isAccredited});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      color: isAccredited ? Colors.green.withAlpha(25) : Colors.red.withAlpha(25),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: isAccredited ? Colors.green.withAlpha(100) : Colors.red.withAlpha(100))),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(children: [
+          CircleAvatar(backgroundColor: isAccredited ? Colors.green : Colors.red, child: Icon(isAccredited ? Icons.check_circle_outline : Icons.cancel_outlined, color: Colors.white, size: 20)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
+          ])),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ]),
+      ),
+    );
+  }
+}
+
 class _AssignedStudentCard extends StatelessWidget {
   final UserModel student;
   const _AssignedStudentCard({required this.student});
@@ -97,116 +150,81 @@ class _AssignedStudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      color: const Color(0xffe8f5e9), // A light green background
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Colors.green),
-      ),
+      color: const Color(0xffe8f5e9),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.green)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              backgroundColor: Colors.green,
-              child: Icon(Icons.check, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: Row(children: [
+          const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white, size: 20)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
+          ])),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ]),
       ),
     );
   }
 }
 
-// Tarjeta del Alumno (Unchanged)
 class _StudentCard extends StatelessWidget {
   final UserModel student;
-  final AcademyViewModel vm;
-
-  const _StudentCard({required this.student, required this.vm});
+  const _StudentCard({required this.student});
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.read<AcademyViewModel>();
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppTheme.blueSoft,
-                  child: Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-                    ],
+      child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(children: [
+            CircleAvatar(backgroundColor: AppTheme.blueSoft, child: Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold))),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
+            ])),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ]),
+        ),
+        const Divider(height: 1, indent: 16, endIndent: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+          child: TextButton.icon(
+            icon: const Icon(Icons.add_circle_outline, size: 18),
+            label: const Text("Asignar Materia"),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                builder: (_) => ChangeNotifierProvider.value(
+                  value: vm,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                    child: _AssignmentForm(student: student),
                   ),
                 ),
-              ],
-            ),
-            const Divider(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text("Asignar Materia"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.basePure,
-                  foregroundColor: AppTheme.bluePrimary,
-                  elevation: 0,
-                  side: const BorderSide(color: AppTheme.bluePrimary),
-                ),
-                onPressed: () {
-                  // Abrimos el Formulario
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true, // Importante para que el teclado no tape
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(20))
-                    ),
-                    builder: (context) => Padding(
-                      padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom // Ajuste teclado
-                      ),
-                      child: _AssignmentForm(student: student, vm: vm),
-                    ),
-                  );
-                },
-              ),
-            )
-          ],
-        ),
-      ),
+              );
+            },
+          ),
+        )
+      ]),
     );
   }
 }
 
-// --- EL FORMULARIO DE ASIGNACIÓN (Unchanged) ---
 class _AssignmentForm extends StatefulWidget {
   final UserModel student;
-  final AcademyViewModel vm;
-
-  const _AssignmentForm({required this.student, required this.vm});
+  const _AssignmentForm({required this.student});
 
   @override
   State<_AssignmentForm> createState() => _AssignmentFormState();
@@ -215,9 +233,8 @@ class _AssignmentForm extends StatefulWidget {
 class _AssignmentFormState extends State<_AssignmentForm> {
   final _scheduleCtrl = TextEditingController();
   final _salonCtrl = TextEditingController();
-
-  String? _selectedSubject;
-  String? _selectedProfessor;
+  SubjectModel? _selectedSubject;
+  ProfessorModel? _selectedProfessor;
   bool _isSaving = false;
 
   @override
@@ -228,36 +245,32 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   }
 
   void _submit() async {
+    final vm = context.read<AcademyViewModel>();
     if (_selectedSubject == null || _selectedProfessor == null || _scheduleCtrl.text.isEmpty || _salonCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Todos los campos son obligatorios")));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Todos los campos son obligatorios")));
       return;
     }
 
     setState(() => _isSaving = true);
-
-    // Llamamos al ViewModel
-    final success = await widget.vm.assignSubject(
+    final success = await vm.assignSubject(
       studentId: widget.student.id,
-      subjectName: _selectedSubject!,
-      professorName: _selectedProfessor!,
+      subjectName: _selectedSubject!.name,
+      professorName: _selectedProfessor!.name,
       schedule: _scheduleCtrl.text,
       salon: _salonCtrl.text,
     );
 
-    if (mounted) {
+    if (mounted && success){ 
+    Navigator.pop(context);
+    } else if(mounted) {
       setState(() => _isSaving = false);
-      if (success) {
-        Navigator.pop(context); // Cerramos el modal
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Materia asignada a ${widget.student.name}"), backgroundColor: Colors.green)
-        );
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final vm = context.watch<AcademyViewModel>();
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -266,71 +279,51 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           Text("Asignar Carga Académica", style: Theme.of(context).textTheme.titleLarge),
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
-
-          // 1. Dropdown Materia
-          DropdownButtonFormField<String>(
-            initialValue: _selectedSubject,
+          
+          DropdownButtonFormField<SubjectModel>(
+            key: ValueKey(_selectedSubject), 
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            items: widget.vm.availableSubjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-            onChanged: (val) => setState(() => _selectedSubject = val),
+            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue' (issue: deprecated_member_use)
+            initialValue: _selectedSubject,
+            items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+            onChanged: (val) => setState(() {
+              _selectedSubject = val;
+              _selectedProfessor = null;
+              _scheduleCtrl.text = val?.professors.first.schedule ?? '';
+            }),
           ),
           const SizedBox(height: 15),
 
-          // 2. Dropdown Profesor
-          DropdownButtonFormField<String>(
-            initialValue: _selectedProfessor,
+          DropdownButtonFormField<ProfessorModel>(
+            key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
-            items: widget.vm.availableProfessors.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue'
+            initialValue: _selectedProfessor,
+            items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() => _selectedProfessor = val),
           ),
           const SizedBox(height: 15),
 
-          // 3. Horario y Salón (En fila)
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _scheduleCtrl,
-                  decoration: const InputDecoration(
-                      labelText: "Horario",
-                      hintText: "Ej. Lun-Mie 7-9",
-                      border: OutlineInputBorder()
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _salonCtrl,
-                  decoration: const InputDecoration(
-                      labelText: "Salón",
-                      hintText: "Ej. A-04",
-                      border: OutlineInputBorder()
-                  ),
-                ),
-              ),
-            ],
-          ),
-
+          Row(children: [
+            Expanded(child: TextField(controller: _scheduleCtrl, decoration: const InputDecoration(labelText: "Horario", hintText: "Ej. Lun-Mie 7-9", border: OutlineInputBorder()))),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: _salonCtrl, decoration: const InputDecoration(labelText: "Salón", hintText: "Ej. A-04", border: OutlineInputBorder()))),
+          ]),
           const SizedBox(height: 25),
-
-          // Botón Guardar
           SizedBox(
             width: double.infinity,
             height: 50,
             child: _isSaving
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.bluePrimary,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _submit,
-              child: const Text("Guardar Asignación"),
-            ),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
+                    onPressed: _submit,
+                    child: const Text("Guardar Asignación"),
+                  ),
           )
         ],
       ),
     );
   }
 }
+

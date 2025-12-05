@@ -1,28 +1,34 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class EnrollmentModel {
   final String id;
-  final String studentUid;
   final String subject;
   final String professor;
   final String schedule;
   final String salon;
+  final String status;
+  final DateTime assignedAt;
 
   EnrollmentModel({
     required this.id,
-    required this.studentUid,
     required this.subject,
     required this.professor,
     required this.schedule,
     required this.salon,
+    required this.status,
+    required this.assignedAt,
   });
 
-  factory EnrollmentModel.fromMap(Map<String, dynamic> map, String docId) {
+  // Factory constructor to create an instance from a Firestore document
+  factory EnrollmentModel.fromMap(Map<String, dynamic> data, String documentId) {
     return EnrollmentModel(
-      id: docId,
-      studentUid: map['uid'] ?? '',
-      subject: map['subject'] ?? 'Materia desconocida',
-      professor: map['professor'] ?? 'Por asignar',
-      schedule: map['schedule'] ?? 'Por definir',
-      salon: map['salon'] ?? 'Sin asignar',
+      id: documentId,
+      subject: data['subject'] ?? 'N/A',
+      professor: data['professor'] ?? 'N/A',
+      schedule: data['schedule'] ?? 'N/A',
+      salon: data['salon'] ?? 'N/A',
+      status: data['status'] ?? 'N/A',
+      assignedAt: (data['assigned_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

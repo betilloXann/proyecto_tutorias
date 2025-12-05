@@ -6,7 +6,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../viewmodels/student_lookup_viewmodel.dart';
-import 'register_view.dart'; // <--- 1. DESCOMENTA ESTO
+import 'register_view.dart';
 
 class StudentLookupView extends StatefulWidget {
   const StudentLookupView({super.key});
@@ -29,6 +29,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
     return ChangeNotifierProvider(
       create: (context) => StudentLookupViewModel(context.read<AuthRepository>()),
       child: Scaffold(
+        backgroundColor: const Color(0xFFE6EEF8), // Asegúrate de tener el color de fondo aquí si lo usas
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -39,85 +40,90 @@ class _StudentLookupViewState extends State<StudentLookupView> {
         ),
         body: Consumer<StudentLookupViewModel>(
           builder: (context, viewModel, child) {
-            return Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  SvgPicture.asset("assets/images/logo.svg", height: 100),
-                  const SizedBox(height: 30),
-                  const Text(
-                    "Validación de Estudiante",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2F5A93),
+            // 1. AÑADIDO: Center para centrar el contenido en Web/Tablets
+            return Center(
+              // 2. AÑADIDO: SingleChildScrollView para permitir scroll cuando sale el teclado
+              child: SingleChildScrollView(
+                // Movemos el padding aquí para que sea parte del scroll
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical extra
+                  children: [
+                    // Puedes quitar este SizedBox si usas Center, o dejarlo si quieres más aire arriba
+                    // const SizedBox(height: 40),
+
+                    SvgPicture.asset("assets/images/logo.svg", height: 100),
+                    const SizedBox(height: 30),
+                    const Text(
+                      "Validación de Estudiante",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2F5A93),
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Ingresa tu número de boleta para verificar que estás en el sistema.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Ingresa tu número de boleta para verificar que estás en el sistema.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
 
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 40),
 
-                  TextInputField(
-                    label: "Número de Boleta",
-                    controller: boletaCtrl,
-                    icon: Icons.numbers,
-                    keyboardType: TextInputType.number,
-                  ),
+                    TextInputField(
+                      label: "Número de Boleta",
+                      controller: boletaCtrl,
+                      icon: Icons.numbers,
+                      keyboardType: TextInputType.number,
+                    ),
 
-                  if (viewModel.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Text(
-                        viewModel.errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+                    if (viewModel.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                    const SizedBox(height: 30),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: viewModel.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : PrimaryButton(
+                        text: "Buscar y Continuar",
+                        onPressed: () async {
+                          final success = await viewModel.searchStudent(boletaCtrl.text);
+
+                          if (success && context.mounted) {
+                            final user = viewModel.foundUser;
+
+                            if (user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RegisterView(
+                                    boleta: user.boleta,
+                                    foundName: user.name,
+                                    docId: user.id,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
                       ),
                     ),
-
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: viewModel.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : PrimaryButton(
-                      text: "Buscar y Continuar",
-                      onPressed: () async {
-                        // A. Ejecutar búsqueda
-                        final success = await viewModel.searchStudent(boletaCtrl.text);
-
-                        // B. Verificar éxito y montaje
-                        if (success && context.mounted) {
-                          // C. OBTENER EL USUARIO QUE ENCONTRÓ EL VIEWMODEL
-                          final user = viewModel.foundUser;
-
-                          if (user != null) {
-                            // D. NAVEGACIÓN MANUAL (PUSH) PARA PASAR DATOS
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RegisterView(
-                                  // Pasamos los datos que RegisterView necesita
-                                  boleta: user.boleta,
-                                  foundName: user.name,
-                                  docId: user.id,
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                  ),
-                ],
+                    // Espacio extra al final para que el teclado no tape el botón
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             );
           },

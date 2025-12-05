@@ -1,27 +1,21 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
-// --- Tus rutas ---
 import 'package:proyecto_tutorias/routes/routes.dart';
-
-// --- Tus vistas ---
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
-
-// --- Tu Repositorio ---
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
-
-// --- TUS VIEWMODELS (AQUÍ AGREGAS EL NUEVO) ---
 import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
-import 'package:proyecto_tutorias/features/dashboard/viewmodels/upload_evidence_viewmodel.dart'; // <--- 1. IMPORTA ESTO
+import 'package:proyecto_tutorias/features/dashboard/viewmodels/upload_evidence_viewmodel.dart';
+import 'package:proyecto_tutorias/features/login/viewmodels/forgot_password_viewmodel.dart';
+
+// --- NEW: Import the scroll behavior config ---
+import 'package:proyecto_tutorias/core/config/app_scroll_behavior.dart';
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
@@ -31,26 +25,24 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // 1. Repositorio de autenticación (La base de todo)
         Provider<AuthRepository>(
           create: (_) => AuthRepository(firebaseAuth: FirebaseAuth.instance),
         ),
-
-        // 2. Provider del LOGIN
         ChangeNotifierProvider<LoginViewModel>(
           create: (context) => LoginViewModel(
             authRepository: context.read<AuthRepository>(),
           ),
         ),
-
-        // 3. Provider de SUBIR EVIDENCIA (¡NUEVO!)
         ChangeNotifierProvider<UploadEvidenceViewModel>(
           create: (context) => UploadEvidenceViewModel(
             authRepo: context.read<AuthRepository>(),
           ),
         ),
-
-        // 4. Stream del usuario actual (Para el AuthGate)
+        ChangeNotifierProvider<ForgotPasswordViewModel>(
+          create: (context) => ForgotPasswordViewModel(
+            authRepository: context.read<AuthRepository>(),
+          ),
+        ),
         StreamProvider<User?>(
           create: (context) => context.read<AuthRepository>().authStateChanges,
           initialData: null,
@@ -75,22 +67,20 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
 
-      // 'AuthGate' decide la pantalla de inicio
-      home: const AuthGate(),
+      // --- NEW: Apply the custom scroll behavior ---
+      scrollBehavior: AppScrollBehavior(),
 
-      // Rutas para navegación
+      home: const AuthGate(),
       routes: appRoutes,
     );
   }
 }
 
-// --- WIDGET 'AUTHGATE' ---
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Escucha el Stream de 'User?'
     final User? user = context.watch<User?>();
 
     if (user == null) {

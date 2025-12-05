@@ -44,9 +44,9 @@ class UploadEvidenceView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                        color: AppTheme.bluePrimary.withValues(alpha: 0.1),
+                        color: AppTheme.bluePrimary.withAlpha(25),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.bluePrimary.withValues(alpha: 0.3))
+                        border: Border.all(color: AppTheme.bluePrimary.withAlpha(75))
                     ),
                     child: Row(
                       children: [
@@ -67,14 +67,12 @@ class UploadEvidenceView extends StatelessWidget {
                   const Text("Materia y Profesor", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   const SizedBox(height: 10),
 
-                  // Spinner si está cargando materias
                   if (vm.isLoadingClasses)
                     const Center(child: LinearProgressIndicator())
                   else
                     _CustomDropdown(
                       hint: "Selecciona tu clase",
                       value: vm.selectedClassData,
-                      // Mapeamos la lista compleja a DropdownItems
                       items: vm.availableClasses.map((item) {
                         return DropdownMenuItem<Map<String, dynamic>>(
                           value: item,
@@ -102,7 +100,7 @@ class UploadEvidenceView extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // --- 3. ÁREA DE SUBIDA (VISUALMENTE MEJORADA) ---
+                  // --- 3. ÁREA DE SUBIDA (CORREGIDA) ---
                   const Text("Adjuntar Archivo", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   const SizedBox(height: 10),
 
@@ -115,14 +113,14 @@ class UploadEvidenceView extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          // Borde diferente si ya hay archivo
                           border: Border.all(
-                              color: vm.selectedFile != null ? Colors.green : AppTheme.blueSoft,
+                              // FIX: Changed vm.selectedFile to vm.fileName
+                              color: vm.fileName != null ? Colors.green : AppTheme.blueSoft,
                               width: 2,
-                              style: BorderStyle.solid // Podrías usar un paquete para 'dashed'
+                              style: BorderStyle.solid
                           ),
                           boxShadow: [
-                            BoxShadow(color: AppTheme.blueSoft.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5))
+                            BoxShadow(color: AppTheme.blueSoft.withAlpha(25), blurRadius: 10, offset: const Offset(0, 5))
                           ]
                       ),
                       child: Column(
@@ -131,25 +129,30 @@ class UploadEvidenceView extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: vm.selectedFile != null ? Colors.green.withValues(alpha: 0.1) : AppTheme.baseLight,
+                              // FIX: Changed vm.selectedFile to vm.fileName
+                              color: vm.fileName != null ? Colors.green.withAlpha(25) : AppTheme.baseLight,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              vm.selectedFile != null ? Icons.check : Icons.cloud_upload_outlined,
+                              // FIX: Changed vm.selectedFile to vm.fileName
+                              vm.fileName != null ? Icons.check : Icons.cloud_upload_outlined,
                               size: 40,
-                              color: vm.selectedFile != null ? Colors.green : AppTheme.bluePrimary,
+                              // FIX: Changed vm.selectedFile to vm.fileName
+                              color: vm.fileName != null ? Colors.green : AppTheme.bluePrimary,
                             ),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             vm.fileName ?? "Toca para buscar PDF o Imagen",
                             style: TextStyle(
-                                color: vm.selectedFile != null ? Colors.green : AppTheme.textSecondary,
+                                // FIX: Changed vm.selectedFile to vm.fileName
+                                color: vm.fileName != null ? Colors.green : AppTheme.textSecondary,
                                 fontWeight: FontWeight.w600
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          if (vm.selectedFile == null)
+                           // FIX: Changed vm.selectedFile to vm.fileName
+                          if (vm.fileName == null)
                             const Padding(
                               padding: EdgeInsets.only(top: 8.0),
                               child: Text("(Máx 5MB)", style: TextStyle(fontSize: 12, color: Colors.grey)),
@@ -159,20 +162,17 @@ class UploadEvidenceView extends StatelessWidget {
                     ),
                   ),
 
-                  // Error
                   if (vm.errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error, color: Colors.red, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                          ],
-                        ),
+                        child: Row(children: [
+                          const Icon(Icons.error, color: Colors.red, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                        ]),
                       ),
                     ),
 
@@ -233,7 +233,7 @@ class _CustomDropdown<T> extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: AppTheme.blueSoft.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))
+            BoxShadow(color: AppTheme.blueSoft.withAlpha(50), blurRadius: 10, offset: const Offset(0, 4))
           ]
       ),
       child: DropdownButtonHideUnderline(

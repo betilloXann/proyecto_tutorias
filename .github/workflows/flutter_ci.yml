@@ -6,6 +6,12 @@ on:
   push:
     branches: [ develop ]
 
+# 1. PERMISOS NECESARIOS (CRÍTICO)
+# Damos permiso de escritura en issues para que el bot pueda crear/comentar.
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +23,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.5'  # Cambia si usas otra versión
+          flutter-version: '3.35.5'
 
       - name: Install dependencies
         run: flutter pub get
@@ -27,3 +33,53 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+      # --- PASO DE REPORTE AUTOMÁTICO DE FALLOS ---
+      - name: 🤖 Report Failure to Issues
+        if: failure() # Solo se ejecuta si los pasos anteriores fallaron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          # Variables de configuración
+          TITLE="🚨 CI Failure: Build falló en rama '$BRANCH'"
+          LABEL="ci-failure"
+          BODY="### ❌ El CI ha fallado
+          
+          **Rama:** \`$BRANCH\`
+          **Commit:** \`$SHA\`
+          **Autor del Push:** @$ACTOR
+          
+          🔍 **[Ver Logs del Error]($RUN_URL)**
+          
+          Por favor revisa el código y soluciona los errores reportados por 'flutter analyze' o 'flutter test'."
+
+          # 0. LÓGICA DE AUTO-CREACIÓN DE ETIQUETA (OPCIÓN 2)
+          # Verificamos si la etiqueta existe. Si no, la creamos al vuelo.
+          if ! gh label list | grep -q "$LABEL"; then
+            echo "La etiqueta '$LABEL' no existe. Creándola..."
+            gh label create "$LABEL" --color "d73a4a" --description "Fallo automático del CI" || echo "Aviso: No se pudo crear la etiqueta (posiblemente falta de permisos o ya existe)."
+          else
+            echo "La etiqueta '$LABEL' ya existe. Continuando..."
+          fi
+
+          # 1. Buscar si ya existe un issue abierto con este título
+          EXISTING_ISSUE=$(gh issue list --search "$TITLE in:title state:open" --limit 1 --json number --jq '.[0].number')
+
+          if [ -z "$EXISTING_ISSUE" ]; then
+            # CASO A: No existe issue previo, creamos uno nuevo
+            echo "Creando nuevo Issue..."
+            gh issue create \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "$LABEL" \
+              --assignee "$ACTOR"
+          else
+            # CASO B: Ya existe issue abierto, comentamos en él
+            echo "Actualizando Issue #$EXISTING_ISSUE..."
+            gh issue comment $EXISTING_ISSUE \
+              --body "⚠️ **Nueva falla detectada** en el commit \`$SHA\`. Revisa los [nuevos logs aquí]($RUN_URL)."
+          fi
