@@ -22,6 +22,17 @@ class UserModel {
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
+
+    List<String> parsedAcademies = [];
+    // 1. Intentamos leer la lista nueva
+    if (map['academies'] != null && map['academies'] is Iterable) {
+      parsedAcademies = List<String>.from(map['academies']);
+    }
+    // 2. Si no hay lista, revisamos si existe el campo antiguo 'academy'
+    else if (map['academy'] != null && map['academy'] is String) {
+      parsedAcademies = [map['academy']];
+    }
+
     return UserModel(
       id: docId,
       boleta: map['boleta'] ?? '',
@@ -29,7 +40,7 @@ class UserModel {
       email: map['email_inst'] ?? 'No especificado',
       status: map['status'] ?? 'PRE_REGISTRO',
       role: map['role'] ?? 'student',
-      academies: List<String>.from(map['academies'] ?? []),
+      academies: parsedAcademies,
       dictamenUrl: map['dictamen_url'],
       finalGrade: (map['final_grade'] as num?)?.toDouble(), // <-- ADDED
     );

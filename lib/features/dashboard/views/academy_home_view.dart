@@ -57,7 +57,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
             backgroundColor: AppTheme.baseLight,
             appBar: AppBar(
               // Título dinámico: Si tiene 2, muestra "SISTEMAS, ROBOTICA"
-              title: Text("Academia: ${currentUser.academies.join(', ')}"),
+              title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
