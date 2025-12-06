@@ -32,10 +32,26 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
     vm.loadInitialData();
   }
 
+// Dentro de _AcademyHomeViewState
+
   void _navigateToSubjectManagement() {
+    // Obtenemos el usuario actual del Provider
+    final currentUser = context.read<HomeMenuViewModel>().currentUser;
+
+    if (currentUser == null) return;
+
+    // Lógica de seguridad:
+    // Si el usuario tiene academias en la lista, usamos la primera.
+    // Si la lista está vacía, usamos un valor por defecto o mostramos error.
+    final String targetAcademy = currentUser.academies.isNotEmpty
+        ? currentUser.academies.first
+        : 'SISTEMAS'; // Fallback por seguridad
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SubjectManagementView()),
+      MaterialPageRoute(
+        builder: (context) => SubjectManagementView(academy: targetAcademy),
+      ),
     );
   }
 

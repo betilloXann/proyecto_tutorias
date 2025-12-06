@@ -6,15 +6,16 @@ import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 
 class SubjectManagementView extends StatelessWidget {
-  const SubjectManagementView({super.key});
+  final String academy;
+  const SubjectManagementView({super.key, required this.academy});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SubjectManagementViewModel(),
+      create: (_) => SubjectManagementViewModel(currentAcademy: academy),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Gestión de Materias"),
+          title: Text("Materias de: $academy"),
         ),
         body: Consumer<SubjectManagementViewModel>(
           builder: (context, vm, child) {
