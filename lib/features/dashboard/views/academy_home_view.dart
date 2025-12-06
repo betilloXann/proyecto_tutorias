@@ -7,9 +7,6 @@ import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'subject_management_view.dart';
-
-// IMPORTANTE: Esta importación conecta con tu otro archivo.
-// Asegúrate de que ambos archivos estén en la misma carpeta 'views'.
 import 'student_detail_view.dart'; 
 
 class AcademyHomeView extends StatefulWidget {
@@ -70,9 +67,10 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
             IconButton(
               icon: const Icon(Icons.logout), 
               onPressed: () async {
+                final navigator = Navigator.of(context);
                 await menuViewModel.logout();
                 if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
               }
             )
           ],
