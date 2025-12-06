@@ -15,6 +15,7 @@ class ForgotPasswordView extends StatelessWidget {
   Widget build(BuildContext context) {
     // Obtenemos el ViewModel
     final viewModel = context.watch<ForgotPasswordViewModel>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6EEF8),
@@ -44,8 +45,9 @@ class ForgotPasswordView extends StatelessWidget {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        // 3. Sumamos el padding original (24) + la altura del teclado
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

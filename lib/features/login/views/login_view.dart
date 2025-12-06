@@ -64,6 +64,7 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final vm = context.watch<LoginViewModel>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -87,7 +88,7 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
         child: Column(
           children: [
             const SizedBox(height: 20),
