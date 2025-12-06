@@ -1,4 +1,3 @@
-// IMPORTS
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +6,8 @@ import '../../../core/widgets/text_input_field.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../viewmodels/student_lookup_viewmodel.dart';
 import 'register_view.dart';
+// 1. Importamos
+import '../../../core/widgets/responsive_container.dart';
 
 class StudentLookupView extends StatefulWidget {
   const StudentLookupView({super.key});
@@ -29,7 +30,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
     return ChangeNotifierProvider(
       create: (context) => StudentLookupViewModel(context.read<AuthRepository>()),
       child: Scaffold(
-        backgroundColor: const Color(0xFFE6EEF8), // Asegúrate de tener el color de fondo aquí si lo usas
+        backgroundColor: const Color(0xFFE6EEF8),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -40,18 +41,14 @@ class _StudentLookupViewState extends State<StudentLookupView> {
         ),
         body: Consumer<StudentLookupViewModel>(
           builder: (context, viewModel, child) {
-            // 1. AÑADIDO: Center para centrar el contenido en Web/Tablets
-            return Center(
-              // 2. AÑADIDO: SingleChildScrollView para permitir scroll cuando sale el teclado
+            // 2. Reemplazamos Center por ResponsiveContainer
+            // (ResponsiveContainer internamente centra y limita el ancho)
+            return ResponsiveContainer(
               child: SingleChildScrollView(
-                // Movemos el padding aquí para que sea parte del scroll
                 padding: const EdgeInsets.all(24),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical extra
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Puedes quitar este SizedBox si usas Center, o dejarlo si quieres más aire arriba
-                    // const SizedBox(height: 40),
-
                     SvgPicture.asset("assets/images/logo.svg", height: 100),
                     const SizedBox(height: 30),
                     const Text(
@@ -120,7 +117,6 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                         },
                       ),
                     ),
-                    // Espacio extra al final para que el teclado no tape el botón
                     const SizedBox(height: 20),
                   ],
                 ),
