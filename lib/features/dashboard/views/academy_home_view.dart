@@ -18,34 +18,21 @@ class AcademyHomeView extends StatefulWidget {
 
 class _AcademyHomeViewState extends State<AcademyHomeView> {
 
-  // Convertimos la navegación en una función asíncrona segura
   Future<void> _navigateToDetail(UserModel student, AcademyViewModel vm) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
     );
-
-    // Verificación de seguridad: Si la pantalla ya no existe, no hacemos nada.
     if (!mounted) return;
-
-    // Si sigue activa, recargamos los datos.
     vm.loadInitialData();
   }
 
-// Dentro de _AcademyHomeViewState
-
   void _navigateToSubjectManagement() {
-    // Obtenemos el usuario actual del Provider
     final currentUser = context.read<HomeMenuViewModel>().currentUser;
-
     if (currentUser == null) return;
-
-    // Lógica de seguridad:
-    // Si el usuario tiene academias en la lista, usamos la primera.
-    // Si la lista está vacía, usamos un valor por defecto o mostramos error.
     final String targetAcademy = currentUser.academies.isNotEmpty
         ? currentUser.academies.first
-        : 'INFORMATICA'; // Fallback por seguridad
+        : 'INFORMATICA';
 
     Navigator.push(
       context,
@@ -57,22 +44,18 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuchamos el usuario actual (solo lectura, no redibujamos todo por esto)
     final currentUser = context.select<HomeMenuViewModel, UserModel?>((vm) => vm.currentUser);
     final menuViewModel = context.read<HomeMenuViewModel>();
 
-    // Prevención de error si el usuario aún no carga
     if (currentUser == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return ChangeNotifierProvider(
-      // Pasamos la academia del usuario al ViewModel
       create: (_) => AcademyViewModel(myAcademies: currentUser.academies),
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          // Título dinámico: Si tiene 2, muestra "SISTEMAS, ROBOTICA"
           title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
           actions: [
             IconButton(
@@ -119,7 +102,6 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Pasamos 'vm' para poder recargar la lista al volver del detalle
                   _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), vm),
                   _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), vm),
                   _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), vm),
@@ -157,7 +139,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
   }
 }
 
-// --- WIDGETS AUXILIARES (Sin cambios lógicos, solo visuales) ---
+// --- WIDGETS AUXILIARES ---
 
 class _FinishedStudentCard extends StatelessWidget {
   final UserModel student;
@@ -188,7 +170,6 @@ class _FinishedStudentCard extends StatelessWidget {
   }
 }
 
-// --- MODIFICADO: Ahora permite asignar múltiples materias ---
 class _AssignedStudentCard extends StatelessWidget {
   final UserModel student;
   const _AssignedStudentCard({required this.student});
@@ -229,7 +210,6 @@ class _AssignedStudentCard extends StatelessWidget {
                   shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
                   builder: (_) => ChangeNotifierProvider.value(
                     value: vm,
-                    // Reutilizamos el formulario existente
                     child: _AssignmentForm(student: student),
                   ),
                 );
@@ -248,7 +228,6 @@ class _StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Usamos read porque solo necesitamos el VM para pasar al formulario, no escuchamos cambios aquí
     final vm = context.read<AcademyViewModel>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -316,7 +295,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
   void _submit() async {
     final vm = context.read<AcademyViewModel>();
-    if (_selectedSubject == null || _selectedProfessor == null || _scheduleCtrl.text.isEmpty || _salonCtrl.text.isEmpty) {
+    if (_selectedSubject == null || _selectedProfessor == null || _salonCtrl.text.isEmpty) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Todos los campos son obligatorios")));
       return;
     }
@@ -326,7 +305,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
       studentId: widget.student.id,
       subjectName: _selectedSubject!.name,
       professorName: _selectedProfessor!.name,
-      schedule: _scheduleCtrl.text,
+      schedule: _selectedProfessor!.schedule, // Use professor's schedule
       salon: _salonCtrl.text,
     );
 
@@ -355,27 +334,31 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            initialValue: _selectedSubject,
             items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
               _selectedProfessor = null;
-              _scheduleCtrl.text = val?.professors.first.schedule ?? '';
+              _scheduleCtrl.clear();
             }),
           ),
           const SizedBox(height: 15),
 
+          // --- UPDATED: Professor dropdown now updates the schedule field ---
           DropdownButtonFormField<ProfessorModel>(
             key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
-            initialValue: _selectedProfessor,
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
-            onChanged: (val) => setState(() => _selectedProfessor = val),
+            onChanged: (val) => setState(() {
+              _selectedProfessor = val;
+              // Auto-fill the schedule field
+              _scheduleCtrl.text = val?.schedule ?? '';
+            }),
           ),
           const SizedBox(height: 15),
 
           Row(children: [
-            Expanded(child: TextField(controller: _scheduleCtrl, decoration: const InputDecoration(labelText: "Horario", hintText: "Ej. Lun-Mie 7-9", border: OutlineInputBorder()))),
+            // --- UPDATED: Schedule field is now read-only but shows the data ---
+            Expanded(child: TextField(controller: _scheduleCtrl, readOnly: true, decoration: const InputDecoration(labelText: "Horario", border: OutlineInputBorder()))),
             const SizedBox(width: 10),
             Expanded(child: TextField(controller: _salonCtrl, decoration: const InputDecoration(labelText: "Salón", hintText: "Ej. A-04", border: OutlineInputBorder()))),
           ]),
