@@ -84,12 +84,28 @@ class PdfGeneratorService {
               pw.SizedBox(height: 20),
 
               // --- TABLA (Igual que antes) ---
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 border: pw.TableBorder.all(),
                 headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 cellHeight: 35,
+                cellAlignments: {
+                  0: pw.Alignment.center,
+                  1: pw.Alignment.center,
+                  2: pw.Alignment.center,
+                  3: pw.Alignment.center,
+                  4: pw.Alignment.center,
+                },
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(30),  // No.
+                  1: const pw.FixedColumnWidth(70),  // Fecha
+                  4: const pw.FixedColumnWidth(100), // Firma
+                },
                 headers: ['No.', 'Fecha', 'Hora Entrada', 'Hora Salida', 'Firma'],
-                data: List<List<String>>.generate(8, (index) => ['${index + 1}', '', '', '', '']),
+                data: List<List<String>>.generate(
+                  8,
+                      (index) => ['${index + 1}', '', '', '', ''],
+                ),
               ),
             ],
           );
