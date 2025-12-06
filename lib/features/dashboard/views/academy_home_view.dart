@@ -316,13 +316,15 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AcademyViewModel>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Asignar Carga Académica", style: Theme.of(context).textTheme.titleLarge),
+          Text("Asignar Materia y Pofesor", style: Theme.of(context).textTheme.titleLarge),
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
           
