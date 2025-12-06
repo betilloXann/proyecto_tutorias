@@ -254,10 +254,7 @@ class _StudentCard extends StatelessWidget {
                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
                 builder: (_) => ChangeNotifierProvider.value(
                   value: vm,
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                    child: _AssignmentForm(student: student),
-                  ),
+                  child: _AssignmentForm(student: student),
                 ),
               );
             },
