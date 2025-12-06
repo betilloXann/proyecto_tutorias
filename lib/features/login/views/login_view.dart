@@ -20,6 +20,8 @@ class _LoginViewState extends State<LoginView> {
   late final FocusNode _emailFocusNode;
   late final FocusNode _passwordFocusNode;
 
+  bool _isPasswordVisible = false;
+
   @override
   void initState() {
     super.initState();
@@ -123,9 +125,20 @@ class _LoginViewState extends State<LoginView> {
                 controller: passwordCtrl,
                 focusNode: _passwordFocusNode,
                 icon: Icons.lock_outline,
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submitLogin(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                ),
               ),
 
               Align(

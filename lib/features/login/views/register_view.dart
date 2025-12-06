@@ -34,6 +34,7 @@ class _RegisterViewState extends State<RegisterView> {
   File? _selectedFileMobile;
   Uint8List? _selectedFileWeb;
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -175,7 +176,19 @@ class _RegisterViewState extends State<RegisterView> {
               const SizedBox(height: 16),
               TextInputField(label: "Teléfono Celular", controller: phoneCtrl, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 16),
-              TextInputField(label: "Crear Contraseña", controller: passCtrl, icon: Icons.lock_outline, obscureText: true),
+              TextInputField(label: "Crear Contraseña", controller: passCtrl, icon: Icons.lock_outline, obscureText: !_isPasswordVisible,
+                suffixIcon: IconButton(
+                icon: Icon(
+                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                color: Colors.grey,
+              ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+              ),
               const SizedBox(height: 24),
 
               const Align(
