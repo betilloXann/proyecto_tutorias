@@ -7,7 +7,7 @@ import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'subject_management_view.dart';
-import 'student_detail_view.dart'; 
+import 'student_detail_view.dart';
 
 class AcademyHomeView extends StatefulWidget {
   const AcademyHomeView({super.key});
@@ -17,17 +17,17 @@ class AcademyHomeView extends StatefulWidget {
 }
 
 class _AcademyHomeViewState extends State<AcademyHomeView> {
-  
+
   // Convertimos la navegación en una función asíncrona segura
   Future<void> _navigateToDetail(UserModel student, AcademyViewModel vm) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
     );
-    
+
     // Verificación de seguridad: Si la pantalla ya no existe, no hacemos nada.
     if (!mounted) return;
-    
+
     // Si sigue activa, recargamos los datos.
     vm.loadInitialData();
   }
@@ -67,13 +67,13 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
     }
 
     return ChangeNotifierProvider(
-          // Pasamos la academia del usuario al ViewModel
-    create: (_) => AcademyViewModel(myAcademies: currentUser.academies),
-          child: Scaffold(
-            backgroundColor: AppTheme.baseLight,
-            appBar: AppBar(
-              // Título dinámico: Si tiene 2, muestra "SISTEMAS, ROBOTICA"
-              title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
+      // Pasamos la academia del usuario al ViewModel
+      create: (_) => AcademyViewModel(myAcademies: currentUser.academies),
+      child: Scaffold(
+        backgroundColor: AppTheme.baseLight,
+        appBar: AppBar(
+          // Título dinámico: Si tiene 2, muestra "SISTEMAS, ROBOTICA"
+          title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
@@ -81,13 +81,13 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
               onPressed: _navigateToSubjectManagement,
             ),
             IconButton(
-              icon: const Icon(Icons.logout), 
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                await menuViewModel.logout();
-                if (!mounted) return;
-                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
-              }
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  await menuViewModel.logout();
+                  if (!mounted) return;
+                  navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                }
             )
           ],
         ),
@@ -96,21 +96,21 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
             if (vm.isLoading) return const Center(child: CircularProgressIndicator());
 
             bool allListsEmpty = vm.pendingStudents.isEmpty &&
-                                 vm.assignedStudents.isEmpty &&
-                                 vm.accreditedStudents.isEmpty &&
-                                 vm.notAccreditedStudents.isEmpty;
+                vm.assignedStudents.isEmpty &&
+                vm.accreditedStudents.isEmpty &&
+                vm.notAccreditedStudents.isEmpty;
 
             if (allListsEmpty) {
               return RefreshIndicator(
-                  onRefresh: vm.loadInitialData,
-                  child: ListView(
+                onRefresh: vm.loadInitialData,
+                child: ListView(
                     children: [
                       const SizedBox(height: 100),
                       const Center(child: Text("No hay alumnos registrados en esta academia.")),
                       const SizedBox(height: 20),
-                      Center(child: Text("Buscando en: ${vm.myAcademies.join(', ')}", style: const TextStyle(color: Colors.grey, fontSize: 12))),                    
-                      ]
-                  ),
+                      Center(child: Text("Buscando en: ${vm.myAcademies.join(', ')}", style: const TextStyle(color: Colors.grey, fontSize: 12))),
+                    ]
+                ),
               );
             }
 
@@ -143,8 +143,8 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
           child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _getTitleColor(title))),
         ),
         ...students.map((student) => GestureDetector(
-          onTap: () => _navigateToDetail(student, vm), 
-          child: cardBuilder(student)
+            onTap: () => _navigateToDetail(student, vm),
+            child: cardBuilder(student)
         )),
       ],
     );
@@ -188,28 +188,55 @@ class _FinishedStudentCard extends StatelessWidget {
   }
 }
 
+// --- MODIFICADO: Ahora permite asignar múltiples materias ---
 class _AssignedStudentCard extends StatelessWidget {
   final UserModel student;
   const _AssignedStudentCard({required this.student});
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.read<AcademyViewModel>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       color: const Color(0xffe8f5e9),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.green)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(children: [
-          const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white, size: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-          ])),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ]),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(children: [
+              const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white, size: 20)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
+              ])),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ]),
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+            child: TextButton.icon(
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: const Text("Asignar Otra Materia"),
+              style: TextButton.styleFrom(foregroundColor: Colors.green.shade700),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                  builder: (_) => ChangeNotifierProvider.value(
+                    value: vm,
+                    // Reutilizamos el formulario existente
+                    child: _AssignmentForm(student: student),
+                  ),
+                );
+              },
+            ),
+          )
+        ],
       ),
     );
   }
@@ -222,7 +249,7 @@ class _StudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Usamos read porque solo necesitamos el VM para pasar al formulario, no escuchamos cambios aquí
-    final vm = context.read<AcademyViewModel>(); 
+    final vm = context.read<AcademyViewModel>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -303,7 +330,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
       salon: _salonCtrl.text,
     );
 
-    if (mounted && success){ 
+    if (mounted && success){
       Navigator.pop(context);
     } else if(mounted) {
       setState(() => _isSaving = false);
@@ -321,12 +348,12 @@ class _AssignmentFormState extends State<_AssignmentForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Asignar Materia y Pofesor", style: Theme.of(context).textTheme.titleLarge),
+          Text("Asignar Materia y Profesor", style: Theme.of(context).textTheme.titleLarge),
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
-          
+
           DropdownButtonFormField<SubjectModel>(
-            key: ValueKey(_selectedSubject), 
+            key: ValueKey(_selectedSubject),
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             initialValue: _selectedSubject,
             items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
@@ -359,10 +386,10 @@ class _AssignmentFormState extends State<_AssignmentForm> {
             child: _isSaving
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
-                    onPressed: _submit,
-                    child: const Text("Guardar Asignación"),
-                  ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
+              onPressed: _submit,
+              child: const Text("Guardar Asignación"),
+            ),
           )
         ],
       ),
