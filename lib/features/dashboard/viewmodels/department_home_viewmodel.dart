@@ -67,7 +67,8 @@ class DepartmentHomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> logout() async {
+  Future<void> logout({VoidCallback? onDone}) async {
     await _authRepo.signOut();
+    onDone?.call();
   }
 }

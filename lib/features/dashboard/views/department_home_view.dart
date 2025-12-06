@@ -52,11 +52,16 @@ class _DepartmentContentState extends State<_DepartmentContent> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await vm.logout();
-              if(!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-            },
+              onPressed: () {
+                vm.logout(onDone: () {
+                  if (!mounted) return;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                        (route) => false,
+                  );
+                });
+              },
           ),
         ],
       ),
