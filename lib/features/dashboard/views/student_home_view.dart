@@ -7,7 +7,6 @@ import '../../../theme/theme.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'upload_evidence_view.dart';
 import 'subject_list_view.dart';
-import '../../../data/services/pdf_generator_service.dart'; // <--- AGREGAR ESTO
 
 class StudentHomeView extends StatelessWidget {
   final UserModel user;
@@ -26,24 +25,24 @@ class StudentHomeView extends StatelessWidget {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          // --- NEW: Button to see available subjects ---
           IconButton(
             icon: const Icon(Icons.menu_book_outlined, color: AppTheme.blueDark),
             tooltip: "Ver Materias Disponibles",
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SubjectListView()),
+                // --- FIX: Pass the user's academies to the view ---
+                MaterialPageRoute(builder: (context) => SubjectListView(myAcademies: user.academies)),
               );
             },
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.blueDark),
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await viewModel.logout();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              }
+              if (!context.mounted) return;
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             },
           ),
         ],
@@ -88,7 +87,7 @@ class StudentHomeView extends StatelessWidget {
                   },
                 ),
                 _ActionItem(
-                  icon: Icons.history, // Regresamos el Historial o lo que tenías antes
+                  icon: Icons.history,
                   label: "Historial",
                   color: AppTheme.purpleMist,
                   onTap: () {},
@@ -262,8 +261,6 @@ class _ClassesList extends StatelessWidget {
             const SizedBox(height: 10),
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              //String academiaMateria = data['academy'] ?? "Ingeniería Informática";
-
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(16),
@@ -279,37 +276,21 @@ class _ClassesList extends StatelessWidget {
                     child: const Icon(Icons.book, color: AppTheme.bluePrimary),
                   ),
                   const SizedBox(width: 15),
-                  // INFO DE LA MATERIA
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(data['subject'] ?? 'Materia', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 4),
                     Text("Prof: ${data['professor']}", style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 6),
-                    Text(data['schedule'] ?? '--:--', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    Row(children: [
+                      const Icon(Icons.access_time, size: 14, color: AppTheme.bluePrimary),
+                      const SizedBox(width: 4),
+                      Text(data['schedule'] ?? '--:--', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      const SizedBox(width: 15),
+                      const Icon(Icons.location_on, size: 14, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(data['salon'] ?? 'Sin Salón', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis, maxLines: 1)),
+                    ]),
                   ])),
-
-                  // --- AQUÍ ESTÁ LA MAGIA: BOTÓN DE IMPRIMIR POR MATERIA ---
-                  IconButton(
-                    icon: const Icon(Icons.print, color: Colors.orange),
-                    tooltip: "Descargar Bitácora",
-                    onPressed: () async {
-                      final user = Provider.of<HomeMenuViewModel>(context, listen: false).currentUser;
-                      if (user == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Error: No se encontró información del usuario"))
-                        );
-                        return;
-                      }
-                        await PdfGeneratorService().generarBitacora(
-                          user: user,
-                          materia: data['subject'] ?? "Materia",
-                          profesor: data['professor'] ?? "Sin Asignar",
-                          horario: data['schedule'] ?? "",
-                          salon: data['salon'] ?? "",
-                          academia: data['academy'] ?? "Sin Asignar",
-                        );
-                    },
-                  )
                 ]),
               );
             }),

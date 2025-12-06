@@ -4,7 +4,7 @@ import '../../../data/models/subject_model.dart';
 
 class SubjectListViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String currentAcademy = 'SISTEMAS'; // Assuming a static academy for now
+  final List<String> myAcademies;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -14,7 +14,7 @@ class SubjectListViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<SubjectModel> get subjects => _subjects;
 
-  SubjectListViewModel() {
+  SubjectListViewModel({required this.myAcademies}) {
     loadSubjects();
   }
 
@@ -24,12 +24,16 @@ class SubjectListViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final snapshot = await _db
-          .collection('subjects')
-          .where('academy', isEqualTo: currentAcademy)
-          .get();
-
-      _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+      // FIX: Use a 'whereIn' query to search in all the user's academies
+      if (myAcademies.isEmpty) {
+        _subjects = [];
+      } else {
+        final snapshot = await _db
+            .collection('subjects')
+            .where('academy', whereIn: myAcademies)
+            .get();
+        _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+      }
     } catch (e) {
       _errorMessage = "Error al cargar las materias: $e";
     } finally {

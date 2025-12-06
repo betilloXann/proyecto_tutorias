@@ -5,12 +5,15 @@ import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 
 class SubjectListView extends StatelessWidget {
-  const SubjectListView({super.key});
+  // --- FIX: Expect to receive the list of academies ---
+  final List<String> myAcademies;
+  const SubjectListView({super.key, required this.myAcademies});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SubjectListViewModel(),
+      // --- FIX: Pass the academies to the ViewModel ---
+      create: (_) => SubjectListViewModel(myAcademies: myAcademies),
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Materias Disponibles"),
