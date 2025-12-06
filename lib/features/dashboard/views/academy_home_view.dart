@@ -45,7 +45,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
     // Si la lista está vacía, usamos un valor por defecto o mostramos error.
     final String targetAcademy = currentUser.academies.isNotEmpty
         ? currentUser.academies.first
-        : 'SISTEMAS'; // Fallback por seguridad
+        : 'INFORMATICA'; // Fallback por seguridad
 
     Navigator.push(
       context,
