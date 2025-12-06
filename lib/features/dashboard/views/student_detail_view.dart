@@ -106,6 +106,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
     final bool isGraded = student.finalGrade != null;
 
+    final bool canAssignGrade = student.status == 'EN_CURSO';
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -139,10 +141,11 @@ class _StudentDetailViewState extends State<StudentDetailView> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.grading_outlined, size: 18),
                 label: Text(isGraded ? "Editar Calificación Final" : "Asignar Calificación Final"),
-                onPressed: () => _showFinalGradeDialog(context),
+                onPressed: canAssignGrade ? () => _showFinalGradeDialog(context) : null,
+
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
-                  foregroundColor: Colors.white
+                    backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
+                    foregroundColor: Colors.white
                 ),
               ),
             ),
