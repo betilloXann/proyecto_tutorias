@@ -17,14 +17,10 @@ class BulkUploadViewModel extends ChangeNotifier {
   bool _isSuccess = false;
   FilePickerResult? _pickedFile;
 
-  // --- NUEVO: DICCIONARIO DE TRADUCCIÓN ---
-  // Izquierda: Como viene en el Excel (Normalizado a mayúsculas)
-  // Derecha: Como DEBE guardarse en la BD
   final Map<String, String> _subjectMapping = {
     'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB. ELECT. Y CONTROL',
-
     'ARQUITECTURA Y ORGANIZACIÓN DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.',
-    'ARQUITECTURA Y ORGANIZACION DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.', // Por si viene sin acento
+    'ARQUITECTURA Y ORGANIZACION DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.',
     'APLICACIÓN DE SISTEMAS DIGITALES': 'APLIC. SIST. DIGITALES',
     'APLICACION DE SISTEMAS DIGITALES': 'APLIC. SIST. DIGITALES',
     'COMUNICACIÓN DE DATOS': 'COM. DATOS',
@@ -33,7 +29,6 @@ class BulkUploadViewModel extends ChangeNotifier {
     'FUNDAMENTOS DE ANALITICA DE DATOS': 'FUND. ANALITICA DATOS',
     'INGENIERIA DE DISEÑO': 'ING. DISEÑO',
     'ALGORITMOS COMPUTACIONALES': 'ALGORITMOS COMP.',
-    // ... Agrega aquí todas las variaciones que detectes ...
   };
 
   bool get isLoading => _isLoading;
@@ -101,33 +96,27 @@ class BulkUploadViewModel extends ChangeNotifier {
       for (var i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
 
-        // 1. LIMPIEZA BÁSICA
         final rawBoleta = row[0]?.value?.toString() ?? '';
         final cleanBoleta = rawBoleta.trim();
         if (cleanBoleta.isEmpty) continue;
 
         totalRowsProcessed++;
 
-        // Nombre: Limpieza profunda de espacios
+        // --- FIX: Take the name directly from Excel, just trim whitespace ---
         final rawName = row[1]?.value?.toString() ?? '';
-        final cleanName = rawName.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
+        final cleanName = rawName.trim();
 
-        // --- CORRECCIÓN 1: PROCESAR ACADEMIA ---
         final rawAcademy = row[3]?.value?.toString() ?? '';
         String tempAcademy = rawAcademy.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
 
-        // Paso B: Intentar traducir usando el diccionario (Igual que las materias)
         String cleanAcademy = tempAcademy;
         if (_subjectMapping.containsKey(tempAcademy)) {
-          cleanAcademy = _subjectMapping[tempAcademy]!; // <--- AHORA TRADUCE LA ACADEMIA TAMBIÉN
+          cleanAcademy = _subjectMapping[tempAcademy]!;
         }
 
-        // --- CORRECCIÓN 2: PROCESAR MATERIA ---
         final rawSubject = row[4]?.value?.toString() ?? '';
-        // Primero convertimos a mayúscula limpia
-        String tempSubject = rawSubject.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' '); // <--- AGREGADO replaceAll
+        String tempSubject = rawSubject.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
 
-        // Paso B: Traducir
         String finalSubject = tempSubject;
         if (_subjectMapping.containsKey(tempSubject)) {
           finalSubject = _subjectMapping[tempSubject]!;
@@ -136,7 +125,6 @@ class BulkUploadViewModel extends ChangeNotifier {
         final rawEmail = row[6]?.value?.toString() ?? '';
         final cleanEmail = rawEmail.trim();
 
-        // 3. AGRUPACIÓN
         studentsData.putIfAbsent(cleanBoleta, () => {
           'boleta': cleanBoleta,
           'name': cleanName,
@@ -149,7 +137,6 @@ class BulkUploadViewModel extends ChangeNotifier {
         if (cleanAcademy.isNotEmpty) {
           studentsData[cleanBoleta]!['academies'].add(cleanAcademy);
         }
-        // Usamos finalSubject (ya traducido)
         if (finalSubject.isNotEmpty) {
           studentsData[cleanBoleta]!['subjects_to_take'].add(finalSubject);
         }

@@ -14,12 +14,14 @@ class RegisterView extends StatefulWidget {
   final String boleta;
   final String foundName;
   final String docId;
+  final String email; 
 
   const RegisterView({
     super.key,
     required this.boleta,
     required this.foundName,
     required this.docId,
+    required this.email, 
   });
 
   @override
@@ -41,7 +43,7 @@ class _RegisterViewState extends State<RegisterView> {
     super.initState();
     nameCtrl = TextEditingController(text: widget.foundName);
     emailCtrl = TextEditingController();
-    personalEmailCtrl = TextEditingController();
+    personalEmailCtrl = TextEditingController(text: widget.email);
     phoneCtrl = TextEditingController();
     passCtrl = TextEditingController();
   }
@@ -140,6 +142,9 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    // --- FIX: Get the LAST word of the name ---
+    final nameParts = widget.foundName.split(' ');
+    final firstName = nameParts.isNotEmpty ? nameParts.last : widget.foundName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6EEF8),
@@ -159,13 +164,11 @@ class _RegisterViewState extends State<RegisterView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              /// HEADER IMAGE
               SvgPicture.asset("assets/images/image3.svg", height: 180, width: 200),
               const SizedBox(height: 24),
 
-              /// TITULO
               Text(
-                "Hola, ${widget.foundName.split(' ')[0]}",
+                "Hola, $firstName",
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 26,
@@ -182,7 +185,6 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 32),
 
-              /// FORM FIELDS
               TextInputField(
                 label: "Nombre Completo",
                 controller: nameCtrl,
@@ -233,7 +235,6 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 28),
 
-              /// DICTAMEN LABEL
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -248,7 +249,6 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 10),
 
-              /// FILE PICKER BOX
               InkWell(
                 onTap: _pickDictamen,
                 borderRadius: BorderRadius.circular(12),
@@ -282,7 +282,6 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 36),
 
-              /// SUBMIT BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 56,

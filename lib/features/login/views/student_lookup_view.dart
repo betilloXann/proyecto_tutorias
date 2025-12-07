@@ -126,6 +126,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                                     boleta: user.boleta,
                                     foundName: user.name,
                                     docId: user.id,
+                                    email: user.email, // <-- THE FIX
                                   ),
                                 ),
                               );
