@@ -70,18 +70,22 @@ class _LoginViewState extends State<LoginView> {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      extendBodyBehindAppBar: true,
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(
-          margin: const EdgeInsets.only(left: 12, top: 6, bottom: 6),
+          margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: const [
-              BoxShadow(color: Color(0xFFDDE6F3), offset: Offset(4, 4), blurRadius: 10),
-              BoxShadow(color: Colors.white, offset: Offset(-4, -4), blurRadius: 10),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF9EB8D1).withValues(alpha: 0.25),
+                offset: const Offset(2, 3),
+                blurRadius: 8,
+              ),
             ],
           ),
           child: IconButton(
@@ -90,95 +94,134 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
-      // --- INTEGRACIÓN DEL RESPONSIVE CONTAINER ---
-      body: ResponsiveContainer(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              SvgPicture.asset("assets/images/logo.svg", height: 120),
-              const SizedBox(height: 24),
-              Text(
-                  "Iniciar Sesión",
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2F5A93)
-                  ),
-                  textAlign: TextAlign.center
-              ),
-              const SizedBox(height: 32),
 
-              TextInputField(
-                label: "Correo Personal",
-                controller: emailCtrl,
-                focusNode: _emailFocusNode,
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
-              ),
-              const SizedBox(height: 16),
-
-              TextInputField(
-                label: "Contraseña",
-                controller: passwordCtrl,
-                focusNode: _passwordFocusNode,
-                icon: Icons.lock_outline,
-                obscureText: !_isPasswordVisible,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submitLogin(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.grey,
-                  ),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
-                ),
-              ),
-
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pushNamed(context, "/recover"),
-                  child: Text(
-                      "¿Olvidaste tu contraseña?",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600
-                      )
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: vm.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : PrimaryButton(
-                  text: "Ingresar",
-                  onPressed: _submitLogin,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/activation"),
-                child: Text(
-                    "¿Eres nuevo? Activa tu cuenta aquí",
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600
-                    )
-                ),
-              ),
+      // FONDO GRADIENTE
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFEBF3FF),
+              Color(0xFFD6E7FF),
             ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+
+        child: ResponsiveContainer(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(24, 120, 24, 24 + bottomPadding),
+
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+
+              child: Column(
+                children: [
+                  SvgPicture.asset("assets/images/image2.svg", height: 150, width: 160),
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    "Iniciar Sesión",
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF2F5A93),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  TextInputField(
+                    label: "Correo Personal",
+                    controller: emailCtrl,
+                    focusNode: _emailFocusNode,
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextInputField(
+                    label: "Contraseña",
+                    controller: passwordCtrl,
+                    focusNode: _passwordFocusNode,
+                    icon: Icons.lock_outline,
+                    obscureText: !_isPasswordVisible,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submitLogin(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.pushNamed(context, "/recover"),
+                      child: Text(
+                        "¿Olvidaste tu contraseña?",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF2F5A93),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: vm.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : PrimaryButton(
+                      text: "Ingresar",
+                      onPressed: _submitLogin,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, "/activation"),
+                    child: Text(
+                      "¿Eres nuevo? Activa tu cuenta aquí",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF2F5A93),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -46,7 +46,7 @@ class ForgotPasswordView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SvgPicture.asset(
-                'assets/images/logo.svg',
+                'assets/images/image4.svg',
                 height: 120,
               ),
               const SizedBox(height: 20),

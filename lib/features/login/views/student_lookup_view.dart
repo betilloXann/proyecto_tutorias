@@ -6,7 +6,6 @@ import '../../../core/widgets/text_input_field.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../viewmodels/student_lookup_viewmodel.dart';
 import 'register_view.dart';
-// 1. Importamos
 import '../../../core/widgets/responsive_container.dart';
 
 class StudentLookupView extends StatefulWidget {
@@ -31,6 +30,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
       create: (context) => StudentLookupViewModel(context.read<AuthRepository>()),
       child: Scaffold(
         backgroundColor: const Color(0xFFE6EEF8),
+
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -39,36 +39,49 @@ class _StudentLookupViewState extends State<StudentLookupView> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
+
         body: Consumer<StudentLookupViewModel>(
           builder: (context, viewModel, child) {
-            // 2. Reemplazamos Center por ResponsiveContainer
-            // (ResponsiveContainer internamente centra y limita el ancho)
             return ResponsiveContainer(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SvgPicture.asset("assets/images/logo.svg", height: 100),
+                    /// IMAGEN PRINCIPAL
+                    SvgPicture.asset(
+                      "assets/images/image1.svg",
+                      height: 160,
+                    ),
+
                     const SizedBox(height: 30),
+
+                    /// TÍTULO
                     const Text(
                       "Validación de Estudiante",
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2F5A93),
                       ),
-                      textAlign: TextAlign.center,
                     ),
+
                     const SizedBox(height: 10),
+
+                    /// SUBTÍTULO
                     const Text(
                       "Ingresa tu número de boleta para verificar que estás en el sistema.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey,
+                      ),
                     ),
 
                     const SizedBox(height: 40),
 
+                    /// INPUT
                     TextInputField(
                       label: "Número de Boleta",
                       controller: boletaCtrl,
@@ -76,18 +89,23 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                       keyboardType: TextInputType.number,
                     ),
 
+                    /// ERROR
                     if (viewModel.errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
                         child: Text(
                           viewModel.errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
 
                     const SizedBox(height: 30),
 
+                    /// BOTÓN PRINCIPAL
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -117,6 +135,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                         },
                       ),
                     ),
+
                     const SizedBox(height: 20),
                   ],
                 ),
