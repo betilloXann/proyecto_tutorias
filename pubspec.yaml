@@ -22,7 +22,9 @@ dependencies:
   url_launcher: ^6.3.0
   smooth_page_indicator: ^1.1.0
 
-  excel: ^4.0.3 # <-- ADDED
+  collection: ^1.19.0
+
+  excel: ^4.0.3
 
   cupertino_icons: ^1.0.8
   firebase_storage: ^13.0.4

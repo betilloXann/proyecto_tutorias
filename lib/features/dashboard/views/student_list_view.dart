@@ -68,7 +68,7 @@ class _StudentListViewState extends State<StudentListView> {
                     key: PageStorageKey(academy), // Helps to keep expansion state when scrolling
                     leading: const Icon(Icons.school_outlined, color: AppTheme.blueDark, size: 28),
                     title: Text(academy, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.blueDark)),
-                    backgroundColor: AppTheme.blueSoft.withOpacity(0.2),
+                    backgroundColor: AppTheme.baseLight.withValues(alpha: 0.5),
                     children: subjects.entries.map((subjectEntry) {
                       final subject = subjectEntry.key;
                       final studentList = subjectEntry.value;
@@ -79,7 +79,7 @@ class _StudentListViewState extends State<StudentListView> {
                         tilePadding: const EdgeInsets.only(left: 48, right: 24),
                         leading: const Icon(Icons.menu_book_outlined, color: AppTheme.bluePrimary),
                         title: Text(subject, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600, fontSize: 16)),
-                        backgroundColor: AppTheme.baseLight.withOpacity(0.5),
+                        backgroundColor: AppTheme.blueSoft.withValues(alpha: 0.2),
                         children: studentList.map((student) {
                           // --- STYLED STUDENT TILE ---
                           return ListTile(

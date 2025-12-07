@@ -64,7 +64,7 @@ class WelcomeView extends StatelessWidget {
                       "Bienvenido",
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade700,
+                        color: const Color(0xFF2F5A93),
                       ),
                       textAlign: TextAlign.center,
                     ),
