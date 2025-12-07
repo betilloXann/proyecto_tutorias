@@ -7,7 +7,8 @@ class UserModel {
   final String role;
   final List<String> academies;
   final String? dictamenUrl;
-  final double? finalGrade; // <-- ADDED
+  final double? finalGrade;
+  final List<String> subjectsToTake; // <-- NEW
 
   UserModel({
     required this.id,
@@ -19,17 +20,15 @@ class UserModel {
     required this.academies,
     this.dictamenUrl,
     this.finalGrade,
+    this.subjectsToTake = const [], // <-- NEW
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
 
     List<String> parsedAcademies = [];
-    // 1. Intentamos leer la lista nueva
     if (map['academies'] != null && map['academies'] is Iterable) {
       parsedAcademies = List<String>.from(map['academies']);
-    }
-    // 2. Si no hay lista, revisamos si existe el campo antiguo 'academy'
-    else if (map['academy'] != null && map['academy'] is String) {
+    } else if (map['academy'] != null && map['academy'] is String) {
       parsedAcademies = [map['academy']];
     }
 
@@ -42,7 +41,8 @@ class UserModel {
       role: map['role'] ?? 'student',
       academies: parsedAcademies,
       dictamenUrl: map['dictamen_url'],
-      finalGrade: (map['final_grade'] as num?)?.toDouble(), // <-- ADDED
+      finalGrade: (map['final_grade'] as num?)?.toDouble(),
+      subjectsToTake: List<String>.from(map['subjects_to_take'] ?? []), // <-- NEW
     );
   }
 }
