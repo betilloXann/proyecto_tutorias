@@ -96,6 +96,7 @@ class BulkUploadViewModel extends ChangeNotifier {
       notifyListeners();
 
       final Map<String, Map<String, dynamic>> studentsData = {};
+      int totalRowsProcessed = 0;
 
       for (var i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
@@ -105,18 +106,28 @@ class BulkUploadViewModel extends ChangeNotifier {
         final cleanBoleta = rawBoleta.trim();
         if (cleanBoleta.isEmpty) continue;
 
+        totalRowsProcessed++;
+
+        // Nombre: Limpieza profunda de espacios
         final rawName = row[1]?.value?.toString() ?? '';
         final cleanName = rawName.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
 
+        // --- CORRECCIÓN 1: PROCESAR ACADEMIA ---
         final rawAcademy = row[3]?.value?.toString() ?? '';
-        final cleanAcademy = rawAcademy.trim().toUpperCase();
+        String tempAcademy = rawAcademy.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
 
-        // 2. NORMALIZACIÓN DE MATERIA (Aquí ocurre la magia)
+        // Paso B: Intentar traducir usando el diccionario (Igual que las materias)
+        String cleanAcademy = tempAcademy;
+        if (_subjectMapping.containsKey(tempAcademy)) {
+          cleanAcademy = _subjectMapping[tempAcademy]!; // <--- AHORA TRADUCE LA ACADEMIA TAMBIÉN
+        }
+
+        // --- CORRECCIÓN 2: PROCESAR MATERIA ---
         final rawSubject = row[4]?.value?.toString() ?? '';
         // Primero convertimos a mayúscula limpia
-        String tempSubject = rawSubject.trim().toUpperCase();
+        String tempSubject = rawSubject.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' '); // <--- AGREGADO replaceAll
 
-        // Luego buscamos si existe una traducción oficial en el mapa
+        // Paso B: Traducir
         String finalSubject = tempSubject;
         if (_subjectMapping.containsKey(tempSubject)) {
           finalSubject = _subjectMapping[tempSubject]!;
@@ -144,7 +155,7 @@ class BulkUploadViewModel extends ChangeNotifier {
         }
       }
 
-      _progressMessage = 'Subiendo ${studentsData.length} alumnos procesados...';
+      _progressMessage = 'Procesando $totalRowsProcessed registros...';
       notifyListeners();
 
       final List<Map<String, dynamic>> uploadList = studentsData.values.map((data) {
@@ -157,11 +168,11 @@ class BulkUploadViewModel extends ChangeNotifier {
 
       await _authRepo.bulkRegisterStudents(uploadList, (processed) {
         _processedStudents = processed;
-        _progressMessage = 'Guardando... $processed / ${uploadList.length}';
+        _progressMessage = 'Guardando alumno $processed de ${uploadList.length}...';
         notifyListeners();
       });
 
-      _progressMessage = '¡Éxito! Se procesaron ${uploadList.length} alumnos.';
+      _progressMessage = '¡Éxito!\n• Se procesaron $totalRowsProcessed filas.\n• Se actualizaron ${uploadList.length} alumnos.';
       _isSuccess = true;
 
     } catch (e) {

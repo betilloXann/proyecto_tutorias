@@ -212,7 +212,7 @@ class ForgotPasswordView extends StatelessWidget {
                         // 3. Crear documento en Firestore (Usando el UID generado)
                         if (cred.user != null) {
                           await firestore.collection('users').doc(cred.user!.uid).set({
-                            'id': cred.user!.uid,
+                            'uid': cred.user!.uid,
                             'name': userData['name'],
                             'email': userData['email'],
                             'role': userData['role'],
@@ -268,6 +268,106 @@ class ForgotPasswordView extends StatelessWidget {
                   }
                 },
                 child: const Text("REGENERAR USUARIOS (SEED V2)", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 10), // Espacio opcional
+
+              // --- BOTÓN PARA BORRAR TODO ---
+              TextButton(
+                onPressed: () async {
+                  // 1. Confirmación de seguridad
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("⚠️ PELIGRO: BORRAR TODO"),
+                      content: const Text(
+                          "¿Estás seguro? Esto eliminará TODOS los usuarios de la base de datos de Firestore permanentemente. No se puede deshacer."),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text("CANCELAR")),
+                        TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text("SÍ, BORRAR TODO",
+                                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                  );
+
+                  if (confirm != true) return;
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("Eliminando todos los usuarios..."),
+                        duration: Duration(seconds: 5)),
+                  );
+
+                  try {
+                    final firestore = FirebaseFirestore.instance;
+                    final usersRef = firestore.collection('users');
+
+                    // 2. Obtener todos los documentos
+                    final snapshot = await usersRef.get();
+                    WriteBatch batch = firestore.batch();
+                    int deletedCount = 0;
+                    int batchCount = 0;
+
+                    if (snapshot.docs.isEmpty) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("La base de datos ya está vacía.")),
+                        );
+                      }
+                      return;
+                    }
+
+                    // 3. Iterar y borrar en lotes
+                    for (var doc in snapshot.docs) {
+                      batch.delete(doc.reference);
+                      deletedCount++;
+                      batchCount++;
+
+                      // Límite de Batch es 500, usamos 450 por seguridad
+                      if (batchCount >= 450) {
+                        await batch.commit();
+                        batch = firestore.batch(); // Crear nuevo batch
+                        batchCount = 0;
+                      }
+                    }
+
+                    // Commit final de los restantes
+                    if (batchCount > 0) {
+                      await batch.commit();
+                    }
+
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("🗑️ Limpieza Terminada"),
+                          content: Text("Se eliminaron $deletedCount usuarios de la base de datos."),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK"))
+                          ],
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text("Error al borrar: $e"),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                },
+                child: const Text(
+                  "BORRAR BD (DELETE ALL)",
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
