@@ -28,7 +28,6 @@ class DepartmentHomeView extends StatelessWidget {
         appBar: AppBar(
           title: const Text("Departamento de Tutorías"),
           actions: [
-            // --- BUTTON REMOVED ---
             IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () async {
@@ -40,7 +39,6 @@ class DepartmentHomeView extends StatelessWidget {
             )
           ],
         ),
-        // --- FLOATING ACTION BUTTON REMOVED ---
         body: Consumer<DepartmentHomeViewModel>(
           builder: (context, vm, child) {
             if (vm.isLoading) {
@@ -63,7 +61,7 @@ class DepartmentHomeView extends StatelessWidget {
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 1.5,
+                    childAspectRatio: 1.3, // <-- FIX: Adjusted for more vertical space
                     children: [
                       GestureDetector(
                         onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
