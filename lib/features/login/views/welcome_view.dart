@@ -54,12 +54,10 @@ class WelcomeView extends StatelessWidget {
                   children: [
                     // Ilustración o logo
                     SvgPicture.asset(
-                      'assets/images/logo3.svg',
+                      'assets/images/logo1.svg',
                       width: 200,
-                      height: 200,
+                      height: 180,
                     ),
-
-                    const SizedBox(height: 20),
 
                     // Título moderno
                     Text(
