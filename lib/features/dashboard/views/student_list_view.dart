@@ -1,97 +1,50 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
-import 'package:collection/collection.dart';
 import 'student_detail_view.dart';
 
-class StudentListView extends StatefulWidget {
+class StudentListView extends StatelessWidget {
   final String title;
   final List<UserModel> students;
 
   const StudentListView({super.key, required this.title, required this.students});
 
   @override
-  State<StudentListView> createState() => _StudentListViewState();
-}
-
-class _StudentListViewState extends State<StudentListView> {
-  late final Map<String, Map<String, List<UserModel>>> _groupedStudents;
-
-  @override
-  void initState() {
-    super.initState();
-    _groupAndSortStudents();
-  }
-
-  void _groupAndSortStudents() {
-    final groupedByAcademy = groupBy(widget.students, (student) => student.academies.firstOrNull ?? 'Sin Academia');
-
-    _groupedStudents = {};
-
-    groupedByAcademy.forEach((academy, studentsInAcademy) {
-      final groupedBySubject = groupBy(studentsInAcademy, (student) => student.subjectsToTake.firstOrNull ?? 'Sin Materia Asignada');
-      
-      groupedBySubject.forEach((subject, studentsInSubject) {
-        studentsInSubject.sort((a, b) => a.name.compareTo(b.name));
-      });
-
-      _groupedStudents[academy] = groupedBySubject;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Sort students alphabetically by name
+    students.sort((a, b) => a.name.compareTo(b.name));
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(title),
       ),
-      body: _groupedStudents.isEmpty
-          ? const Center(child: Text("No hay alumnos para mostrar."))
+      body: students.isEmpty
+          ? const Center(
+              child: Text("No hay alumnos en esta categoría.", style: TextStyle(fontSize: 16, color: Colors.grey)),
+            )
           : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _groupedStudents.length,
-              itemBuilder: (context, academyIndex) {
-                final academy = _groupedStudents.keys.elementAt(academyIndex);
-                final subjects = _groupedStudents[academy]!;
-
+              padding: const EdgeInsets.all(16),
+              itemCount: students.length,
+              itemBuilder: (context, index) {
+                final student = students[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  clipBehavior: Clip.antiAlias,
-                  child: ExpansionTile(
-                    key: PageStorageKey(academy),
-                    leading: const Icon(Icons.school_outlined, color: AppTheme.blueDark, size: 28),
-                    title: Text(academy, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.blueDark)),
-                    backgroundColor: AppTheme.blueSoft.withOpacity(0.2),
-                    children: subjects.entries.map((subjectEntry) {
-                      final subject = subjectEntry.key;
-                      final studentList = subjectEntry.value;
-
-                      return ExpansionTile(
-                        key: PageStorageKey('$academy-$subject'),
-                        tilePadding: const EdgeInsets.only(left: 48, right: 24),
-                        leading: const Icon(Icons.menu_book_outlined, color: AppTheme.bluePrimary),
-                        title: Text(subject, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600, fontSize: 16)),
-                        backgroundColor: AppTheme.baseLight.withOpacity(0.5),
-                        children: studentList.map((student) {
-                          // --- FIX: Remove toUpperCase() ---
-                          return ListTile(
-                            contentPadding: const EdgeInsets.only(left: 56, right: 16, top: 4, bottom: 4),
-                            leading: const Icon(Icons.person_outline, color: Colors.grey),
-                            title: Text(student.name),
-                            subtitle: Text('Boleta: ${student.boleta}'),
-                            trailing: const Icon(Icons.chevron_right, size: 18),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
-                              );
-                            },
-                          );
-                        }).toList(),
+                  elevation: 1,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.blueSoft,
+                      child: Text(student.name.isNotEmpty ? student.name[0] : "?", style: const TextStyle(color: AppTheme.blueDark, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("Boleta: ${student.boleta}"),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
                       );
-                    }).toList(),
+                    },
                   ),
                 );
               },
