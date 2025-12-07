@@ -10,13 +10,13 @@ class DepartmentHomeViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // Listas de datos
   List<UserModel> _allStudents = [];
   List<UserModel> _filteredStudents = [];
 
-  // Estadísticas
+  // --- UPDATED: Statistics ---
   int get totalStudents => _allStudents.length;
-  int get pendingCount => _allStudents.where((s) => s.status == 'PENDIENTE_ASIGNACION' || s.status == 'PRE_REGISTRO').length;
+  int get preRegisteredCount => _allStudents.where((s) => s.status == 'PRE_REGISTRO').length;
+  int get pendingCount => _allStudents.where((s) => s.status == 'PENDIENTE_ASIGNACION').length;
   int get inCourseCount => _allStudents.where((s) => s.status == 'EN_CURSO').length;
   int get accreditedCount => _allStudents.where((s) => s.status == 'ACREDITADO').length;
 
@@ -34,18 +34,9 @@ class DepartmentHomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Traemos TODOS los usuarios con rol 'student'
-      final snapshot = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'student')
-          .get();
-
-      _allStudents = snapshot.docs
-          .map((doc) => UserModel.fromMap(doc.data(), doc.id))
-          .toList();
-
+      final snapshot = await _db.collection('users').where('role', isEqualTo: 'student').get();
+      _allStudents = snapshot.docs.map((doc) => UserModel.fromMap(doc.data(), doc.id)).toList();
       _filteredStudents = List.from(_allStudents);
-
     } catch (e) {
       _errorMessage = "Error cargando datos: $e";
     } finally {

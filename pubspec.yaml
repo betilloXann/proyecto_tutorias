@@ -22,6 +22,8 @@ dependencies:
   url_launcher: ^6.3.0
   smooth_page_indicator: ^1.1.0
 
+  excel: ^4.0.3 # <-- ADDED
+
   cupertino_icons: ^1.0.8
   firebase_storage: ^13.0.4
   file_picker: ^10.3.7
@@ -50,6 +52,6 @@ flutter_launcher_icons:
 
   web:
     generate: true
-    image_path: "assets/images/app_icon.png" # Puede ser la misma imagen
-    background_color: "#hexcode" # Ej. "#ffffff" (Color de fondo al abrir la app)
-    theme_color: "#hexcode"      # Ej. "#2F5A93" (Color de la barra del navegador)
+    image_path: "assets/images/app_icon.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"

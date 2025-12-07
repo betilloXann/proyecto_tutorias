@@ -101,6 +101,33 @@ class AuthRepository {
     }
   }
 
+  // --- NEW: Bulk student registration ---
+  Future<void> bulkRegisterStudents(List<Map<String, dynamic>> students, Function(int) onProgress) async {
+    final batch = _db.batch();
+    int processedCount = 0;
+
+    for (final studentData in students) {
+      final querySnapshot = await _db.collection('users').where('boleta', isEqualTo: studentData['boleta']).limit(1).get();
+
+      if (querySnapshot.docs.isEmpty) {
+        final newDocRef = _db.collection('users').doc();
+        batch.set(newDocRef, {
+          'boleta': studentData['boleta'],
+          'name': studentData['name'],
+          'email_inst': studentData['email_inst'],
+          'academies': studentData['academies'],
+          'subjects_to_take': studentData['subjects_to_take'],
+          'status': 'PRE_REGISTRO',
+          'role': 'student',
+          'created_at': FieldValue.serverTimestamp(),
+        });
+        processedCount++;
+        onProgress(processedCount);
+      }
+    }
+    await batch.commit();
+  }
+
   Future<void> uploadEvidence({
     required String materia,
     required String mes,
@@ -157,11 +184,10 @@ class AuthRepository {
     }
   }
 
-  // --- NEW: Function to assign final grade and status ---
   Future<void> assignFinalGrade({
     required String studentId,
     required double finalGrade,
-    required String finalStatus, // 'ACREDITADO' or 'NO_ACREDITADO'
+    required String finalStatus,
   }) async {
     try {
       await _db.collection('users').doc(studentId).update({
