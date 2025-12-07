@@ -262,7 +262,7 @@ class _ClassesList extends StatelessWidget {
             const SizedBox(height: 10),
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              String academiaMateria = data['academy'] ?? "Ingeniería Informática";
+              //String academiaMateria = data['academy'] ?? "Ingeniería Informática";
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
