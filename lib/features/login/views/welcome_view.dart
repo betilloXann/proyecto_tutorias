@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/widgets/primary_button.dart';
-// 1. Importamos
 import '../../../core/widgets/responsive_container.dart';
 
 class WelcomeView extends StatelessWidget {
@@ -12,67 +11,108 @@ class WelcomeView extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      // 2. Usamos ResponsiveContainer.
-      // Envuelve el Padding para que todo el contenido se centre en web.
-      body: ResponsiveContainer(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // LOGO
-              SvgPicture.asset(
-                'assets/images/logo3.svg',
-                width: 250,
-                height: 250,
-              ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
 
-              const SizedBox(height: 20),
-
-              // TITULO
-              Text(
-                "Bienvenido",
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 8),
-
-              // SUBTITULO
-              Text(
-                "Inicia sesión o activa tu cuenta para continuar",
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 40),
-
-              // BOTÓN PRINCIPAL
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  text: "Activar cuenta",
-                  onPressed: () => Navigator.pushNamed(context, "/activation"),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // TEXTO SECUNDARIO
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/login"),
-                child: Text(
-                  "Inicia sesión",
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+        // Fondo degradado azul inspirado en la ilustración
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFEBF3FF), // azul muy claro
+              Color(0xFFD6E7FF), // azul pastel
             ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+
+        child: ResponsiveContainer(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 32,
+                  horizontal: 24,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                      color: Colors.black.withValues(alpha: 0.08),
+                    )
+                  ],
+                ),
+
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Ilustración o logo
+                    SvgPicture.asset(
+                      'assets/images/logo3.svg',
+                      width: 200,
+                      height: 200,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Título moderno
+                    Text(
+                      "Bienvenido",
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Subtítulo más suave
+                    Text(
+                      "Inicia sesión o activa tu cuenta para continuar",
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.blueGrey.shade700,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Botón principal estilo azul
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        text: "Activar cuenta",
+                        onPressed: () =>
+                            Navigator.pushNamed(context, "/activation"),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Botón secundario como texto azul
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, "/login"),
+                      child: Text(
+                        "Inicia sesión",
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
