@@ -54,7 +54,7 @@ class WelcomeView extends StatelessWidget {
                   children: [
                     // Ilustración o logo
                     SvgPicture.asset(
-                      'assets/images/logo1.svg',
+                      'assets/images/image5.svg',
                       width: 200,
                       height: 180,
                     ),
