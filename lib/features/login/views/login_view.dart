@@ -146,6 +146,7 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 32),
 
                   TextInputField(
+                    key: const Key('login_email_input'), // <--- AGREGA ESTO
                     label: "Correo Personal",
                     controller: emailCtrl,
                     focusNode: _emailFocusNode,
@@ -157,6 +158,7 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 16),
 
                   TextInputField(
+                    key: const Key('login_password_input'), // <--- AGREGA ESTO
                     label: "Contraseña",
                     controller: passwordCtrl,
                     focusNode: _passwordFocusNode,
@@ -201,6 +203,7 @@ class _LoginViewState extends State<LoginView> {
                     child: vm.isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : PrimaryButton(
+                      key: const Key('login_button'), // <--- AGREGA ESTO TAMBIÉN
                       text: "Ingresar",
                       onPressed: _submitLogin,
                     ),

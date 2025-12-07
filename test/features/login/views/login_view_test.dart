@@ -1,13 +1,22 @@
+import 'dart:convert';
+//import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Importa tus clases reales
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
 import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
 import 'package:proyecto_tutorias/features/login/views/login_view.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-// Mock manual corregido para coincidir con la firma de AuthRepository
+// -------------------------------------------------------------------------
+// 1. MOCKS
+// -------------------------------------------------------------------------
+
 class MockAuthRepository extends Mock implements AuthRepository {
   @override
   Future<User?> signIn({required String email, required String password}) {
@@ -19,6 +28,36 @@ class MockAuthRepository extends Mock implements AuthRepository {
   }
 }
 
+/// Mock de AssetBundle corregido para flutter_svg moderno.
+/// Devuelve siempre un SVG XML válido, tanto en String como en Bytes.
+class TestAssetBundle extends CachingAssetBundle {
+  // Un SVG real, válido y simple (un cuadrado transparente de 10x10)
+  // Es CRUCIAL incluir el xmlns para que el parser estricto no falle.
+  final String _svgDummy = '''
+<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10" fill="transparent"/>
+</svg>
+''';
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async {
+    return _svgDummy;
+  }
+
+  @override
+  Future<ByteData> load(String key) async {
+    // AQUÍ ESTABA EL ERROR: Antes devolvíamos un PNG.
+    // Ahora convertimos el String SVG a bytes UTF-8 para que el loader
+    // binario también reciba un SVG válido.
+    final Uint8List bytes = utf8.encode(_svgDummy);
+    return ByteData.view(bytes.buffer);
+  }
+}
+
+// -------------------------------------------------------------------------
+// 2. PRUEBAS
+// -------------------------------------------------------------------------
+
 void main() {
   late MockAuthRepository mockAuthRepository;
   late LoginViewModel viewModel;
@@ -28,68 +67,69 @@ void main() {
     viewModel = LoginViewModel(authRepository: mockAuthRepository);
   });
 
-  // Helper para levantar la app con el Provider necesario
-  Widget createWidget() {
-    return ChangeNotifierProvider<LoginViewModel>.value(
-      value: viewModel,
-      child: MaterialApp(
-        // Rutas dummy para que la navegación no falle
-        routes: {
-          '/home': (_) => const Scaffold(body: Text('HOME_SCREEN')),
-          '/welcome': (_) => const Scaffold(body: Text('WELCOME_SCREEN')),
-          '/recover': (_) => const Scaffold(body: Text('RECOVER_SCREEN')),
-          '/activation': (_) => const Scaffold(body: Text('ACTIVATION_SCREEN')),
-        },
-        home: const LoginView(),
+  Widget createTestWidget() {
+    return DefaultAssetBundle(
+      bundle: TestAssetBundle(),
+      child: ChangeNotifierProvider<LoginViewModel>.value(
+        value: viewModel,
+        child: MaterialApp(
+          scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
+          routes: {
+            '/home': (_) => const Scaffold(body: Text('HOME_SCREEN')),
+            '/welcome': (_) => const Scaffold(body: Text('WELCOME_SCREEN')),
+            '/recover': (_) => const Scaffold(body: Text('RECOVER_SCREEN')),
+            '/activation': (_) => const Scaffold(body: Text('ACTIVATION_SCREEN')),
+          },
+          home: const LoginView(),
+        ),
       ),
     );
   }
 
-  testWidgets('Debe mostrar los campos de texto y el botón', (tester) async {
-    await tester.pumpWidget(createWidget());
+  testWidgets('Renderizado Inicial: Debe mostrar campos y botón', (tester) async {
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle(); // Esperar a que el SVG cargue y se renderice
 
     expect(find.text('Iniciar Sesión'), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, 'Correo Personal'), findsOneWidget);
-    expect(find.text('Ingresar'), findsOneWidget);
+    expect(find.byKey(const Key('login_email_input')), findsOneWidget);
+    expect(find.byKey(const Key('login_password_input')), findsOneWidget);
+    expect(find.byKey(const Key('login_button')), findsOneWidget);
   });
 
-  testWidgets('Al ingresar credenciales correctas, debe navegar a Home', (tester) async {
-    // 1. Configurar Mock CON VALORES EXACTOS
-    // Usamos los mismos strings que escribiremos abajo
-    when(mockAuthRepository.signIn(email: 'profe@ipn.mx', password: '123456'))
+  testWidgets('Login Exitoso: Debe navegar a /home', (tester) async {
+    when(mockAuthRepository.signIn(email: 'profe@ipn.mx', password: '123'))
         .thenAnswer((_) async => null);
 
-    await tester.pumpWidget(createWidget());
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle(); // Importante: esperar carga inicial completa
 
-    // 2. Interactuar
-    await tester.enterText(find.widgetWithText(TextFormField, 'Correo Personal'), 'profe@ipn.mx');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), '123456');
+    await tester.enterText(find.byKey(const Key('login_email_input')), 'profe@ipn.mx');
+    await tester.enterText(find.byKey(const Key('login_password_input')), '123');
 
-    // Tap en botón y esperar animaciones
-    await tester.tap(find.text('Ingresar'));
-    await tester.pump(); // Inicia proceso (loading)
-    await tester.pumpAndSettle(); // Finaliza animaciones y navegación
-
-    // 3. Verificar navegación
-    expect(find.text('HOME_SCREEN'), findsOneWidget);
-  });
-
-  testWidgets('Al fallar login, debe mostrar SnackBar con error', (tester) async {
-    // 1. Configurar Mock para error CON VALORES EXACTOS
-    // Usamos los mismos strings que escribiremos abajo
-    when(mockAuthRepository.signIn(email: 'a', password: 'b'))
-        .thenThrow(Exception('Error de red'));
-
-    await tester.pumpWidget(createWidget());
-
-    await tester.enterText(find.widgetWithText(TextFormField, 'Correo Personal'), 'a');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contraseña'), 'b');
-    await tester.tap(find.text('Ingresar'));
+    await tester.tap(find.byKey(const Key('login_button')));
 
     await tester.pumpAndSettle();
 
-    // 3. Verificar que sigue en la misma pantalla y muestra error
+    expect(find.text('HOME_SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('Login Fallido: Debe mostrar SnackBar con error', (tester) async {
+    when(mockAuthRepository.signIn(email: 'error@ipn.mx', password: 'bad'))
+        .thenThrow(Exception('Credenciales inválidas'));
+
+    await tester.pumpWidget(createTestWidget());
+    await tester.pumpAndSettle(); // Importante: esperar carga inicial completa
+
+    await tester.enterText(find.byKey(const Key('login_email_input')), 'error@ipn.mx');
+    await tester.enterText(find.byKey(const Key('login_password_input')), 'bad');
+
+    await tester.tap(find.byKey(const Key('login_button')));
+
+    // Esperar a que ocurra el ciclo de error y aparezca el SnackBar
+    await tester.pumpAndSettle();
+
     expect(find.text('HOME_SCREEN'), findsNothing);
-    expect(find.text('Error de red'), findsOneWidget); // Mensaje del SnackBar
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Credenciales inválidas'), findsOneWidget);
   });
 }
