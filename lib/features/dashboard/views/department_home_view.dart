@@ -5,34 +5,12 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
-import 'bulk_upload_view.dart';
-import 'subject_management_view.dart';
 import 'student_list_view.dart';
 
 class DepartmentHomeView extends StatelessWidget {
   final UserModel user;
   const DepartmentHomeView({super.key, required this.user});
 
-  void _navigateToSubjectManagement(BuildContext context) {
-    final String targetAcademy = user.academies.isNotEmpty
-        ? user.academies.first
-        : 'INFORMATICA';
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SubjectManagementView(academy: targetAcademy),
-      ),
-    );
-  }
-
-  void _navigateToBulkUpload(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const BulkUploadView()),
-    );
-  }
-  
   void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) {
     Navigator.push(
       context,
@@ -50,11 +28,7 @@ class DepartmentHomeView extends StatelessWidget {
         appBar: AppBar(
           title: const Text("Departamento de Tutorías"),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.ballot_outlined),
-              tooltip: "Gestionar Materias",
-              onPressed: () => _navigateToSubjectManagement(context),
-            ),
+            // --- BUTTON REMOVED ---
             IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () async {
@@ -66,11 +40,7 @@ class DepartmentHomeView extends StatelessWidget {
             )
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _navigateToBulkUpload(context),
-          tooltip: "Carga Masiva de Alumnos",
-          child: const Icon(Icons.upload_file),
-        ),
+        // --- FLOATING ACTION BUTTON REMOVED ---
         body: Consumer<DepartmentHomeViewModel>(
           builder: (context, vm, child) {
             if (vm.isLoading) {
@@ -144,7 +114,7 @@ class DepartmentHomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
+                Text(title, style: TextStyle(color: color.withOpacity(0.8))),
               ],
             ),
           ],

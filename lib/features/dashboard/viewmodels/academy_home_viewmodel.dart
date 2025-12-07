@@ -17,7 +17,6 @@ class AcademyViewModel extends ChangeNotifier {
   List<SubjectModel> _subjects = [];
   List<SubjectModel> _availableSubjectsForStudent = [];
 
-  // --- FIX: Add the abbreviation map here ---
   final Map<String, String> _subjectAbbreviationMap = {
     'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB. ELECT. Y CONTROL',
     'ARQUITECTURA Y ORGANIZACIÓN DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.',
@@ -37,7 +36,6 @@ class AcademyViewModel extends ChangeNotifier {
     loadInitialData();
   }
 
-  // --- FIX: Make filtering "bilingual" ---
   void filterSubjectsForStudent(UserModel student) {
     if (student.subjectsToTake.isEmpty) {
       _availableSubjectsForStudent = List.from(_subjects);
@@ -46,15 +44,17 @@ class AcademyViewModel extends ChangeNotifier {
       
       _availableSubjectsForStudent = _subjects.where((subject) {
         final subjectNameNormalized = subject.name.trim().toLowerCase();
-        // Direct match (e.g., "sistemas digitales" == "sistemas digitales")
+
         if (studentSubjectsNormalized.contains(subjectNameNormalized)) {
           return true;
         }
-        // Abbreviation match (e.g., "sistemas digitales" == value for key "APLIC. SIST. DIGITALES")
-        final abbreviation = _subjectAbbreviationMap[subject.name.toUpperCase()];
+
+        final upperCaseSubjectName = subject.name.toUpperCase();
+        final abbreviation = _subjectAbbreviationMap[upperCaseSubjectName];
         if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) {
           return true;
         }
+
         return false;
       }).toList();
     }
@@ -82,36 +82,22 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
+  // --- FIX: Use array-contains-any for robust student loading ---
   Future<void> _loadStudents() async {
-    final query1 = _db
+    if (myAcademies.isEmpty) return;
+
+    final snapshot = await _db
         .collection('users')
         .where('role', isEqualTo: 'student')
         .where('academies', arrayContainsAny: myAcademies)
         .get();
-
-    final query2Futures = myAcademies.map((academy) => 
-      _db.collection('users')
-         .where('role', isEqualTo: 'student')
-         .where('academy', isEqualTo: academy)
-         .get()
-    );
-
-    final results = await Future.wait([query1, ...query2Futures]);
-    
-    final uniqueDocs = <String, DocumentSnapshot>{};
-    
-    for (var snapshot in results) {
-      for (var doc in snapshot.docs) {
-        uniqueDocs[doc.id] = doc;
-      }
-    }
 
     _pendingStudents = [];
     _assignedStudents = [];
     _accreditedStudents = [];
     _notAccreditedStudents = [];
 
-    for (var doc in uniqueDocs.values) {
+    for (var doc in snapshot.docs) {
       final student = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       
       switch (student.status) {
@@ -136,9 +122,9 @@ class AcademyViewModel extends ChangeNotifier {
     final Set<String> searchTerms = {};
     for (var academy in myAcademies) {
       searchTerms.add(academy);
-      if (_subjectAbbreviationMap.containsValue(academy)) {
-         final originalName = _subjectAbbreviationMap.entries.firstWhere((entry) => entry.value == academy).key;
-         searchTerms.add(originalName);
+      final abbreviation = _subjectAbbreviationMap.entries.firstWhere((entry) => entry.key == academy, orElse: () => const MapEntry('', '')).value;
+      if (abbreviation.isNotEmpty) {
+        searchTerms.add(abbreviation);
       }
     }
 
