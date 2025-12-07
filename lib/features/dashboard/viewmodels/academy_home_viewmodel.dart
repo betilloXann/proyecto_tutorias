@@ -15,6 +15,7 @@ class AcademyViewModel extends ChangeNotifier {
   List<UserModel> _accreditedStudents = [];
   List<UserModel> _notAccreditedStudents = [];
   List<SubjectModel> _subjects = [];
+  List<SubjectModel> _availableSubjectsForStudent = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -23,9 +24,27 @@ class AcademyViewModel extends ChangeNotifier {
   List<UserModel> get accreditedStudents => _accreditedStudents;
   List<UserModel> get notAccreditedStudents => _notAccreditedStudents;
   List<SubjectModel> get subjects => _subjects;
+  List<SubjectModel> get availableSubjectsForStudent => _availableSubjectsForStudent;
 
   AcademyViewModel({required this.myAcademies}) {
     loadInitialData();
+  }
+
+  // --- FIX: Make subject filtering case-insensitive ---
+  void filterSubjectsForStudent(UserModel student) {
+    if (student.subjectsToTake.isEmpty) {
+      _availableSubjectsForStudent = List.from(_subjects);
+    } else {
+      // Normalize the subjects the student needs to take for reliable comparison
+      final studentSubjectsNormalized = student.subjectsToTake.map((s) => s.trim().toLowerCase()).toSet();
+      
+      _availableSubjectsForStudent = _subjects.where((subject) {
+        // Normalize the name of the subject from the general list before checking for inclusion
+        final subjectNameNormalized = subject.name.trim().toLowerCase();
+        return studentSubjectsNormalized.contains(subjectNameNormalized);
+      }).toList();
+    }
+    notifyListeners();
   }
 
   Future<void> loadInitialData() async {
@@ -106,8 +125,6 @@ Future<void> _loadStudents() async {
         .get();
         
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
-
-    // --- FIX: Sort subjects alphabetically by name ---
     _subjects.sort((a, b) => a.name.compareTo(b.name));
   }
 

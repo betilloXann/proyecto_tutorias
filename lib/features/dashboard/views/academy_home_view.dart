@@ -6,8 +6,9 @@ import '../../../theme/theme.dart';
 import '../../../data/models/user_model.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
-import 'subject_management_view.dart';
 import 'student_detail_view.dart';
+import 'subject_management_view.dart';
+import 'bulk_upload_view.dart'; 
 
 class AcademyHomeView extends StatefulWidget {
   const AcademyHomeView({super.key});
@@ -42,6 +43,26 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
     );
   }
 
+  void _navigateToBulkUpload() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const BulkUploadView()),
+    );
+  }
+  
+  void _showAssignmentForm(BuildContext context, AcademyViewModel vm, UserModel student) {
+    vm.filterSubjectsForStudent(student); // <-- FIX: Filter subjects before showing the form
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: vm,
+        child: _AssignmentForm(student: student),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUser = context.select<HomeMenuViewModel, UserModel?>((vm) => vm.currentUser);
@@ -58,6 +79,11 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
         appBar: AppBar(
           title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
           actions: [
+             IconButton(
+              icon: const Icon(Icons.upload_file_sharp),
+              tooltip: "Carga Masiva de Alumnos",
+              onPressed: _navigateToBulkUpload,
+            ),
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
               tooltip: "Gestionar Materias",
@@ -79,21 +105,14 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
             if (vm.isLoading) return const Center(child: CircularProgressIndicator());
 
             bool allListsEmpty = vm.pendingStudents.isEmpty &&
-                vm.assignedStudents.isEmpty &&
-                vm.accreditedStudents.isEmpty &&
-                vm.notAccreditedStudents.isEmpty;
+                                 vm.assignedStudents.isEmpty &&
+                                 vm.accreditedStudents.isEmpty &&
+                                 vm.notAccreditedStudents.isEmpty;
 
             if (allListsEmpty) {
               return RefreshIndicator(
                 onRefresh: vm.loadInitialData,
-                child: ListView(
-                    children: [
-                      const SizedBox(height: 100),
-                      const Center(child: Text("No hay alumnos registrados en esta academia.")),
-                      const SizedBox(height: 20),
-                      Center(child: Text("Buscando en: ${vm.myAcademies.join(', ')}", style: const TextStyle(color: Colors.grey, fontSize: 12))),
-                    ]
-                ),
+                child: ListView(children: const [SizedBox(height: 100), Center(child: Text("No hay alumnos registrados en esta academia."))]),
               );
             }
 
@@ -102,8 +121,8 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), vm),
-                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), vm),
+                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student, onAssign: () => _showAssignmentForm(context, vm, student)), vm),
+                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student, onAssign: () => _showAssignmentForm(context, vm, student)), vm),
                   _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), vm),
                   _buildSection("HISTORIAL DE NO ACREDITADOS", vm.notAccreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: false), vm),
                 ],
@@ -133,13 +152,12 @@ class _AcademyHomeViewState extends State<AcademyHomeView> {
   }
 
   Color _getTitleColor(String title) {
+    if (title.contains("PRE-REGISTRADOS")) return Colors.purple;
     if (title.contains("PENDIENTES")) return AppTheme.bluePrimary;
     if (title.contains("CARGA ACADÉMICA")) return Colors.green;
     return Colors.grey.shade700;
   }
 }
-
-// --- WIDGETS AUXILIARES ---
 
 class _FinishedStudentCard extends StatelessWidget {
   final UserModel student;
@@ -172,11 +190,11 @@ class _FinishedStudentCard extends StatelessWidget {
 
 class _AssignedStudentCard extends StatelessWidget {
   final UserModel student;
-  const _AssignedStudentCard({required this.student});
+  final VoidCallback onAssign;
+  const _AssignedStudentCard({required this.student, required this.onAssign});
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<AcademyViewModel>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -203,17 +221,7 @@ class _AssignedStudentCard extends StatelessWidget {
               icon: const Icon(Icons.add_circle_outline, size: 18),
               label: const Text("Asignar Otra Materia"),
               style: TextButton.styleFrom(foregroundColor: Colors.green.shade700),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: vm,
-                    child: _AssignmentForm(student: student),
-                  ),
-                );
-              },
+              onPressed: onAssign,
             ),
           )
         ],
@@ -224,11 +232,11 @@ class _AssignedStudentCard extends StatelessWidget {
 
 class _StudentCard extends StatelessWidget {
   final UserModel student;
-  const _StudentCard({required this.student});
+  final VoidCallback onAssign;
+  const _StudentCard({required this.student, required this.onAssign});
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<AcademyViewModel>();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -253,17 +261,7 @@ class _StudentCard extends StatelessWidget {
             icon: const Icon(Icons.add_circle_outline, size: 18),
             label: const Text("Asignar Materia"),
             style: TextButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: vm,
-                  child: _AssignmentForm(student: student),
-                ),
-              );
-            },
+            onPressed: onAssign,
           ),
         )
       ]),
@@ -287,6 +285,16 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-select the subject if there's only one available
+    final vm = context.read<AcademyViewModel>();
+    if (vm.availableSubjectsForStudent.length == 1) {
+      _selectedSubject = vm.availableSubjectsForStudent.first;
+    }
+  }
+
+  @override
   void dispose() {
     _scheduleCtrl.dispose();
     _salonCtrl.dispose();
@@ -305,7 +313,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
       studentId: widget.student.id,
       subjectName: _selectedSubject!.name,
       professorName: _selectedProfessor!.name,
-      schedule: _selectedProfessor!.schedule, // Use professor's schedule
+      schedule: _selectedProfessor!.schedule,
       salon: _salonCtrl.text,
     );
 
@@ -331,10 +339,12 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
 
+          // --- FIX: Use the filtered list of subjects ---
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
+            value: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+            items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
               _selectedProfessor = null;
@@ -343,21 +353,18 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           ),
           const SizedBox(height: 15),
 
-          // --- UPDATED: Professor dropdown now updates the schedule field ---
           DropdownButtonFormField<ProfessorModel>(
             key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedProfessor = val;
-              // Auto-fill the schedule field
               _scheduleCtrl.text = val?.schedule ?? '';
             }),
           ),
           const SizedBox(height: 15),
 
           Row(children: [
-            // --- UPDATED: Schedule field is now read-only but shows the data ---
             Expanded(child: TextField(controller: _scheduleCtrl, readOnly: true, decoration: const InputDecoration(labelText: "Horario", border: OutlineInputBorder()))),
             const SizedBox(width: 10),
             Expanded(child: TextField(controller: _salonCtrl, decoration: const InputDecoration(labelText: "Salón", hintText: "Ej. A-04", border: OutlineInputBorder()))),
