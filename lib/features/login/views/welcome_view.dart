@@ -23,8 +23,9 @@ class WelcomeView extends StatelessWidget {
             children: [
               // LOGO
               SvgPicture.asset(
-                'assets/images/logo.svg',
-                height: 120,
+                'assets/images/logo3.svg',
+                width: 250,
+                height: 250,
               ),
 
               const SizedBox(height: 20),
