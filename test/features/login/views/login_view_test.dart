@@ -1,6 +1,4 @@
 import 'dart:convert';
-//import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,25 +12,21 @@ import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart
 import 'package:proyecto_tutorias/features/login/views/login_view.dart';
 
 // -------------------------------------------------------------------------
-// 1. MOCKS
+// 1. MOCKS MANUALES (Simplificados y Robustos)
 // -------------------------------------------------------------------------
 
 class MockAuthRepository extends Mock implements AuthRepository {
   @override
-  Future<User?> signIn({required String email, required String password}) {
-    return super.noSuchMethod(
-      Invocation.method(#signIn, [], {#email: email, #password: password}),
-      returnValue: Future.value(null),
-      returnValueForMissingStub: Future.value(null),
-    );
+  Future<User?> signIn({required String email, required String password}) async {
+    // Simulamos la lógica aquí para evitar problemas con 'when' y argumentos nombrados
+    if (email == 'error@ipn.mx') {
+      throw Exception('Credenciales inválidas'); // Simular error
+    }
+    return null; // Simular éxito (User? es null en tu implementación actual al loguear)
   }
 }
 
-/// Mock de AssetBundle corregido para flutter_svg moderno.
-/// Devuelve siempre un SVG XML válido, tanto en String como en Bytes.
 class TestAssetBundle extends CachingAssetBundle {
-  // Un SVG real, válido y simple (un cuadrado transparente de 10x10)
-  // Es CRUCIAL incluir el xmlns para que el parser estricto no falle.
   final String _svgDummy = '''
 <svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
   <rect width="10" height="10" fill="transparent"/>
@@ -46,9 +40,6 @@ class TestAssetBundle extends CachingAssetBundle {
 
   @override
   Future<ByteData> load(String key) async {
-    // AQUÍ ESTABA EL ERROR: Antes devolvíamos un PNG.
-    // Ahora convertimos el String SVG a bytes UTF-8 para que el loader
-    // binario también reciba un SVG válido.
     final Uint8List bytes = utf8.encode(_svgDummy);
     return ByteData.view(bytes.buffer);
   }
@@ -75,6 +66,7 @@ void main() {
         child: MaterialApp(
           scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
           routes: {
+            // Rutas dummy para verificar navegación
             '/home': (_) => const Scaffold(body: Text('HOME_SCREEN')),
             '/welcome': (_) => const Scaffold(body: Text('WELCOME_SCREEN')),
             '/recover': (_) => const Scaffold(body: Text('RECOVER_SCREEN')),
@@ -86,48 +78,78 @@ void main() {
     );
   }
 
+  // Helper para configurar la pantalla como un celular
+  void setScreenSize(WidgetTester tester) {
+    // Configura una resolución de 1080x2400 (celular moderno)
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+
+    // Importante: resetear esto al terminar el test para no afectar otros
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
   testWidgets('Renderizado Inicial: Debe mostrar campos y botón', (tester) async {
+    setScreenSize(tester); // 1. Ajustar pantalla
+
     await tester.pumpWidget(createTestWidget());
-    await tester.pumpAndSettle(); // Esperar a que el SVG cargue y se renderice
+    await tester.pumpAndSettle();
 
     expect(find.text('Iniciar Sesión'), findsOneWidget);
     expect(find.byKey(const Key('login_email_input')), findsOneWidget);
     expect(find.byKey(const Key('login_password_input')), findsOneWidget);
+
+    // Al ser la pantalla alta, el botón debería ser visible sin scroll
     expect(find.byKey(const Key('login_button')), findsOneWidget);
   });
 
   testWidgets('Login Exitoso: Debe navegar a /home', (tester) async {
-    when(mockAuthRepository.signIn(email: 'profe@ipn.mx', password: '123'))
-        .thenAnswer((_) async => null);
+    setScreenSize(tester); // 1. Ajustar pantalla
 
     await tester.pumpWidget(createTestWidget());
-    await tester.pumpAndSettle(); // Importante: esperar carga inicial completa
+    await tester.pumpAndSettle();
 
+    // 2. Llenar formulario
     await tester.enterText(find.byKey(const Key('login_email_input')), 'profe@ipn.mx');
     await tester.enterText(find.byKey(const Key('login_password_input')), '123');
 
-    await tester.tap(find.byKey(const Key('login_button')));
+    // 3. Cerrar teclado virtual (buena práctica)
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
 
-    await tester.pumpAndSettle();
+    // 4. Presionar botón (Como la pantalla es alta, ya no necesitamos ensureVisible obligatoriamente,
+    // pero lo dejamos por seguridad si el teclado estorba)
+    final loginBtn = find.byKey(const Key('login_button'));
+    await tester.ensureVisible(loginBtn);
+    await tester.tap(loginBtn);
 
+    await tester.pumpAndSettle(); // Esperar navegación
+
+    // 5. Verificar navegación
     expect(find.text('HOME_SCREEN'), findsOneWidget);
   });
 
   testWidgets('Login Fallido: Debe mostrar SnackBar con error', (tester) async {
-    when(mockAuthRepository.signIn(email: 'error@ipn.mx', password: 'bad'))
-        .thenThrow(Exception('Credenciales inválidas'));
+    setScreenSize(tester); // 1. Ajustar pantalla
 
     await tester.pumpWidget(createTestWidget());
-    await tester.pumpAndSettle(); // Importante: esperar carga inicial completa
+    await tester.pumpAndSettle();
 
+    // 2. Llenar formulario con credenciales de error
     await tester.enterText(find.byKey(const Key('login_email_input')), 'error@ipn.mx');
     await tester.enterText(find.byKey(const Key('login_password_input')), 'bad');
 
-    await tester.tap(find.byKey(const Key('login_button')));
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
 
-    // Esperar a que ocurra el ciclo de error y aparezca el SnackBar
-    await tester.pumpAndSettle();
+    // 3. Presionar botón
+    final loginBtn = find.byKey(const Key('login_button'));
+    await tester.ensureVisible(loginBtn);
+    await tester.tap(loginBtn);
 
+    await tester.pumpAndSettle(); // Esperar SnackBar
+
+    // 4. Verificar error
     expect(find.text('HOME_SCREEN'), findsNothing);
     expect(find.byType(SnackBar), findsOneWidget);
     expect(find.text('Credenciales inválidas'), findsOneWidget);
