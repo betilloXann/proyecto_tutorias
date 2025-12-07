@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../data/models/professor_model.dart';
+import '../../../data/models/subject_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
-import 'student_detail_view.dart';
 import 'student_list_view.dart';
 import 'subject_management_view.dart';
 
 class AcademyHomeView extends StatelessWidget {
   const AcademyHomeView({super.key});
 
-  void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
+  void _showAssignmentForm(BuildContext context, AcademyViewModel vm, UserModel student) {
+    vm.filterSubjectsForStudent(student);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: vm,
+        child: _AssignmentForm(student: student),
+      ),
     );
   }
 
@@ -81,19 +88,53 @@ class AcademyHomeView extends StatelessWidget {
                     childAspectRatio: 1.5,
                     children: [
                       GestureDetector(
-                        onTap: () => _navigateToStudentList(context, 'Pendientes de Asignación', vm.pendingStudents),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => 
+                            StudentListView(
+                              title: 'Pendientes de Asignación',
+                              students: vm.pendingStudents,
+                              onAssign: (student) => _showAssignmentForm(context, vm, student),
+                            )
+                          ),
+                        ),
                         child: _buildSummaryCard('Pendientes', vm.pendingStudents.length.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
                       ),
                       GestureDetector(
-                        onTap: () => _navigateToStudentList(context, 'Alumnos en Curso', vm.assignedStudents),
+                        onTap: () => Navigator.push(
+                          context,
+                           MaterialPageRoute(builder: (_) => 
+                            StudentListView(
+                              title: 'Alumnos en Curso',
+                              students: vm.assignedStudents,
+                              onAssign: (student) => _showAssignmentForm(context, vm, student),
+                            )
+                          ),
+                        ),
                         child: _buildSummaryCard('En Curso', vm.assignedStudents.length.toString(), Icons.school_outlined, AppTheme.bluePrimary),
                       ),
-                      GestureDetector(
-                        onTap: () => _navigateToStudentList(context, 'Alumnos Acreditados', vm.accreditedStudents),
+                       GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                           MaterialPageRoute(builder: (_) => 
+                            StudentListView(
+                              title: 'Alumnos Acreditados',
+                              students: vm.accreditedStudents,
+                            )
+                          ),
+                        ),
                         child: _buildSummaryCard('Acreditados', vm.accreditedStudents.length.toString(), Icons.check_circle_outlined, Colors.green.shade700),
                       ),
                       GestureDetector(
-                        onTap: () => _navigateToStudentList(context, 'Alumnos No Acreditados', vm.notAccreditedStudents),
+                        onTap: () => Navigator.push(
+                          context,
+                           MaterialPageRoute(builder: (_) => 
+                            StudentListView(
+                              title: 'Alumnos No Acreditados',
+                              students: vm.notAccreditedStudents,
+                            )
+                          ),
+                        ),
                         child: _buildSummaryCard('No Acreditados', vm.notAccreditedStudents.length.toString(), Icons.cancel_outlined, Colors.red.shade700),
                       ),
                     ],
@@ -130,19 +171,7 @@ class AcademyHomeView extends StatelessWidget {
             ),
           ],
         ),
-<<<<<<< HEAD
-=======
-        const Divider(height: 1, indent: 16, endIndent: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
-          child: TextButton.icon(
-            icon: const Icon(Icons.add_circle_outline, size: 18),
-            label: const Text("Asignar Materia"),
-            style: TextButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
-            onPressed: onAssign,
-          ),
-        )
-      ]),
+      ),
     );
   }
 }
@@ -165,7 +194,6 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   @override
   void initState() {
     super.initState();
-    // Auto-select the subject if there's only one available
     final vm = context.read<AcademyViewModel>();
     if (vm.availableSubjectsForStudent.length == 1) {
       _selectedSubject = vm.availableSubjectsForStudent.first;
@@ -217,10 +245,9 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
 
-          // --- FIX: Use the filtered list of subjects ---
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
-            initialValue: _selectedSubject,
+            value: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
@@ -260,7 +287,6 @@ class _AssignmentFormState extends State<_AssignmentForm> {
             ),
           )
         ],
->>>>>>> b02e3f38a199391d13e8c793264fe648935ec0f9
       ),
     );
   }
