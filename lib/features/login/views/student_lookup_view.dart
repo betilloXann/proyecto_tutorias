@@ -51,10 +51,9 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     /// IMAGEN PRINCIPAL
                     SvgPicture.asset(
                       "assets/images/image1.svg",
-                      height: 160,
+                      width: 260,
+                      height: 240,
                     ),
-
-                    const SizedBox(height: 30),
 
                     /// TÍTULO
                     const Text(

@@ -47,7 +47,10 @@ class ForgotPasswordView extends StatelessWidget {
             children: [
               SvgPicture.asset(
                 'assets/images/image4.svg',
-                height: 120,
+                width: 200,
+                height: 210,
+                //width: 200,
+//                       height: 180,
               ),
               const SizedBox(height: 20),
               const Text(

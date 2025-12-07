@@ -130,10 +130,9 @@ class _LoginViewState extends State<LoginView> {
 
               child: Column(
                 children: [
-                  SvgPicture.asset("assets/images/image2.svg", height: 150, width: 160),
-
-                  const SizedBox(height: 24),
-
+                  SvgPicture.asset("assets/images/image2.svg", width: 200, height: 180),
+//width: 200,
+//                       height: 180,
                   Text(
                     "Iniciar Sesión",
                     style: theme.textTheme.headlineMedium?.copyWith(

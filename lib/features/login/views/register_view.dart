@@ -160,7 +160,7 @@ class _RegisterViewState extends State<RegisterView> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               /// HEADER IMAGE
-              SvgPicture.asset("assets/images/image3.svg", height: 150, width: 160),
+              SvgPicture.asset("assets/images/image3.svg", height: 180, width: 200),
               const SizedBox(height: 24),
 
               /// TITULO
