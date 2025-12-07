@@ -200,7 +200,7 @@ class ForgotPasswordView extends StatelessWidget {
                   try {
                     for (var userData in usersToCreate) {
                       try {
-                        print("Procesando: ${userData['email']}...");
+                        debugPrint("Procesando: ${userData['email']}...");
 
                         // 2. Crear usuario en la instancia SECUNDARIA
                         // Esto loguea al usuario en 'tempAuth', pero NO en la app principal.
@@ -223,7 +223,7 @@ class ForgotPasswordView extends StatelessWidget {
                             'createdAt': FieldValue.serverTimestamp(),
                           });
                           createdCount++;
-                          print("--> ÉXITO: ${userData['email']}");
+                          debugPrint("--> ÉXITO: ${userData['email']}");
 
                           // Ya no necesitamos signOut() porque 'tempAuth' no afecta la UI
                           // Pero lo hacemos por limpieza interna de la instancia temporal
@@ -231,7 +231,7 @@ class ForgotPasswordView extends StatelessWidget {
                         }
 
                       } catch (e) {
-                        print("--> ERROR en ${userData['email']}: $e");
+                        debugPrint("--> ERROR en ${userData['email']}: $e");
                         // Si el error es "email-already-in-use", podríamos intentar
                         // actualizar solo el Firestore buscando el UID por email,
                         // pero eso requiere Admin SDK. Aquí solo saltamos.

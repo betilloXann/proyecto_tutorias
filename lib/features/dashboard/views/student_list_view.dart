@@ -30,6 +30,7 @@ class StudentListView extends StatelessWidget {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+<<<<<<< HEAD
                   elevation: 1,
                   child: ListTile(
                     leading: CircleAvatar(
@@ -43,6 +44,40 @@ class StudentListView extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
+=======
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    key: PageStorageKey(academy),
+                    leading: const Icon(Icons.school_outlined, color: AppTheme.blueDark, size: 28),
+                    title: Text(academy, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.blueDark)),
+                    backgroundColor: AppTheme.blueSoft.withValues(alpha:0.2),
+                    children: subjects.entries.map((subjectEntry) {
+                      final subject = subjectEntry.key;
+                      final studentList = subjectEntry.value;
+
+                      return ExpansionTile(
+                        key: PageStorageKey('$academy-$subject'),
+                        tilePadding: const EdgeInsets.only(left: 48, right: 24),
+                        leading: const Icon(Icons.menu_book_outlined, color: AppTheme.bluePrimary),
+                        title: Text(subject, style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600, fontSize: 16)),
+                        backgroundColor: AppTheme.baseLight.withValues(alpha:0.5),
+                        children: studentList.map((student) {
+                          // --- FIX: Remove toUpperCase() ---
+                          return ListTile(
+                            contentPadding: const EdgeInsets.only(left: 56, right: 16, top: 4, bottom: 4),
+                            leading: const Icon(Icons.person_outline, color: Colors.grey),
+                            title: Text(student.name),
+                            subtitle: Text('Boleta: ${student.boleta}'),
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
+                              );
+                            },
+                          );
+                        }).toList(),
+>>>>>>> b02e3f38a199391d13e8c793264fe648935ec0f9
                       );
                     },
                   ),

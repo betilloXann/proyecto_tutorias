@@ -130,6 +130,137 @@ class AcademyHomeView extends StatelessWidget {
             ),
           ],
         ),
+<<<<<<< HEAD
+=======
+        const Divider(height: 1, indent: 16, endIndent: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+          child: TextButton.icon(
+            icon: const Icon(Icons.add_circle_outline, size: 18),
+            label: const Text("Asignar Materia"),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
+            onPressed: onAssign,
+          ),
+        )
+      ]),
+    );
+  }
+}
+
+class _AssignmentForm extends StatefulWidget {
+  final UserModel student;
+  const _AssignmentForm({required this.student});
+
+  @override
+  State<_AssignmentForm> createState() => _AssignmentFormState();
+}
+
+class _AssignmentFormState extends State<_AssignmentForm> {
+  final _scheduleCtrl = TextEditingController();
+  final _salonCtrl = TextEditingController();
+  SubjectModel? _selectedSubject;
+  ProfessorModel? _selectedProfessor;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-select the subject if there's only one available
+    final vm = context.read<AcademyViewModel>();
+    if (vm.availableSubjectsForStudent.length == 1) {
+      _selectedSubject = vm.availableSubjectsForStudent.first;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scheduleCtrl.dispose();
+    _salonCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() async {
+    final vm = context.read<AcademyViewModel>();
+    if (_selectedSubject == null || _selectedProfessor == null || _salonCtrl.text.isEmpty) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Todos los campos son obligatorios")));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final success = await vm.assignSubject(
+      studentId: widget.student.id,
+      subjectName: _selectedSubject!.name,
+      professorName: _selectedProfessor!.name,
+      schedule: _selectedProfessor!.schedule,
+      salon: _salonCtrl.text,
+    );
+
+    if (mounted && success){
+      Navigator.pop(context);
+    } else if(mounted) {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<AcademyViewModel>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Asignar Materia y Profesor", style: Theme.of(context).textTheme.titleLarge),
+          Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 20),
+
+          // --- FIX: Use the filtered list of subjects ---
+          DropdownButtonFormField<SubjectModel>(
+            key: ValueKey(_selectedSubject),
+            initialValue: _selectedSubject,
+            decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
+            items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+            onChanged: (val) => setState(() {
+              _selectedSubject = val;
+              _selectedProfessor = null;
+              _scheduleCtrl.clear();
+            }),
+          ),
+          const SizedBox(height: 15),
+
+          DropdownButtonFormField<ProfessorModel>(
+            key: ValueKey(_selectedProfessor),
+            decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
+            items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
+            onChanged: (val) => setState(() {
+              _selectedProfessor = val;
+              _scheduleCtrl.text = val?.schedule ?? '';
+            }),
+          ),
+          const SizedBox(height: 15),
+
+          Row(children: [
+            Expanded(child: TextField(controller: _scheduleCtrl, readOnly: true, decoration: const InputDecoration(labelText: "Horario", border: OutlineInputBorder()))),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: _salonCtrl, decoration: const InputDecoration(labelText: "Salón", hintText: "Ej. A-04", border: OutlineInputBorder()))),
+          ]),
+          const SizedBox(height: 25),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: _isSaving
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
+              onPressed: _submit,
+              child: const Text("Guardar Asignación"),
+            ),
+          )
+        ],
+>>>>>>> b02e3f38a199391d13e8c793264fe648935ec0f9
       ),
     );
   }
