@@ -14,16 +14,34 @@ class BulkUploadViewModel extends ChangeNotifier {
   String? _errorMessage;
   String _progressMessage = '';
   int _processedStudents = 0;
-  bool _isSuccess = false; // <-- NEW: Success state
-  
+  bool _isSuccess = false;
   FilePickerResult? _pickedFile;
+
+  // --- NUEVO: DICCIONARIO DE TRADUCCIÓN ---
+  // Izquierda: Como viene en el Excel (Normalizado a mayúsculas)
+  // Derecha: Como DEBE guardarse en la BD
+  final Map<String, String> _subjectMapping = {
+    'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB. ELECT. Y CONTROL',
+
+    'ARQUITECTURA Y ORGANIZACIÓN DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.',
+    'ARQUITECTURA Y ORGANIZACION DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.', // Por si viene sin acento
+    'APLICACIÓN DE SISTEMAS DIGITALES': 'APLIC. SIST. DIGITALES',
+    'APLICACION DE SISTEMAS DIGITALES': 'APLIC. SIST. DIGITALES',
+    'COMUNICACIÓN DE DATOS': 'COM. DATOS',
+    'COMUNICACION DE DATOS': 'COM. DATOS',
+    'CONSTRUCCION DE BASES DE DATOS': 'CONST. BASE DATOS',
+    'FUNDAMENTOS DE ANALITICA DE DATOS': 'FUND. ANALITICA DATOS',
+    'INGENIERIA DE DISEÑO': 'ING. DISEÑO',
+    'ALGORITMOS COMPUTACIONALES': 'ALGORITMOS COMP.',
+    // ... Agrega aquí todas las variaciones que detectes ...
+  };
 
   bool get isLoading => _isLoading;
   String? get fileName => _fileName;
   String? get errorMessage => _errorMessage;
   String get progressMessage => _progressMessage;
   int get processedStudents => _processedStudents;
-  bool get isSuccess => _isSuccess; // <-- NEW: Getter
+  bool get isSuccess => _isSuccess;
 
   void reset() {
     _isLoading = false;
@@ -37,7 +55,7 @@ class BulkUploadViewModel extends ChangeNotifier {
   }
 
   Future<void> pickFile() async {
-    reset(); // Reset state when picking a new file
+    reset();
     try {
       _pickedFile = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -74,36 +92,59 @@ class BulkUploadViewModel extends ChangeNotifier {
       final excel = Excel.decodeBytes(bytes);
       final sheet = excel.tables[excel.tables.keys.first]!;
 
-      _progressMessage = 'Leyendo y agrupando alumnos del Excel...';
+      _progressMessage = 'Leyendo y normalizando datos...';
       notifyListeners();
 
       final Map<String, Map<String, dynamic>> studentsData = {};
 
       for (var i = 1; i < sheet.rows.length; i++) {
         final row = sheet.rows[i];
-        
-        final boleta = row[0]?.value?.toString() ?? '';
-        if (boleta.isEmpty) continue;
 
-        final nombre = row[1]?.value?.toString() ?? '';
-        final academia = row[3]?.value?.toString() ?? '';
-        final unidad = row[4]?.value?.toString() ?? '';
-        final correo = row[6]?.value?.toString() ?? '';
+        // 1. LIMPIEZA BÁSICA
+        final rawBoleta = row[0]?.value?.toString() ?? '';
+        final cleanBoleta = rawBoleta.trim();
+        if (cleanBoleta.isEmpty) continue;
 
-        studentsData.putIfAbsent(boleta, () => {
-          'boleta': boleta,
-          'name': nombre,
-          'academies': <String>{academia},
-          'subjects_to_take': <String>{unidad},
-          'email_inst': correo,
+        final rawName = row[1]?.value?.toString() ?? '';
+        final cleanName = rawName.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
+
+        final rawAcademy = row[3]?.value?.toString() ?? '';
+        final cleanAcademy = rawAcademy.trim().toUpperCase();
+
+        // 2. NORMALIZACIÓN DE MATERIA (Aquí ocurre la magia)
+        final rawSubject = row[4]?.value?.toString() ?? '';
+        // Primero convertimos a mayúscula limpia
+        String tempSubject = rawSubject.trim().toUpperCase();
+
+        // Luego buscamos si existe una traducción oficial en el mapa
+        String finalSubject = tempSubject;
+        if (_subjectMapping.containsKey(tempSubject)) {
+          finalSubject = _subjectMapping[tempSubject]!;
+        }
+
+        final rawEmail = row[6]?.value?.toString() ?? '';
+        final cleanEmail = rawEmail.trim();
+
+        // 3. AGRUPACIÓN
+        studentsData.putIfAbsent(cleanBoleta, () => {
+          'boleta': cleanBoleta,
+          'name': cleanName,
+          'status': 'PRE_REGISTRO',
+          'academies': <String>{},
+          'subjects_to_take': <String>{},
+          'email_inst': cleanEmail,
         });
 
-        studentsData[boleta]!['academies'].add(academia);
-        studentsData[boleta]!['subjects_to_take'].add(unidad);
+        if (cleanAcademy.isNotEmpty) {
+          studentsData[cleanBoleta]!['academies'].add(cleanAcademy);
+        }
+        // Usamos finalSubject (ya traducido)
+        if (finalSubject.isNotEmpty) {
+          studentsData[cleanBoleta]!['subjects_to_take'].add(finalSubject);
+        }
       }
 
-      _progressMessage = '${studentsData.length} alumnos únicos encontrados. Subiendo a la base de datos...';
-      _processedStudents = 0;
+      _progressMessage = 'Subiendo ${studentsData.length} alumnos procesados...';
       notifyListeners();
 
       final List<Map<String, dynamic>> uploadList = studentsData.values.map((data) {
@@ -116,15 +157,16 @@ class BulkUploadViewModel extends ChangeNotifier {
 
       await _authRepo.bulkRegisterStudents(uploadList, (processed) {
         _processedStudents = processed;
-        _progressMessage = 'Procesando... $processed de ${uploadList.length} alumnos guardados.';
+        _progressMessage = 'Guardando... $processed / ${uploadList.length}';
         notifyListeners();
       });
 
-      _progressMessage = '¡Proceso completado! Se guardaron ${uploadList.length} alumnos.';
-      _isSuccess = true; // <-- SET SUCCESS STATE
+      _progressMessage = '¡Éxito! Se procesaron ${uploadList.length} alumnos.';
+      _isSuccess = true;
 
     } catch (e) {
-      _errorMessage = "Error durante el proceso: $e";
+      _errorMessage = "Error: $e";
+      print("Error BulkUpload: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
