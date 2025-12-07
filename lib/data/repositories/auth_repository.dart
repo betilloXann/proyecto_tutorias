@@ -101,7 +101,7 @@ class AuthRepository {
     }
   }
 
-  // --- NEW: Bulk student registration ---
+  // --- FIX: Make student upload additive ---
   Future<void> bulkRegisterStudents(List<Map<String, dynamic>> students, Function(int) onProgress) async {
     final batch = _db.batch();
     int processedCount = 0;
@@ -110,6 +110,7 @@ class AuthRepository {
       final querySnapshot = await _db.collection('users').where('boleta', isEqualTo: studentData['boleta']).limit(1).get();
 
       if (querySnapshot.docs.isEmpty) {
+        // Student doesn't exist, create them
         final newDocRef = _db.collection('users').doc();
         batch.set(newDocRef, {
           'boleta': studentData['boleta'],
@@ -121,9 +122,16 @@ class AuthRepository {
           'role': 'student',
           'created_at': FieldValue.serverTimestamp(),
         });
-        processedCount++;
-        onProgress(processedCount);
+      } else {
+        // Student exists, update them by adding new subjects/academies
+        final docRef = querySnapshot.docs.first.reference;
+        batch.update(docRef, {
+          'academies': FieldValue.arrayUnion(studentData['academies'] ?? []),
+          'subjects_to_take': FieldValue.arrayUnion(studentData['subjects_to_take'] ?? []),
+        });
       }
+      processedCount++;
+      onProgress(processedCount);
     }
     await batch.commit();
   }

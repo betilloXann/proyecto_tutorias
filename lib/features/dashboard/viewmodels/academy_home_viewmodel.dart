@@ -17,6 +17,13 @@ class AcademyViewModel extends ChangeNotifier {
   List<SubjectModel> _subjects = [];
   List<SubjectModel> _availableSubjectsForStudent = [];
 
+  // --- FIX: Add the abbreviation map here ---
+  final Map<String, String> _subjectAbbreviationMap = {
+    'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB. ELECT. Y CONTROL',
+    'ARQUITECTURA Y ORGANIZACIÓN DE LAS COMPUTADORAS': 'ARQ. Y ORG. COMP.',
+    'APLICACIÓN DE SISTEMAS DIGITALES': 'APLIC. SIST. DIGITALES',
+  };
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get pendingStudents => _pendingStudents;
@@ -30,18 +37,25 @@ class AcademyViewModel extends ChangeNotifier {
     loadInitialData();
   }
 
-  // --- FIX: Make subject filtering case-insensitive ---
+  // --- FIX: Make filtering "bilingual" ---
   void filterSubjectsForStudent(UserModel student) {
     if (student.subjectsToTake.isEmpty) {
       _availableSubjectsForStudent = List.from(_subjects);
     } else {
-      // Normalize the subjects the student needs to take for reliable comparison
       final studentSubjectsNormalized = student.subjectsToTake.map((s) => s.trim().toLowerCase()).toSet();
       
       _availableSubjectsForStudent = _subjects.where((subject) {
-        // Normalize the name of the subject from the general list before checking for inclusion
         final subjectNameNormalized = subject.name.trim().toLowerCase();
-        return studentSubjectsNormalized.contains(subjectNameNormalized);
+        // Direct match (e.g., "sistemas digitales" == "sistemas digitales")
+        if (studentSubjectsNormalized.contains(subjectNameNormalized)) {
+          return true;
+        }
+        // Abbreviation match (e.g., "sistemas digitales" == value for key "APLIC. SIST. DIGITALES")
+        final abbreviation = _subjectAbbreviationMap[subject.name.toUpperCase()];
+        if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) {
+          return true;
+        }
+        return false;
       }).toList();
     }
     notifyListeners();
@@ -68,7 +82,7 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
-Future<void> _loadStudents() async {
+  Future<void> _loadStudents() async {
     final query1 = _db
         .collection('users')
         .where('role', isEqualTo: 'student')
@@ -119,9 +133,23 @@ Future<void> _loadStudents() async {
   }
 
   Future<void> _loadSubjects() async {
+    final Set<String> searchTerms = {};
+    for (var academy in myAcademies) {
+      searchTerms.add(academy);
+      if (_subjectAbbreviationMap.containsValue(academy)) {
+         final originalName = _subjectAbbreviationMap.entries.firstWhere((entry) => entry.value == academy).key;
+         searchTerms.add(originalName);
+      }
+    }
+
+    if (searchTerms.isEmpty) {
+      _subjects = [];
+      return;
+    }
+
     final snapshot = await _db
         .collection('subjects')
-        .where('academy', whereIn: myAcademies)
+        .where('academy', whereIn: searchTerms.toList())
         .get();
         
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
