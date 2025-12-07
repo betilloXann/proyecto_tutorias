@@ -6,7 +6,6 @@ import '../../../data/models/subject_model.dart';
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   
-  // 1. CAMBIO: Ahora recibimos una LISTA de academias
   final List<String> myAcademies; 
 
   bool _isLoading = true;
@@ -25,13 +24,11 @@ class AcademyViewModel extends ChangeNotifier {
   List<UserModel> get notAccreditedStudents => _notAccreditedStudents;
   List<SubjectModel> get subjects => _subjects;
 
-  // 2. CAMBIO: Constructor recibe la lista
   AcademyViewModel({required this.myAcademies}) {
     loadInitialData();
   }
 
   Future<void> loadInitialData() async {
-    // Validación de seguridad por si la lista viene vacía
     if (myAcademies.isEmpty) {
       _isLoading = false;
       notifyListeners();
@@ -53,15 +50,12 @@ class AcademyViewModel extends ChangeNotifier {
   }
 
 Future<void> _loadStudents() async {
-    // 1. Buscar por el campo NUEVO (lista)
     final query1 = _db
         .collection('users')
         .where('role', isEqualTo: 'student')
         .where('academies', arrayContainsAny: myAcademies)
         .get();
 
-    // 2. Buscar por el campo VIEJO (texto) - Solo si myAcademies no está vacía
-    // Nota: Esto buscará coincidencias con cada academia de tu lista
     final query2Futures = myAcademies.map((academy) => 
       _db.collection('users')
          .where('role', isEqualTo: 'student')
@@ -69,10 +63,8 @@ Future<void> _loadStudents() async {
          .get()
     );
 
-    // Ejecutamos todo en paralelo
     final results = await Future.wait([query1, ...query2Futures]);
     
-    // Usamos un Set para evitar duplicados (por si un alumno tiene ambos campos)
     final uniqueDocs = <String, DocumentSnapshot>{};
     
     for (var snapshot in results) {
@@ -86,7 +78,6 @@ Future<void> _loadStudents() async {
     _accreditedStudents = [];
     _notAccreditedStudents = [];
 
-    // Procesamos la lista única de documentos
     for (var doc in uniqueDocs.values) {
       final student = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       
@@ -109,13 +100,15 @@ Future<void> _loadStudents() async {
   }
 
   Future<void> _loadSubjects() async {
-    // 4. CAMBIO: 'whereIn' busca materias cuya 'academy' (String) esté en mi lista
     final snapshot = await _db
         .collection('subjects')
         .where('academy', whereIn: myAcademies)
         .get();
         
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+
+    // --- FIX: Sort subjects alphabetically by name ---
+    _subjects.sort((a, b) => a.name.compareTo(b.name));
   }
 
   Future<bool> assignSubject({
@@ -126,8 +119,6 @@ Future<void> _loadStudents() async {
     required String salon,
   }) async {
     try {
-      // Nota: Aquí podrías necesitar lógica extra para decidir a qué academia
-      // se asigna si el jefe tiene varias. Por defecto tomamos la primera.
       final targetAcademy = myAcademies.isNotEmpty ? myAcademies.first : 'SISTEMAS';
 
       await _db.collection('enrollments').add({
@@ -137,7 +128,7 @@ Future<void> _loadStudents() async {
         'schedule': schedule,
         'salon': salon,
         'status': 'EN_CURSO',
-        'academy': targetAcademy, // Se guarda la academia principal
+        'academy': targetAcademy, 
         'assigned_at': FieldValue.serverTimestamp(),
       });
 

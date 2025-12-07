@@ -6,7 +6,6 @@ import '../../../data/models/professor_model.dart';
 class SubjectManagementViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 1. Quitamos la asignación fija
   final String currentAcademy;
 
   bool _isLoading = true;
@@ -17,7 +16,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<SubjectModel> get subjects => _subjects;
 
-  // 2. Pedimos la academia en el constructor
   SubjectManagementViewModel({required this.currentAcademy}) {
     loadSubjects();
   }
@@ -30,10 +28,14 @@ class SubjectManagementViewModel extends ChangeNotifier {
     try {
       final snapshot = await _db
           .collection('subjects')
-          .where('academy', isEqualTo: currentAcademy) // Ahora usa la variable dinámica
+          .where('academy', isEqualTo: currentAcademy)
           .get();
 
       _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+
+      // --- FIX: Sort subjects alphabetically by name ---
+      _subjects.sort((a, b) => a.name.compareTo(b.name));
+
     } catch (e) {
       _errorMessage = "Error al cargar las materias: $e";
     } finally {
@@ -52,7 +54,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
     try {
       await _db.collection('subjects').add({
         'name': subjectName,
-        'academy': currentAcademy, // Usa la academia dinámica
+        'academy': currentAcademy, 
         'professors': [],
       });
       await loadSubjects();
@@ -64,10 +66,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
     }
   }
 
-  // ... (El resto de métodos addProfessorToSubject, updateProfessorToSubject, removeProfessorFromSubject quedan IGUAL, no necesitan cambios)
   Future<bool> addProfessorToSubject(String subjectId, String professorName, String schedule) async {
-    // ... código existente ...
-    // (Solo copio el inicio para brevedad, pero mantén tu lógica original aquí)
     if (professorName.isEmpty || schedule.isEmpty) {
       _errorMessage = "El nombre y el horario del profesor son obligatorios.";
       notifyListeners();
@@ -88,8 +87,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
   }
 
   Future<bool> updateProfessorToSubject(String subjectId, ProfessorModel oldProfessor, String newProfessorName, String newSchedule) async {
-    // ... código existente ...
-    // Mantén tu lógica original
     if (newProfessorName.isEmpty || newSchedule.isEmpty) {
       _errorMessage = "El nombre y el horario no pueden estar vacíos.";
       notifyListeners();
@@ -115,8 +112,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
   }
 
   Future<bool> removeProfessorFromSubject(String subjectId, ProfessorModel professor) async {
-    // ... código existente ...
-    // Mantén tu lógica original
     try {
       await _db.collection('subjects').doc(subjectId).update({
         'professors': FieldValue.arrayRemove([professor.toMap()]),
