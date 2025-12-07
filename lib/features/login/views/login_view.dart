@@ -67,7 +67,15 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final vm = context.watch<LoginViewModel>();
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    // 1. OBTENER METADATOS DE LA PANTALLA
+    final size = MediaQuery.of(context);
+    final bottomPadding = size.viewInsets.bottom;
+    final topPadding = size.padding.top;
+
+    // 2. CALCULAR EL ESPACIO REAL DEL HEADER (Status Bar + AppBar)
+    // CAMBIO: Restamos 8 en lugar de sumar 16 para subir todo el bloque.
+    final double headerHeight = topPadding + kToolbarHeight - 8;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -75,6 +83,8 @@ class _LoginViewState extends State<LoginView> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0, // Evita cambio de color al hacer scroll
+        leadingWidth: 70,
         leading: Container(
           margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
           decoration: BoxDecoration(
@@ -89,13 +99,13 @@ class _LoginViewState extends State<LoginView> {
             ],
           ),
           child: IconButton(
+            padding: EdgeInsets.zero,
             icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
             onPressed: () => Navigator.pushNamed(context, "/welcome"),
           ),
         ),
       ),
 
-      // FONDO GRADIENTE
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -111,117 +121,129 @@ class _LoginViewState extends State<LoginView> {
         ),
 
         child: ResponsiveContainer(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24, 120, 24, 24 + bottomPadding),
-
-            child: Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+          child: Center(
+            child: SingleChildScrollView(
+              // Usamos el headerHeight ajustado (asegurando que no sea negativo)
+              padding: EdgeInsets.fromLTRB(
+                  24,
+                  headerHeight > 0 ? headerHeight : 24,
+                  24,
+                  24 + bottomPadding
               ),
 
-              child: Column(
-                children: [
-                  SvgPicture.asset("assets/images/image2.svg", width: 200, height: 180),
-//width: 200,
-//                       height: 180,
-                  Text(
-                    "Iniciar Sesión",
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2F5A93),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
+                ),
 
-                  const SizedBox(height: 32),
+                child: Column(
+                  children: [
+                    // CAMBIO: Altura reducida de 160 a 140
+                    SvgPicture.asset("assets/images/image2.svg", width: 210, height: 150),
 
-                  TextInputField(
-                    key: const Key('login_email_input'), // <--- AGREGA ESTO
-                    label: "Correo Personal",
-                    controller: emailCtrl,
-                    focusNode: _emailFocusNode,
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
-                  ),
-                  const SizedBox(height: 16),
+                    // CAMBIO: Espacio reducido de 24 a 16
+                    const SizedBox(height: 16),
 
-                  TextInputField(
-                    key: const Key('login_password_input'), // <--- AGREGA ESTO
-                    label: "Contraseña",
-                    controller: passwordCtrl,
-                    focusNode: _passwordFocusNode,
-                    icon: Icons.lock_outline,
-                    obscureText: !_isPasswordVisible,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submitLogin(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: Colors.grey,
+                    Text(
+                      "Iniciar Sesión",
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2F5A93),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
+                      textAlign: TextAlign.center,
                     ),
-                  ),
 
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.pushNamed(context, "/recover"),
+                    // CAMBIO: Espacio reducido de 32 a 24
+                    const SizedBox(height: 24),
+
+                    TextInputField(
+                      key: const Key('login_email_input'),
+                      label: "Correo Personal",
+                      controller: emailCtrl,
+                      focusNode: _emailFocusNode,
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextInputField(
+                      key: const Key('login_password_input'),
+                      label: "Contraseña",
+                      controller: passwordCtrl,
+                      focusNode: _passwordFocusNode,
+                      icon: Icons.lock_outline,
+                      obscureText: !_isPasswordVisible,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submitLogin(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.pushNamed(context, "/recover"),
+                        child: Text(
+                          "¿Olvidaste tu contraseña?",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2F5A93),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: vm.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : PrimaryButton(
+                        key: const Key('login_button'),
+                        text: "Ingresar",
+                        onPressed: _submitLogin,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, "/activation"),
                       child: Text(
-                        "¿Olvidaste tu contraseña?",
+                        "¿Eres nuevo? Activa tu cuenta aquí",
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF2F5A93),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: vm.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : PrimaryButton(
-                      key: const Key('login_button'), // <--- AGREGA ESTO TAMBIÉN
-                      text: "Ingresar",
-                      onPressed: _submitLogin,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, "/activation"),
-                    child: Text(
-                      "¿Eres nuevo? Activa tu cuenta aquí",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF2F5A93),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
