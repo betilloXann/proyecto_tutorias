@@ -164,7 +164,7 @@ class BulkUploadViewModel extends ChangeNotifier {
 
     } catch (e) {
       _errorMessage = "Error: $e";
-      print("Error BulkUpload: $e");
+      debugPrint("Error BulkUpload: $e");
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -342,7 +342,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           // --- FIX: Use the filtered list of subjects ---
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
