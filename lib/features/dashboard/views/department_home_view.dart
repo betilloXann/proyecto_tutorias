@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
+import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
+import 'bulk_upload_view.dart'; // <--- IMPORTANTE: Importar la vista de carga
 
 class DepartmentHomeView extends StatelessWidget {
   final UserModel user;
@@ -40,7 +41,6 @@ class DepartmentHomeView extends StatelessWidget {
             )
           ],
         ),
-        // --- APLICANDO RESPONSIVE CONTAINER ---
         body: ResponsiveContainer(
           child: Consumer<DepartmentHomeViewModel>(
             builder: (context, vm, child) {
@@ -94,6 +94,17 @@ class DepartmentHomeView extends StatelessWidget {
             },
           ),
         ),
+        // --- AQUÍ ESTÁ EL BOTÓN QUE FALTABA ---
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BulkUploadView()),
+            );
+          },
+          tooltip: "Carga Masiva de Alumnos",
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -101,9 +112,9 @@ class DepartmentHomeView extends StatelessWidget {
   Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08), // Corregido deprecation
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)) // Corregido deprecation
+          border: Border.all(color: color.withValues(alpha: 0.2))
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -116,7 +127,7 @@ class DepartmentHomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))), // Corregido deprecation
+                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
               ],
             ),
           ],
