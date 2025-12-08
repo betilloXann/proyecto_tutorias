@@ -5,8 +5,8 @@ import '../../../data/models/subject_model.dart';
 
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
-  final List<String> myAcademies; 
+
+  final List<String> myAcademies;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -41,7 +41,7 @@ class AcademyViewModel extends ChangeNotifier {
       _availableSubjectsForStudent = List.from(_subjects);
     } else {
       final studentSubjectsNormalized = student.subjectsToTake.map((s) => s.trim().toLowerCase()).toSet();
-      
+
       _availableSubjectsForStudent = _subjects.where((subject) {
         final subjectNameNormalized = subject.name.trim().toLowerCase();
 
@@ -82,7 +82,6 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
-  // --- FIX: Use array-contains-any for robust student loading ---
   Future<void> _loadStudents() async {
     if (myAcademies.isEmpty) return;
 
@@ -99,21 +98,48 @@ class AcademyViewModel extends ChangeNotifier {
 
     for (var doc in snapshot.docs) {
       final student = UserModel.fromMap(doc.data(), doc.id);
-      
-      switch (student.status) {
-        case 'PRE_REGISTRO':
-        case 'PENDIENTE_ASIGNACION':
-          _pendingStudents.add(student);
-          break;
-        case 'EN_CURSO':
-          _assignedStudents.add(student);
-          break;
-        case 'ACREDITADO':
-          _accreditedStudents.add(student);
-          break;
-        case 'NO_ACREDITADO':
-          _notAccreditedStudents.add(student);
-          break;
+
+      // --- FIX: Clasificar basado en el estatus de LA ACADEMIA ACTUAL ---
+      // Revisamos el estatus del alumno para cada academia que gestiona el usuario logueado.
+      bool addedToPending = false;
+      bool addedToAssigned = false;
+      bool addedToAccredited = false;
+      bool addedToNotAccredited = false;
+
+      for (var academy in myAcademies) {
+        // Obtenemos el estatus específico para esta academia
+        // Si el alumno no tiene esa academia registrada (raro por el query), ignoramos.
+        if (!student.academies.contains(academy)) continue;
+
+        final statusForThisAcademy = student.getStatusForAcademy(academy);
+
+        switch (statusForThisAcademy) {
+          case 'PRE_REGISTRO':
+          case 'PENDIENTE_ASIGNACION':
+            if (!addedToPending) {
+              _pendingStudents.add(student);
+              addedToPending = true; // Evitar duplicados si gestiono 2 academias y en ambas es pendiente
+            }
+            break;
+          case 'EN_CURSO':
+            if (!addedToAssigned) {
+              _assignedStudents.add(student);
+              addedToAssigned = true;
+            }
+            break;
+          case 'ACREDITADO':
+            if (!addedToAccredited) {
+              _accreditedStudents.add(student);
+              addedToAccredited = true;
+            }
+            break;
+          case 'NO_ACREDITADO':
+            if (!addedToNotAccredited) {
+              _notAccreditedStudents.add(student);
+              addedToNotAccredited = true;
+            }
+            break;
+        }
       }
     }
   }
@@ -137,7 +163,7 @@ class AcademyViewModel extends ChangeNotifier {
         .collection('subjects')
         .where('academy', whereIn: searchTerms.toList())
         .get();
-        
+
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
     _subjects.sort((a, b) => a.name.compareTo(b.name));
   }
@@ -152,6 +178,7 @@ class AcademyViewModel extends ChangeNotifier {
     try {
       final targetAcademy = myAcademies.isNotEmpty ? myAcademies.first : 'SISTEMAS';
 
+      // 1. Crear el registro de enrollment
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -159,11 +186,20 @@ class AcademyViewModel extends ChangeNotifier {
         'schedule': schedule,
         'salon': salon,
         'status': 'EN_CURSO',
-        'academy': targetAcademy, 
+        'academy': targetAcademy,
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
-      await _db.collection('users').doc(studentId).update({'status': 'EN_CURSO'});
+      // 2. --- FIX: Actualizar SOLO el estatus de esta academia en el mapa ---
+      // Usamos la notación de punto de Firestore para actualizar una clave específica del mapa
+      await _db.collection('users').doc(studentId).update({
+        'academy_status.$targetAcademy': 'EN_CURSO',
+        // Opcional: Si queremos mantener el 'status' global como un "resumen",
+        // podríamos dejarlo o actualizarlo a 'EN_CURSO' solo si estaba en 'PENDIENTE'.
+        // Por seguridad, dejemos de depender del global para la lógica crítica.
+        'status': 'EN_CURSO' // Se mantiene por compatibilidad visual global, pero la lógica real usa el mapa.
+      });
+
       await loadInitialData();
       return true;
     } catch (e) {
