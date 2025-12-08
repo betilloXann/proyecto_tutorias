@@ -166,7 +166,7 @@ class AcademyHomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withOpacity(0.8))),
+                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
               ],
             ),
           ],
@@ -247,7 +247,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {

@@ -98,7 +98,7 @@ class AcademyViewModel extends ChangeNotifier {
     _notAccreditedStudents = [];
 
     for (var doc in snapshot.docs) {
-      final student = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      final student = UserModel.fromMap(doc.data(), doc.id);
       
       switch (student.status) {
         case 'PRE_REGISTRO':

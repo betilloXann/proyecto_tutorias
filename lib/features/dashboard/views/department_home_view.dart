@@ -112,7 +112,7 @@ class DepartmentHomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withOpacity(0.8))),
+                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
               ],
             ),
           ],
