@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
+import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/professor_model.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../data/models/user_model.dart';
@@ -69,7 +69,6 @@ class AcademyHomeView extends StatelessWidget {
             )
           ],
         ),
-        // --- APLICANDO RESPONSIVE CONTAINER ---
         body: ResponsiveContainer(
           child: Consumer<AcademyViewModel>(
             builder: (context, vm, child) {
@@ -80,7 +79,7 @@ class AcademyHomeView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withValues(alpha: 0.8))),
+                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withAlpha(200))),
                     const SizedBox(height: 16),
                     GridView.count(
                       shrinkWrap: true,
@@ -155,9 +154,9 @@ class AcademyHomeView extends StatelessWidget {
   Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08), // Corregido deprecation
+          color: color.withAlpha(20), 
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)) // Corregido deprecation
+          border: Border.all(color: color.withAlpha(50))
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -170,7 +169,7 @@ class AcademyHomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
+                Text(title, style: TextStyle(color: color.withOpacity(0.8))),
               ],
             ),
           ],
@@ -201,6 +200,11 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     final vm = context.read<AcademyViewModel>();
     if (vm.availableSubjectsForStudent.length == 1) {
       _selectedSubject = vm.availableSubjectsForStudent.first;
+      // --- FIX: Auto-select professor if there is only one ---
+      if (_selectedSubject!.professors.length == 1) {
+        _selectedProfessor = _selectedSubject!.professors.first;
+        _scheduleCtrl.text = _selectedProfessor!.schedule;
+      }
     }
   }
 
@@ -228,7 +232,9 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
 
     if (mounted && success){
-      Navigator.pop(context);
+      // Pop twice to close the modal and go back from the student list
+      Navigator.of(context).pop(); 
+      Navigator.of(context).pop();
     } else if(mounted) {
       setState(() => _isSaving = false);
     }
@@ -250,20 +256,24 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 20),
 
           DropdownButtonFormField<SubjectModel>(
-            key: ValueKey(_selectedSubject),
-            initialValue: _selectedSubject, // Corregido deprecation
+            value: _selectedSubject, // <-- FIX: Use value instead of initialValue
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
               _selectedProfessor = null;
               _scheduleCtrl.clear();
+              // --- FIX: Auto-select professor if there is only one ---
+              if (val != null && val.professors.length == 1) {
+                _selectedProfessor = val.professors.first;
+                _scheduleCtrl.text = _selectedProfessor!.schedule;
+              }
             }),
           ),
           const SizedBox(height: 15),
 
           DropdownButtonFormField<ProfessorModel>(
-            key: ValueKey(_selectedProfessor),
+            value: _selectedProfessor, // <-- THE MAIN FIX
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() {
