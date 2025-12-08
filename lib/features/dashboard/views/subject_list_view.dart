@@ -1,44 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../viewmodels/subject_list_viewmodel.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 
 class SubjectListView extends StatelessWidget {
-  // --- FIX: Expect to receive the list of academies ---
   final List<String> myAcademies;
   const SubjectListView({super.key, required this.myAcademies});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // --- FIX: Pass the academies to the ViewModel ---
       create: (_) => SubjectListViewModel(myAcademies: myAcademies),
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Materias Disponibles"),
         ),
-        body: Consumer<SubjectListViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (vm.errorMessage != null) {
-              return Center(child: Text(vm.errorMessage!));
-            }
-            if (vm.subjects.isEmpty) {
-              return const Center(child: Text("No hay materias disponibles en este momento."));
-            }
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<SubjectListViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (vm.errorMessage != null) {
+                return Center(child: Text(vm.errorMessage!));
+              }
+              if (vm.subjects.isEmpty) {
+                return const Center(child: Text("No hay materias disponibles en este momento."));
+              }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: vm.subjects.length,
-              itemBuilder: (context, index) {
-                final subject = vm.subjects[index];
-                return _SubjectCard(subject: subject);
-              },
-            );
-          },
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: vm.subjects.length,
+                itemBuilder: (context, index) {
+                  final subject = vm.subjects[index];
+                  return _SubjectCard(subject: subject);
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -66,10 +68,10 @@ class _SubjectCard extends StatelessWidget {
               const Text("No hay profesores asignados para esta materia.", style: TextStyle(color: Colors.grey))
             else
               ...subject.professors.map((prof) => ListTile(
-                    leading: const Icon(Icons.person_outline, color: AppTheme.bluePrimary),
-                    title: Text(prof.name),
-                    subtitle: Text(prof.schedule, style: const TextStyle(color: Colors.black54)),
-                  )),
+                leading: const Icon(Icons.person_outline, color: AppTheme.bluePrimary),
+                title: Text(prof.name),
+                subtitle: Text(prof.schedule, style: const TextStyle(color: Colors.black54)),
+              )),
           ],
         ),
       ),

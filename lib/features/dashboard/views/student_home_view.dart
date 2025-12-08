@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'upload_evidence_view.dart';
 import 'subject_list_view.dart';
-import '../../../data/services/pdf_generator_service.dart'; // <--- AGREGAR ESTO
+import '../../../data/services/pdf_generator_service.dart';
 
 class StudentHomeView extends StatelessWidget {
   final UserModel user;
@@ -32,7 +33,6 @@ class StudentHomeView extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                // --- FIX: Pass the user's academies to the view ---
                 MaterialPageRoute(builder: (context) => SubjectListView(myAcademies: user.academies)),
               );
             },
@@ -48,54 +48,57 @@ class StudentHomeView extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Hola,", style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.textSecondary, fontSize: 20)),
-            Text(user.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+      // --- APLICANDO RESPONSIVE CONTAINER ---
+      body: ResponsiveContainer(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Hola,", style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.textSecondary, fontSize: 20)),
+              Text(user.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            _StatusCard(status: user.status),
+              _StatusCard(status: user.status),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            _ClassesList(studentUid: user.id),
+              _ClassesList(studentUid: user.id),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            Text("Acciones Rápidas", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-            const SizedBox(height: 15),
+              Text("Acciones Rápidas", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              const SizedBox(height: 15),
 
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                _ActionItem(
-                  icon: Icons.upload_file,
-                  label: "Subir Evidencia",
-                  color: AppTheme.bluePrimary,
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UploadEvidenceView())
-                    );
-                  },
-                ),
-                _ActionItem(
-                  icon: Icons.history, // Regresamos el Historial o lo que tenías antes
-                  label: "Historial",
-                  color: AppTheme.purpleMist,
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ],
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _ActionItem(
+                    icon: Icons.upload_file,
+                    label: "Subir Evidencia",
+                    color: AppTheme.bluePrimary,
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const UploadEvidenceView())
+                      );
+                    },
+                  ),
+                  _ActionItem(
+                    icon: Icons.history,
+                    label: "Historial",
+                    color: AppTheme.purpleMist,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -20,8 +21,6 @@ class StudentDetailView extends StatefulWidget {
 }
 
 class _StudentDetailViewState extends State<StudentDetailView> {
-
-  // --- UI ACTIONS (Solo acciones de UI, sin lógica de negocio) ---
 
   Future<void> _launchUrl(String? urlString) async {
     if (urlString == null || urlString.isEmpty) {
@@ -41,7 +40,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   }
 
   void _showFinalGradeDialog(BuildContext context) {
-    // Pasamos el contexto del provider padre al diálogo
     final vm = context.read<StudentDetailViewModel>();
     showDialog(
       context: context,
@@ -66,34 +64,37 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             builder: (_, vm, _) => Text(vm.student.name),
           ),
         ),
-        body: Consumer<StudentDetailViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (vm.errorMessage != null) {
-              return Center(child: Text(vm.errorMessage!));
-            }
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<StudentDetailViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (vm.errorMessage != null) {
+                return Center(child: Text(vm.errorMessage!));
+              }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStudentInfoCard(context, vm.student),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
-                  _buildEnrollmentsList(vm),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("EVIDENCIAS SUBIDAS"),
-                  if (vm.groupedEvidences.isEmpty)
-                    const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No ha subido ninguna evidencia."))))
-                  else
-                    _EvidencePageView(groupedEvidences: vm.groupedEvidences),
-                ],
-              ),
-            );
-          },
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStudentInfoCard(context, vm.student),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
+                    _buildEnrollmentsList(vm),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("EVIDENCIAS SUBIDAS"),
+                    if (vm.groupedEvidences.isEmpty)
+                      const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No ha subido ninguna evidencia."))))
+                    else
+                      _EvidencePageView(groupedEvidences: vm.groupedEvidences),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -105,7 +106,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
   Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
     final bool isGraded = student.finalGrade != null;
-
     final bool canAssignGrade = student.status == 'EN_CURSO';
 
     return Card(
@@ -208,7 +208,9 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   }
 }
 
-// --- SUB-WIDGETS Y DIALOGS ---
+// ... (Resto de los Widgets privados _FinalGradeDialog, _EvidencePageView, _EvidenceCard, _ReviewScreen, _RejectionDialog se mantienen igual)
+// Asegúrate de copiar las clases privadas al final si estás reemplazando el archivo completo.
+// Para ahorrar espacio, aquí solo se muestra el cambio principal en el `body`.
 
 class _FinalGradeDialog extends StatefulWidget {
   final UserModel student;

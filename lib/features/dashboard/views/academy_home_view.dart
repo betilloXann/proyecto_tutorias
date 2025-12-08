@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/professor_model.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../data/models/user_model.dart';
@@ -68,81 +69,84 @@ class AcademyHomeView extends StatelessWidget {
             )
           ],
         ),
-        body: Consumer<AcademyViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) return const Center(child: CircularProgressIndicator());
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<AcademyViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) return const Center(child: CircularProgressIndicator());
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
-                  const SizedBox(height: 16),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.3, // <-- FIX: Adjusted for more vertical space
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => 
-                            StudentListView(
-                              title: 'Pendientes de Asignación',
-                              students: vm.pendingStudents,
-                              onAssign: (student) => _showAssignmentForm(context, vm, student),
-                            )
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withValues(alpha: 0.8))),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.3,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Pendientes de Asignación',
+                                  students: vm.pendingStudents,
+                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                )
+                            ),
                           ),
+                          child: _buildSummaryCard('Pendientes', vm.pendingStudents.length.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
                         ),
-                        child: _buildSummaryCard('Pendientes', vm.pendingStudents.length.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                           MaterialPageRoute(builder: (_) => 
-                            StudentListView(
-                              title: 'Alumnos en Curso',
-                              students: vm.assignedStudents,
-                              onAssign: (student) => _showAssignmentForm(context, vm, student),
-                            )
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos en Curso',
+                                  students: vm.assignedStudents,
+                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                )
+                            ),
                           ),
+                          child: _buildSummaryCard('En Curso', vm.assignedStudents.length.toString(), Icons.school_outlined, AppTheme.bluePrimary),
                         ),
-                        child: _buildSummaryCard('En Curso', vm.assignedStudents.length.toString(), Icons.school_outlined, AppTheme.bluePrimary),
-                      ),
-                       GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                           MaterialPageRoute(builder: (_) => 
-                            StudentListView(
-                              title: 'Alumnos Acreditados',
-                              students: vm.accreditedStudents,
-                            )
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos Acreditados',
+                                  students: vm.accreditedStudents,
+                                )
+                            ),
                           ),
+                          child: _buildSummaryCard('Acreditados', vm.accreditedStudents.length.toString(), Icons.check_circle_outlined, Colors.green.shade700),
                         ),
-                        child: _buildSummaryCard('Acreditados', vm.accreditedStudents.length.toString(), Icons.check_circle_outlined, Colors.green.shade700),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                           MaterialPageRoute(builder: (_) => 
-                            StudentListView(
-                              title: 'Alumnos No Acreditados',
-                              students: vm.notAccreditedStudents,
-                            )
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos No Acreditados',
+                                  students: vm.notAccreditedStudents,
+                                )
+                            ),
                           ),
+                          child: _buildSummaryCard('No Acreditados', vm.notAccreditedStudents.length.toString(), Icons.cancel_outlined, Colors.red.shade700),
                         ),
-                        child: _buildSummaryCard('No Acreditados', vm.notAccreditedStudents.length.toString(), Icons.cancel_outlined, Colors.red.shade700),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            );
-          },
+                      ],
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -151,9 +155,9 @@ class AcademyHomeView extends StatelessWidget {
   Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(50))
+          color: color.withValues(alpha: 0.08), // Corregido deprecation
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)) // Corregido deprecation
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -247,7 +251,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
           DropdownButtonFormField<SubjectModel>(
             key: ValueKey(_selectedSubject),
-            initialValue: _selectedSubject,
+            initialValue: _selectedSubject, // Corregido deprecation
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
