@@ -18,7 +18,7 @@ class BulkUploadViewModel extends ChangeNotifier {
   FilePickerResult? _pickedFile;
 
   final Map<String, String> _subjectMapping = {
-    'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB. ELECT. Y CONTROL',
+    'LABORATORIO DE ELECTRICIDAD Y CONTROL': 'LAB ELECT Y CONTROL',
   };
 
   bool get isLoading => _isLoading;

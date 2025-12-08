@@ -44,17 +44,10 @@ class AcademyViewModel extends ChangeNotifier {
 
       _availableSubjectsForStudent = _subjects.where((subject) {
         final subjectNameNormalized = subject.name.trim().toLowerCase();
-
-        if (studentSubjectsNormalized.contains(subjectNameNormalized)) {
-          return true;
-        }
-
+        if (studentSubjectsNormalized.contains(subjectNameNormalized)) return true;
         final upperCaseSubjectName = subject.name.toUpperCase();
         final abbreviation = _subjectAbbreviationMap[upperCaseSubjectName];
-        if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) {
-          return true;
-        }
-
+        if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) return true;
         return false;
       }).toList();
     }
@@ -99,26 +92,25 @@ class AcademyViewModel extends ChangeNotifier {
     for (var doc in snapshot.docs) {
       final student = UserModel.fromMap(doc.data(), doc.id);
 
-      // --- FIX: Clasificar basado en el estatus de LA ACADEMIA ACTUAL ---
-      // Revisamos el estatus del alumno para cada academia que gestiona el usuario logueado.
+      // --- LÓGICA DE FILTRADO VISUAL POR ACADEMIA ---
+      // Un alumno puede estar "PENDIENTE" para ti (Sistemas) pero "EN_CURSO" para otra academia.
+      // Aquí lo clasificamos según cómo lo ve TU academia.
       bool addedToPending = false;
       bool addedToAssigned = false;
-      bool addedToAccredited = false;
-      bool addedToNotAccredited = false;
 
       for (var academy in myAcademies) {
-        // Obtenemos el estatus específico para esta academia
-        // Si el alumno no tiene esa academia registrada (raro por el query), ignoramos.
         if (!student.academies.contains(academy)) continue;
 
         final statusForThisAcademy = student.getStatusForAcademy(academy);
 
+        // Usamos banderas (addedTo...) para no duplicar al alumno visualmente
+        // si el usuario gestiona 2 academias y en ambas tiene el mismo estatus.
         switch (statusForThisAcademy) {
           case 'PRE_REGISTRO':
           case 'PENDIENTE_ASIGNACION':
             if (!addedToPending) {
               _pendingStudents.add(student);
-              addedToPending = true; // Evitar duplicados si gestiono 2 academias y en ambas es pendiente
+              addedToPending = true;
             }
             break;
           case 'EN_CURSO':
@@ -128,16 +120,10 @@ class AcademyViewModel extends ChangeNotifier {
             }
             break;
           case 'ACREDITADO':
-            if (!addedToAccredited) {
-              _accreditedStudents.add(student);
-              addedToAccredited = true;
-            }
+            if (!_accreditedStudents.contains(student)) _accreditedStudents.add(student);
             break;
           case 'NO_ACREDITADO':
-            if (!addedToNotAccredited) {
-              _notAccreditedStudents.add(student);
-              addedToNotAccredited = true;
-            }
+            if (!_notAccreditedStudents.contains(student)) _notAccreditedStudents.add(student);
             break;
         }
       }
@@ -176,9 +162,20 @@ class AcademyViewModel extends ChangeNotifier {
     required String salon,
   }) async {
     try {
-      final targetAcademy = myAcademies.isNotEmpty ? myAcademies.first : 'SISTEMAS';
+      // Determinamos qué academia está realizando la acción
+      // Si la materia pertenece a una lista de Subjects cargados, podríamos buscar su academia.
+      // Por simplicidad, usamos la primera academia del usuario logueado o un default.
+      String targetAcademy = 'SISTEMAS';
+      if (myAcademies.isNotEmpty) {
+        // Intentar encontrar la academia que corresponde a la materia seleccionada
+        final subjectMatch = _subjects.firstWhere(
+                (s) => s.name == subjectName,
+            orElse: () => SubjectModel(id: '', name: '', academy: myAcademies.first, professors: [])
+        );
+        targetAcademy = subjectMatch.academy;
+      }
 
-      // 1. Crear el registro de enrollment
+      // 1. Crear el enrollment
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -190,15 +187,34 @@ class AcademyViewModel extends ChangeNotifier {
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
-      // 2. --- FIX: Actualizar SOLO el estatus de esta academia en el mapa ---
-      // Usamos la notación de punto de Firestore para actualizar una clave específica del mapa
+      // 2. Actualizar el estatus ESPECÍFICO de esa academia
+      // Usamos notación de punto para no sobrescribir todo el mapa.
       await _db.collection('users').doc(studentId).update({
         'academy_status.$targetAcademy': 'EN_CURSO',
-        // Opcional: Si queremos mantener el 'status' global como un "resumen",
-        // podríamos dejarlo o actualizarlo a 'EN_CURSO' solo si estaba en 'PENDIENTE'.
-        // Por seguridad, dejemos de depender del global para la lógica crítica.
-        'status': 'EN_CURSO' // Se mantiene por compatibilidad visual global, pero la lógica real usa el mapa.
       });
+
+      // 3. --- VERIFICACIÓN GLOBAL ---
+      // Obtenemos el alumno actualizado para ver sus otros estatus
+      final studentDoc = await _db.collection('users').doc(studentId).get();
+      final updatedStudent = UserModel.fromMap(studentDoc.data()!, studentId);
+
+      // Verificamos si TODAS las academias que debe cursar ya están en 'EN_CURSO' (o superior)
+      bool allAcademiesReady = true;
+      for (var academy in updatedStudent.academies) {
+        final status = updatedStudent.getStatusForAcademy(academy);
+        // Si alguna academia sigue en pendiente, NO actualizamos el global
+        if (status == 'PENDIENTE_ASIGNACION' || status == 'PRE_REGISTRO') {
+          allAcademiesReady = false;
+          break;
+        }
+      }
+
+      // Solo si todas están listas, cambiamos el estatus global visual
+      if (allAcademiesReady) {
+        await _db.collection('users').doc(studentId).update({
+          'status': 'EN_CURSO'
+        });
+      }
 
       await loadInitialData();
       return true;

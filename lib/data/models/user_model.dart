@@ -22,7 +22,7 @@ class UserModel {
     this.dictamenUrl,
     this.finalGrade,
     this.subjectsToTake = const [],
-    this.academyStatus = const {}, // <-- NUEVO
+    this.academyStatus = const {}, // <-- Inicializar vacío por defecto
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
@@ -40,7 +40,7 @@ class UserModel {
     if (map['academy_status'] != null && map['academy_status'] is Map) {
       parsedAcademyStatus = Map<String, String>.from(map['academy_status']);
     } else {
-      // Fallback para datos antiguos
+      // Si es un alumno antiguo sin mapa, usamos el estatus global como fallback para sus academias
       final globalStatus = map['status'] ?? 'PENDIENTE_ASIGNACION';
       for (var academy in parsedAcademies) {
         parsedAcademyStatus[academy] = globalStatus;

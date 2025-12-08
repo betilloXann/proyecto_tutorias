@@ -144,30 +144,6 @@ class ForgotPasswordView extends StatelessWidget {
                       'email': 'abdiel@gmail.com', 'pass': 'abdiel', 'name': 'Jefe Informática',
                       'role': 'jefe_academia', 'academies': ['INFORMATICA'], 'status': 'ACTIVO'
                     },
-
-                    // --- ALUMNOS ---
-                    {
-                      'email': 'alberto10pumas@gmail.com', 'pass': 'alberto', 'name': 'Alberto Pumas',
-                      'role': 'student', 'status': 'PENDIENTE_ASIGNACION', 'boleta': '202060001',
-                      'academies': ['INFORMATICA', 'COMPUTACION', 'LAB. ELECT. Y CONTROL']
-                    },
-                    {
-                      'email': 'pabmolch@gmail.com', 'pass': 'pabloo', 'name': 'Pablo Molch',
-                      'role': 'student', 'status': 'EN_CURSO', 'boleta': '202060002',
-                      'academies': ['INFORMATICA', 'COMPUTACION']
-                    },
-                    {
-                      'email': 'luis@gmail.com', 'pass': 'luisss', 'name': 'Luis Alumno',
-                      'role': 'student', 'status': 'EN_CURSO', 'boleta': '202060003',
-                      'academies': ['INFORMATICA']
-                    },
-                    // El de solo boleta
-                    {
-                      'email': '202460004@ipn.mx', 'pass': '123456', 'name': 'Alumno Nuevo',
-                      'role': 'student', 'status': 'PRE_REGISTRO', 'boleta': '202460004',
-                      'academies': []
-                    },
-
                     // --- TUTORIAS (ADMIN) ---
                     {
                       'email': 'fernando@gmail.com', 'pass': 'fernando', 'name': 'Fernando Admin',

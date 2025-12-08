@@ -7,7 +7,7 @@ import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
-import 'bulk_upload_view.dart'; // <--- IMPORTANTE: Importar la vista de carga
+import 'bulk_upload_view.dart'; // <--- IMPORTANTE
 
 class DepartmentHomeView extends StatelessWidget {
   final UserModel user;
@@ -70,6 +70,7 @@ class DepartmentHomeView extends StatelessWidget {
                           onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
                           child: _buildSummaryCard('Total Alumnos', vm.totalStudents.toString(), Icons.groups_outlined, Colors.blue.shade700),
                         ),
+                        // ... (Resto de las tarjetas igual) ...
                         GestureDetector(
                           onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
                           child: _buildSummaryCard('Pre-registrados', vm.preRegisteredCount.toString(), Icons.person_add_alt_1_outlined, Colors.purple.shade700),
@@ -94,7 +95,7 @@ class DepartmentHomeView extends StatelessWidget {
             },
           ),
         ),
-        // --- AQUÍ ESTÁ EL BOTÓN QUE FALTABA ---
+        // --- BOTÓN FLOTANTE PARA CARGA MASIVA ---
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             Navigator.push(

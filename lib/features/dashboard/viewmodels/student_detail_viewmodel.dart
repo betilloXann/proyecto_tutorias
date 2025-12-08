@@ -133,9 +133,9 @@ class StudentDetailViewModel extends ChangeNotifier {
       );
 
       // FIX ADICIONAL SUGERIDO: Si quieres que esto impacte todas las academias activas:
-      // await _db.collection('users').doc(studentId).update({
-      //    'status': isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
-      // });
+      await _db.collection('users').doc(studentId).update({
+        'status': isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
+       });
 
       await loadStudentData();
       return null;
