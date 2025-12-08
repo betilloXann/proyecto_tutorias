@@ -14,14 +14,14 @@ class RegisterView extends StatefulWidget {
   final String boleta;
   final String foundName;
   final String docId;
-  final String email; 
+  final String email;
 
   const RegisterView({
     super.key,
     required this.boleta,
     required this.foundName,
     required this.docId,
-    required this.email, 
+    required this.email,
   });
 
   @override
@@ -29,8 +29,12 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
-  late final TextEditingController nameCtrl, emailCtrl, personalEmailCtrl, phoneCtrl, passCtrl;
-
+  late final TextEditingController nameCtrl,
+      emailCtrl,
+      personalEmailCtrl,
+      phoneCtrl,
+      passCtrl,
+      confirmPassCtrl;
   String? _fileName;
   File? _selectedFileMobile;
   Uint8List? _selectedFileWeb;
@@ -46,6 +50,7 @@ class _RegisterViewState extends State<RegisterView> {
     personalEmailCtrl = TextEditingController(text: widget.email);
     phoneCtrl = TextEditingController();
     passCtrl = TextEditingController();
+    confirmPassCtrl = TextEditingController(); // Inicializar
   }
 
   @override
@@ -55,6 +60,7 @@ class _RegisterViewState extends State<RegisterView> {
     personalEmailCtrl.dispose();
     phoneCtrl.dispose();
     passCtrl.dispose();
+    confirmPassCtrl.dispose();
     super.dispose();
   }
 
@@ -79,6 +85,18 @@ class _RegisterViewState extends State<RegisterView> {
   }
 
   Future<void> _submitActivation() async {
+    if (passCtrl.text != confirmPassCtrl.text) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Las contraseñas no coinciden"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     if (emailCtrl.text.isEmpty ||
         personalEmailCtrl.text.isEmpty ||
         phoneCtrl.text.isEmpty ||
@@ -164,7 +182,11 @@ class _RegisterViewState extends State<RegisterView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SvgPicture.asset("assets/images/image3.svg", height: 180, width: 200),
+              SvgPicture.asset(
+                "assets/images/image3.svg",
+                height: 180,
+                width: 200,
+              ),
               const SizedBox(height: 24),
 
               Text(
@@ -224,7 +246,9 @@ class _RegisterViewState extends State<RegisterView> {
                 obscureText: !_isPasswordVisible,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
                     color: Colors.grey,
                   ),
                   onPressed: () {
@@ -233,7 +257,16 @@ class _RegisterViewState extends State<RegisterView> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
+
+              // NUEVO CAMPO: Confirmar Contraseña
+              TextInputField(
+                label: "Confirmar Contraseña",
+                controller: confirmPassCtrl,
+                icon: Icons.lock_outline,
+                obscureText:
+                    !_isPasswordVisible, // Usa la misma visibilidad o crea una variable nueva
+              ),
 
               const Align(
                 alignment: Alignment.centerLeft,
@@ -253,7 +286,10 @@ class _RegisterViewState extends State<RegisterView> {
                 onTap: _pickDictamen,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: Colors.grey.shade300),
@@ -268,13 +304,21 @@ class _RegisterViewState extends State<RegisterView> {
                           _fileName ?? "Toca para seleccionar archivo",
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: _fileName != null ? Colors.black : Colors.grey,
-                            fontWeight: _fileName != null ? FontWeight.w600 : FontWeight.normal,
+                            color: _fileName != null
+                                ? Colors.black
+                                : Colors.grey,
+                            fontWeight: _fileName != null
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
                       if (_fileName != null)
-                        const Icon(Icons.check_circle, color: Colors.green, size: 22),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 22,
+                        ),
                     ],
                   ),
                 ),
@@ -288,9 +332,9 @@ class _RegisterViewState extends State<RegisterView> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : PrimaryButton(
-                  text: "Finalizar Activación",
-                  onPressed: _submitActivation,
-                ),
+                        text: "Finalizar Activación",
+                        onPressed: _submitActivation,
+                      ),
               ),
             ],
           ),

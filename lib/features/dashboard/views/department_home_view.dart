@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/widgets/responsive_container.dart';
@@ -7,25 +8,44 @@ import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
-import 'bulk_upload_view.dart'; // <--- IMPORTANTE
+import 'bulk_upload_view.dart';
 
-class DepartmentHomeView extends StatelessWidget {
+class DepartmentHomeView extends StatefulWidget {
   final UserModel user;
   const DepartmentHomeView({super.key, required this.user});
 
-  void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) {
-    Navigator.push(
+  @override
+  State<DepartmentHomeView> createState() => _DepartmentHomeViewState();
+}
+
+class _DepartmentHomeViewState extends State<DepartmentHomeView> {
+  late DepartmentHomeViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = DepartmentHomeViewModel(context.read<AuthRepository>());
+    _viewModel.loadDashboardData();
+  }
+
+  Future<void> _refreshData() async {
+    await _viewModel.loadDashboardData();
+  }
+
+  void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
     );
+    _refreshData();
   }
 
   @override
   Widget build(BuildContext context) {
     final menuViewModel = context.read<HomeMenuViewModel>();
 
-    return ChangeNotifierProvider(
-      create: (context) => DepartmentHomeViewModel(context.read<AuthRepository>()),
+    return ChangeNotifierProvider.value(
+      value: _viewModel,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Departamento de Tutorías"),
@@ -48,60 +68,94 @@ class DepartmentHomeView extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               if (vm.errorMessage != null) {
-                return Center(child: Text(vm.errorMessage!));
+                return Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(vm.errorMessage!),
+                    ElevatedButton(onPressed: _refreshData, child: const Text("Reintentar"))
+                  ],
+                ));
               }
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
-                    const SizedBox(height: 16),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.3,
-                      children: [
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
-                          child: _buildSummaryCard('Total Alumnos', vm.totalStudents.toString(), Icons.groups_outlined, Colors.blue.shade700),
-                        ),
-                        // ... (Resto de las tarjetas igual) ...
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
-                          child: _buildSummaryCard('Pre-registrados', vm.preRegisteredCount.toString(), Icons.person_add_alt_1_outlined, Colors.purple.shade700),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
-                          child: _buildSummaryCard('Pendientes', vm.pendingCount.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
-                          child: _buildSummaryCard('En Curso', vm.inCourseCount.toString(), Icons.school_outlined, AppTheme.bluePrimary),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Acreditados', vm.students.where((s) => s.status == 'ACREDITADO').toList()),
-                          child: _buildSummaryCard('Acreditados', vm.accreditedCount.toString(), Icons.check_circle_outlined, Colors.green.shade700),
-                        ),
-                      ],
-                    )
-                  ],
+              return RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.3,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
+                            child: _HoverableSummaryCard(
+                              title: 'Total Alumnos',
+                              count: vm.totalStudents.toString(),
+                              icon: Icons.groups_outlined,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
+                            child: _HoverableSummaryCard(
+                              title: 'Pre-registrados',
+                              count: vm.preRegisteredCount.toString(),
+                              icon: Icons.person_add_alt_1_outlined,
+                              color: Colors.purple.shade700,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
+                            child: _HoverableSummaryCard(
+                              title: 'Pendientes',
+                              count: vm.pendingCount.toString(),
+                              icon: Icons.hourglass_top_outlined,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
+                            child: _HoverableSummaryCard(
+                              title: 'En Curso',
+                              count: vm.inCourseCount.toString(),
+                              icon: Icons.school_outlined,
+                              color: AppTheme.bluePrimary,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Acreditados', vm.students.where((s) => s.status == 'ACREDITADO').toList()),
+                            child: _HoverableSummaryCard(
+                              title: 'Acreditados',
+                              count: vm.accreditedCount.toString(),
+                              icon: Icons.check_circle_outlined,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               );
             },
           ),
         ),
-        // --- BOTÓN FLOTANTE PARA CARGA MASIVA ---
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const BulkUploadView()),
             );
+            _refreshData();
           },
           tooltip: "Carga Masiva de Alumnos",
           child: const Icon(Icons.add),
@@ -109,29 +163,65 @@ class DepartmentHomeView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2))
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(icon, size: 32, color: color),
-            Column(
+class _HoverableSummaryCard extends StatefulWidget {
+  final String title;
+  final String count;
+  final IconData icon;
+  final Color color;
+
+  const _HoverableSummaryCard({required this.title, required this.count, required this.icon, required this.color});
+
+  @override
+  State<_HoverableSummaryCard> createState() => _HoverableSummaryCardState();
+}
+
+class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final transform = kIsWeb && _isHovered ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity();
+    final duration = const Duration(milliseconds: 200);
+
+    return MouseRegion(
+      onEnter: (_) => { if (kIsWeb) setState(() => _isHovered = true) },
+      onExit: (_) => { if (kIsWeb) setState(() => _isHovered = false) },
+      child: AnimatedContainer(
+        duration: duration,
+        transform: transform,
+        transformAlignment: FractionalOffset.center,
+        child: Container(
+          decoration: BoxDecoration(
+              color: widget.color.withAlpha(_isHovered && kIsWeb ? 40 : 20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: widget.color.withAlpha(50)),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.color.withAlpha(_isHovered && kIsWeb ? 60 : 30),
+                  blurRadius: _isHovered && kIsWeb ? 12 : 8,
+                  offset: Offset(0, _isHovered && kIsWeb ? 6 : 4),
+                )
+              ]
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
+                Icon(widget.icon, size: 32, color: widget.color),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
+                    Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

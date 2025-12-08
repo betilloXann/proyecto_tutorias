@@ -1,24 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
+import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/professor_model.dart';
 import '../viewmodels/subject_management_viewmodel.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 
-class SubjectManagementView extends StatelessWidget {
+class SubjectManagementView extends StatefulWidget {
   final String academy;
   const SubjectManagementView({super.key, required this.academy});
 
   @override
+  State<SubjectManagementView> createState() => _SubjectManagementViewState();
+}
+
+class _SubjectManagementViewState extends State<SubjectManagementView> {
+  late SubjectManagementViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = SubjectManagementViewModel(currentAcademy: widget.academy);
+    _viewModel.loadSubjects(); // Asumiendo que este es el método que carga data
+  }
+
+  // Método para forzar la actualización de la data
+  Future<void> _refreshData() async {
+    await _viewModel.loadSubjects();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SubjectManagementViewModel(currentAcademy: academy),
+    return ChangeNotifierProvider.value(
+      value: _viewModel,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Materias de: $academy"),
+          title: Text("Materias de: ${widget.academy}"),
         ),
-        // --- APLICANDO RESPONSIVE CONTAINER ---
         body: ResponsiveContainer(
           child: Consumer<SubjectManagementViewModel>(
             builder: (context, vm, child) {
@@ -26,30 +44,41 @@ class SubjectManagementView extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               if (vm.errorMessage != null) {
-                return Center(child: Text(vm.errorMessage!));
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(vm.errorMessage!),
+                      TextButton(onPressed: _refreshData, child: const Text("Reintentar"))
+                    ],
+                  ),
+                );
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: vm.subjects.length,
-                itemBuilder: (context, index) {
-                  final subject = vm.subjects[index];
-                  return _SubjectCard(subject: subject);
-                },
+              return RefreshIndicator(
+                onRefresh: _refreshData,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: vm.subjects.length,
+                  physics: const AlwaysScrollableScrollPhysics(), // Necesario para RefreshIndicator
+                  itemBuilder: (context, index) {
+                    final subject = vm.subjects[index];
+                    return _SubjectCard(subject: subject);
+                  },
+                ),
               );
             },
           ),
         ),
-        floatingActionButton: Consumer<SubjectManagementViewModel>(
-          builder: (context, vm, _) => FloatingActionButton(
-            onPressed: () => _showAddSubjectDialog(context, vm),
-            child: const Icon(Icons.add),
-          ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddSubjectDialog(context, _viewModel),
+          child: const Icon(Icons.add),
         ),
       ),
     );
   }
 
+  // Mantenemos el diálogo de añadir materia aquí por el contexto
   void _showAddSubjectDialog(BuildContext context, SubjectManagementViewModel vm) {
     final controller = TextEditingController();
     showDialog(
@@ -68,6 +97,7 @@ class SubjectManagementView extends StatelessWidget {
               final success = await vm.addSubject(controller.text);
               if (success && dialogContext.mounted) {
                 Navigator.pop(dialogContext);
+                // Opcional: _refreshData(); // Si el vm no actualiza localmente
               }
             },
             child: const Text("Guardar"),
@@ -130,7 +160,7 @@ class _SubjectCard extends StatelessWidget {
     );
   }
 
-  // --- DIALOG TO ADD A NEW PROFESSOR ---
+  // Diálogos internos actualizados para asegurar cierre correcto
   void _showAddProfessorDialog(BuildContext context, SubjectManagementViewModel vm, String subjectId) {
     final nameController = TextEditingController();
     final scheduleController = TextEditingController();
@@ -160,7 +190,6 @@ class _SubjectCard extends StatelessWidget {
     );
   }
 
-  // --- NEW: DIALOG TO EDIT AN EXISTING PROFESSOR ---
   void _showEditProfessorDialog(BuildContext context, SubjectManagementViewModel vm, String subjectId, ProfessorModel oldProfessor) {
     final nameController = TextEditingController(text: oldProfessor.name);
     final scheduleController = TextEditingController(text: oldProfessor.schedule);

@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
+import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/professor_model.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../data/models/user_model.dart';
@@ -69,7 +70,6 @@ class AcademyHomeView extends StatelessWidget {
             )
           ],
         ),
-        // --- APLICANDO RESPONSIVE CONTAINER ---
         body: ResponsiveContainer(
           child: Consumer<AcademyViewModel>(
             builder: (context, vm, child) {
@@ -80,7 +80,7 @@ class AcademyHomeView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withValues(alpha: 0.8))),
+                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withAlpha(200))),
                     const SizedBox(height: 16),
                     GridView.count(
                       shrinkWrap: true,
@@ -101,7 +101,12 @@ class AcademyHomeView extends StatelessWidget {
                                 )
                             ),
                           ),
-                          child: _buildSummaryCard('Pendientes', vm.pendingStudents.length.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
+                          child: _HoverableSummaryCard(
+                            title: 'Pendientes',
+                            count: vm.pendingStudents.length.toString(),
+                            icon: Icons.hourglass_top_outlined,
+                            color: Colors.orange.shade700,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.push(
@@ -114,7 +119,12 @@ class AcademyHomeView extends StatelessWidget {
                                 )
                             ),
                           ),
-                          child: _buildSummaryCard('En Curso', vm.assignedStudents.length.toString(), Icons.school_outlined, AppTheme.bluePrimary),
+                          child: _HoverableSummaryCard(
+                            title: 'En Curso',
+                            count: vm.assignedStudents.length.toString(),
+                            icon: Icons.school_outlined,
+                            color: AppTheme.bluePrimary,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.push(
@@ -126,7 +136,12 @@ class AcademyHomeView extends StatelessWidget {
                                 )
                             ),
                           ),
-                          child: _buildSummaryCard('Acreditados', vm.accreditedStudents.length.toString(), Icons.check_circle_outlined, Colors.green.shade700),
+                          child: _HoverableSummaryCard(
+                            title: 'Acreditados',
+                            count: vm.accreditedStudents.length.toString(),
+                            icon: Icons.check_circle_outlined,
+                            color: Colors.green.shade700,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => Navigator.push(
@@ -138,7 +153,12 @@ class AcademyHomeView extends StatelessWidget {
                                 )
                             ),
                           ),
-                          child: _buildSummaryCard('No Acreditados', vm.notAccreditedStudents.length.toString(), Icons.cancel_outlined, Colors.red.shade700),
+                          child: _HoverableSummaryCard(
+                            title: 'No Acreditados',
+                            count: vm.notAccreditedStudents.length.toString(),
+                            icon: Icons.cancel_outlined,
+                            color: Colors.red.shade700,
+                          ),
                         ),
                       ],
                     )
@@ -151,34 +171,72 @@ class AcademyHomeView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08), // Corregido deprecation
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)) // Corregido deprecation
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(icon, size: 32, color: color),
-            Column(
+// --- NEW: Hoverable Card Widget ---
+class _HoverableSummaryCard extends StatefulWidget {
+  final String title;
+  final String count;
+  final IconData icon;
+  final Color color;
+
+  const _HoverableSummaryCard({required this.title, required this.count, required this.icon, required this.color});
+
+  @override
+  State<_HoverableSummaryCard> createState() => _HoverableSummaryCardState();
+}
+
+class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final transform = kIsWeb && _isHovered ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity();
+    final duration = const Duration(milliseconds: 200);
+
+    return MouseRegion(
+      onEnter: (_) => { if (kIsWeb) setState(() => _isHovered = true) },
+      onExit: (_) => { if (kIsWeb) setState(() => _isHovered = false) },
+      child: AnimatedContainer(
+        duration: duration,
+        transform: transform,
+        transformAlignment: FractionalOffset.center,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.color.withAlpha(_isHovered && kIsWeb ? 40 : 20),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: widget.color.withAlpha(50)),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withAlpha(_isHovered && kIsWeb ? 60 : 30),
+                blurRadius: _isHovered && kIsWeb ? 12 : 8,
+                offset: Offset(0, _isHovered && kIsWeb ? 6 : 4),
+              )
+            ]
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
+                Icon(widget.icon, size: 32, color: widget.color),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
+                    Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 class _AssignmentForm extends StatefulWidget {
   final UserModel student;
@@ -201,6 +259,10 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     final vm = context.read<AcademyViewModel>();
     if (vm.availableSubjectsForStudent.length == 1) {
       _selectedSubject = vm.availableSubjectsForStudent.first;
+      if (_selectedSubject!.professors.length == 1) {
+        _selectedProfessor = _selectedSubject!.professors.first;
+        _scheduleCtrl.text = _selectedProfessor!.schedule;
+      }
     }
   }
 
@@ -228,7 +290,8 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
 
     if (mounted && success){
-      Navigator.pop(context);
+      Navigator.of(context).pop(); 
+      Navigator.of(context).pop();
     } else if(mounted) {
       setState(() => _isSaving = false);
     }
@@ -250,20 +313,23 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 20),
 
           DropdownButtonFormField<SubjectModel>(
-            key: ValueKey(_selectedSubject),
-            initialValue: _selectedSubject, // Corregido deprecation
+            value: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
               _selectedProfessor = null;
               _scheduleCtrl.clear();
+              if (val != null && val.professors.length == 1) {
+                _selectedProfessor = val.professors.first;
+                _scheduleCtrl.text = _selectedProfessor!.schedule;
+              }
             }),
           ),
           const SizedBox(height: 15),
 
           DropdownButtonFormField<ProfessorModel>(
-            key: ValueKey(_selectedProfessor),
+            value: _selectedProfessor,
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() {

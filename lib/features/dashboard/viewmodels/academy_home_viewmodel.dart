@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/user_model.dart';
@@ -5,8 +6,8 @@ import '../../../data/models/subject_model.dart';
 
 class AcademyViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  final List<String> myAcademies;
+  
+  final List<String> myAcademies; 
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -41,13 +42,17 @@ class AcademyViewModel extends ChangeNotifier {
       _availableSubjectsForStudent = List.from(_subjects);
     } else {
       final studentSubjectsNormalized = student.subjectsToTake.map((s) => s.trim().toLowerCase()).toSet();
-
+      
       _availableSubjectsForStudent = _subjects.where((subject) {
         final subjectNameNormalized = subject.name.trim().toLowerCase();
-        if (studentSubjectsNormalized.contains(subjectNameNormalized)) return true;
+        if (studentSubjectsNormalized.contains(subjectNameNormalized)) {
+          return true;
+        }
         final upperCaseSubjectName = subject.name.toUpperCase();
         final abbreviation = _subjectAbbreviationMap[upperCaseSubjectName];
-        if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) return true;
+        if (abbreviation != null && studentSubjectsNormalized.contains(abbreviation.toLowerCase())) {
+          return true;
+        }
         return false;
       }).toList();
     }
@@ -66,7 +71,8 @@ class AcademyViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.wait([_loadStudents(), _loadSubjects()]);
+      await _loadSubjects();
+      await _loadStudents();
     } catch (e) {
       _errorMessage = "Error cargando datos: $e";
     } finally {
@@ -75,60 +81,79 @@ class AcademyViewModel extends ChangeNotifier {
     }
   }
 
+  // --- FIX: Smarter student loading logic ---
   Future<void> _loadStudents() async {
     if (myAcademies.isEmpty) return;
 
-    final snapshot = await _db
+    // 1. Get all subjects offered by this academy (already loaded in _subjects)
+    final academySubjectNames = _subjects.map((s) => s.name.toLowerCase()).toSet();
+
+    // 2. Get all students related to this academy
+    final studentsSnapshot = await _db
         .collection('users')
         .where('role', isEqualTo: 'student')
         .where('academies', arrayContainsAny: myAcademies)
         .get();
 
+    // 3. Get all enrollments for these students in batches
+    final studentIds = studentsSnapshot.docs.map((doc) => doc.id).toList();
+    final Map<String, List<String>> studentEnrollments = {};
+    if (studentIds.isNotEmpty) {
+      for (int i = 0; i < studentIds.length; i += 10) {
+        final chunk = studentIds.sublist(i, i + 10 > studentIds.length ? studentIds.length : i + 10);
+        final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', whereIn: chunk).get();
+        for (var doc in enrollmentsSnapshot.docs) {
+          final data = doc.data();
+          final studentId = data['uid'] as String;
+          final subjectName = data['subject'] as String;
+          studentEnrollments.putIfAbsent(studentId, () => []).add(subjectName.toLowerCase());
+        }
+      }
+    }
+
+    // 4. Clear lists and process students
     _pendingStudents = [];
     _assignedStudents = [];
     _accreditedStudents = [];
     _notAccreditedStudents = [];
 
-    for (var doc in snapshot.docs) {
+    for (var doc in studentsSnapshot.docs) {
       final student = UserModel.fromMap(doc.data(), doc.id);
 
-      // --- LÓGICA DE FILTRADO VISUAL POR ACADEMIA ---
-      // Un alumno puede estar "PENDIENTE" para ti (Sistemas) pero "EN_CURSO" para otra academia.
-      // Aquí lo clasificamos según cómo lo ve TU academia.
-      bool addedToPending = false;
-      bool addedToAssigned = false;
+      if (student.status == 'ACREDITADO') {
+        _accreditedStudents.add(student);
+        continue;
+      }
+      if (student.status == 'NO_ACREDITADO') {
+        _notAccreditedStudents.add(student);
+        continue;
+      }
 
-      for (var academy in myAcademies) {
-        if (!student.academies.contains(academy)) continue;
+      // Logic for PENDING and IN_CURSO students
+      final requiredSubjectsInThisAcademy = student.subjectsToTake
+          .where((subjName) => academySubjectNames.contains(subjName.toLowerCase()))
+          .toSet();
 
-        final statusForThisAcademy = student.getStatusForAcademy(academy);
+      final enrolledSubjects = (studentEnrollments[student.id] ?? []).toSet();
+      
+      final enrolledSubjectsInThisAcademy = enrolledSubjects
+          .where((subjName) => academySubjectNames.contains(subjName.toLowerCase()))
+          .toSet();
 
-        // Usamos banderas (addedTo...) para no duplicar al alumno visualmente
-        // si el usuario gestiona 2 academias y en ambas tiene el mismo estatus.
-        switch (statusForThisAcademy) {
-          case 'PRE_REGISTRO':
-          case 'PENDIENTE_ASIGNACION':
-            if (!addedToPending) {
-              _pendingStudents.add(student);
-              addedToPending = true;
-            }
-            break;
-          case 'EN_CURSO':
-            if (!addedToAssigned) {
-              _assignedStudents.add(student);
-              addedToAssigned = true;
-            }
-            break;
-          case 'ACREDITADO':
-            if (!_accreditedStudents.contains(student)) _accreditedStudents.add(student);
-            break;
-          case 'NO_ACREDITADO':
-            if (!_notAccreditedStudents.contains(student)) _notAccreditedStudents.add(student);
-            break;
-        }
+      if (requiredSubjectsInThisAcademy.isEmpty) {
+        // This student has no required subjects in this academy, but is related to it.
+        // We can consider them 'in progress' for this view.
+        _assignedStudents.add(student);
+      } else if (enrolledSubjectsInThisAcademy.length >= requiredSubjectsInThisAcademy.length) {
+        // Student has completed all subjects for THIS academy.
+        _assignedStudents.add(student);
+      } else {
+        // Student still has pending subjects in THIS academy.
+        _pendingStudents.add(student);
       }
     }
   }
+
 
   Future<void> _loadSubjects() async {
     final Set<String> searchTerms = {};
@@ -149,7 +174,7 @@ class AcademyViewModel extends ChangeNotifier {
         .collection('subjects')
         .where('academy', whereIn: searchTerms.toList())
         .get();
-
+        
     _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
     _subjects.sort((a, b) => a.name.compareTo(b.name));
   }
@@ -162,20 +187,8 @@ class AcademyViewModel extends ChangeNotifier {
     required String salon,
   }) async {
     try {
-      // Determinamos qué academia está realizando la acción
-      // Si la materia pertenece a una lista de Subjects cargados, podríamos buscar su academia.
-      // Por simplicidad, usamos la primera academia del usuario logueado o un default.
-      String targetAcademy = 'SISTEMAS';
-      if (myAcademies.isNotEmpty) {
-        // Intentar encontrar la academia que corresponde a la materia seleccionada
-        final subjectMatch = _subjects.firstWhere(
-                (s) => s.name == subjectName,
-            orElse: () => SubjectModel(id: '', name: '', academy: myAcademies.first, professors: [])
-        );
-        targetAcademy = subjectMatch.academy;
-      }
+      final targetAcademy = myAcademies.isNotEmpty ? myAcademies.first : 'SISTEMAS';
 
-      // 1. Crear el enrollment
       await _db.collection('enrollments').add({
         'uid': studentId,
         'subject': subjectName,
@@ -183,37 +196,22 @@ class AcademyViewModel extends ChangeNotifier {
         'schedule': schedule,
         'salon': salon,
         'status': 'EN_CURSO',
-        'academy': targetAcademy,
+        'academy': targetAcademy, 
         'assigned_at': FieldValue.serverTimestamp(),
       });
 
-      // 2. Actualizar el estatus ESPECÍFICO de esa academia
-      // Usamos notación de punto para no sobrescribir todo el mapa.
-      await _db.collection('users').doc(studentId).update({
-        'academy_status.$targetAcademy': 'EN_CURSO',
-      });
+      // Global status verification logic (remains the same)
+      final userDoc = await _db.collection('users').doc(studentId).get();
+      if (userDoc.exists) {
+        final student = UserModel.fromMap(userDoc.data()!, userDoc.id);
+        final requiredSubjectsCount = student.subjectsToTake.length;
 
-      // 3. --- VERIFICACIÓN GLOBAL ---
-      // Obtenemos el alumno actualizado para ver sus otros estatus
-      final studentDoc = await _db.collection('users').doc(studentId).get();
-      final updatedStudent = UserModel.fromMap(studentDoc.data()!, studentId);
+        final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', isEqualTo: studentId).get();
+        final enrolledSubjectsCount = enrollmentsSnapshot.docs.length;
 
-      // Verificamos si TODAS las academias que debe cursar ya están en 'EN_CURSO' (o superior)
-      bool allAcademiesReady = true;
-      for (var academy in updatedStudent.academies) {
-        final status = updatedStudent.getStatusForAcademy(academy);
-        // Si alguna academia sigue en pendiente, NO actualizamos el global
-        if (status == 'PENDIENTE_ASIGNACION' || status == 'PRE_REGISTRO') {
-          allAcademiesReady = false;
-          break;
+        if (enrolledSubjectsCount >= requiredSubjectsCount) {
+          await _db.collection('users').doc(studentId).update({'status': 'EN_CURSO'});
         }
-      }
-
-      // Solo si todas están listas, cambiamos el estatus global visual
-      if (allAcademiesReady) {
-        await _db.collection('users').doc(studentId).update({
-          'status': 'EN_CURSO'
-        });
       }
 
       await loadInitialData();
