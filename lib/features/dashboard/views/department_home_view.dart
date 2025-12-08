@@ -7,25 +7,49 @@ import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
-import 'bulk_upload_view.dart'; // <--- IMPORTANTE
+import 'bulk_upload_view.dart';
 
-class DepartmentHomeView extends StatelessWidget {
+class DepartmentHomeView extends StatefulWidget {
   final UserModel user;
   const DepartmentHomeView({super.key, required this.user});
 
-  void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) {
-    Navigator.push(
+  @override
+  State<DepartmentHomeView> createState() => _DepartmentHomeViewState();
+}
+
+class _DepartmentHomeViewState extends State<DepartmentHomeView> {
+  // Instancia del ViewModel para acceder a ella fácilmente
+  late DepartmentHomeViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializamos el repositorio y cargamos datos la primera vez
+    _viewModel = DepartmentHomeViewModel(context.read<AuthRepository>());
+    _viewModel.loadDashboardData();
+  }
+
+  // MÉTODO CLAVE: Refresca al volver de una pantalla
+  Future<void> _refreshData() async {
+    await _viewModel.loadDashboardData();
+  }
+
+  void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) async {
+    // Esperamos a que el usuario regrese de la lista
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
     );
+    // Cuando regresa (focus), refrescamos
+    _refreshData();
   }
 
   @override
   Widget build(BuildContext context) {
     final menuViewModel = context.read<HomeMenuViewModel>();
 
-    return ChangeNotifierProvider(
-      create: (context) => DepartmentHomeViewModel(context.read<AuthRepository>()),
+    return ChangeNotifierProvider.value(
+      value: _viewModel, // Usamos .value porque ya lo creamos en initState
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Departamento de Tutorías"),
@@ -48,60 +72,70 @@ class DepartmentHomeView extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               if (vm.errorMessage != null) {
-                return Center(child: Text(vm.errorMessage!));
+                return Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(vm.errorMessage!),
+                    ElevatedButton(onPressed: _refreshData, child: const Text("Reintentar"))
+                  ],
+                ));
               }
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
-                    const SizedBox(height: 16),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.3,
-                      children: [
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
-                          child: _buildSummaryCard('Total Alumnos', vm.totalStudents.toString(), Icons.groups_outlined, Colors.blue.shade700),
-                        ),
-                        // ... (Resto de las tarjetas igual) ...
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
-                          child: _buildSummaryCard('Pre-registrados', vm.preRegisteredCount.toString(), Icons.person_add_alt_1_outlined, Colors.purple.shade700),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
-                          child: _buildSummaryCard('Pendientes', vm.pendingCount.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
-                          child: _buildSummaryCard('En Curso', vm.inCourseCount.toString(), Icons.school_outlined, AppTheme.bluePrimary),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigateToStudentList(context, 'Acreditados', vm.students.where((s) => s.status == 'ACREDITADO').toList()),
-                          child: _buildSummaryCard('Acreditados', vm.accreditedCount.toString(), Icons.check_circle_outlined, Colors.green.shade700),
-                        ),
-                      ],
-                    )
-                  ],
+              return RefreshIndicator( // Añadimos pull-to-refresh de regalo
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.3,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
+                            child: _buildSummaryCard('Total Alumnos', vm.totalStudents.toString(), Icons.groups_outlined, Colors.blue.shade700),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
+                            child: _buildSummaryCard('Pre-registrados', vm.preRegisteredCount.toString(), Icons.person_add_alt_1_outlined, Colors.purple.shade700),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
+                            child: _buildSummaryCard('Pendientes', vm.pendingCount.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
+                            child: _buildSummaryCard('En Curso', vm.inCourseCount.toString(), Icons.school_outlined, AppTheme.bluePrimary),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'Acreditados', vm.students.where((s) => s.status == 'ACREDITADO').toList()),
+                            child: _buildSummaryCard('Acreditados', vm.accreditedCount.toString(), Icons.check_circle_outlined, Colors.green.shade700),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               );
             },
           ),
         ),
-        // --- BOTÓN FLOTANTE PARA CARGA MASIVA ---
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            // Importante: El await aquí detecta cuando se cierra la vista de carga masiva
+            await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const BulkUploadView()),
             );
+            _refreshData(); // Se ejecuta al volver de BulkUploadView
           },
           tooltip: "Carga Masiva de Alumnos",
           child: const Icon(Icons.add),
@@ -111,6 +145,7 @@ class DepartmentHomeView extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
+    // ... Tu código de UI se mantiene igual ...
     return Container(
       decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
