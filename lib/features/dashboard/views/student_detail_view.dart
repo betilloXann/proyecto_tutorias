@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -20,9 +21,7 @@ class StudentDetailView extends StatefulWidget {
 }
 
 class _StudentDetailViewState extends State<StudentDetailView> {
-  
-  // --- UI ACTIONS (Solo acciones de UI, sin lógica de negocio) ---
-  
+
   Future<void> _launchUrl(String? urlString) async {
     if (urlString == null || urlString.isEmpty) {
       if (mounted) {
@@ -30,10 +29,10 @@ class _StudentDetailViewState extends State<StudentDetailView> {
       }
       return;
     }
-    
+
     final uri = Uri.parse(urlString);
     final launched = await launchUrl(uri);
-    
+
     if (!mounted) return;
     if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo abrir el enlace: $urlString')));
@@ -41,7 +40,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   }
 
   void _showFinalGradeDialog(BuildContext context) {
-    // Pasamos el contexto del provider padre al diálogo
     final vm = context.read<StudentDetailViewModel>();
     showDialog(
       context: context,
@@ -66,34 +64,37 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             builder: (_, vm, _) => Text(vm.student.name),
           ),
         ),
-        body: Consumer<StudentDetailViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (vm.errorMessage != null) {
-              return Center(child: Text(vm.errorMessage!));
-            }
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<StudentDetailViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (vm.errorMessage != null) {
+                return Center(child: Text(vm.errorMessage!));
+              }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStudentInfoCard(context, vm.student),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
-                  _buildEnrollmentsList(vm),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("EVIDENCIAS SUBIDAS"),
-                  if (vm.groupedEvidences.isEmpty)
-                    const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No ha subido ninguna evidencia."))))
-                  else
-                    _EvidencePageView(groupedEvidences: vm.groupedEvidences),
-                ],
-              ),
-            );
-          },
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStudentInfoCard(context, vm.student),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
+                    _buildEnrollmentsList(vm),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("EVIDENCIAS SUBIDAS"),
+                    if (vm.groupedEvidences.isEmpty)
+                      const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No ha subido ninguna evidencia."))))
+                    else
+                      _EvidencePageView(groupedEvidences: vm.groupedEvidences),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -105,6 +106,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
   Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
     final bool isGraded = student.finalGrade != null;
+    final bool canAssignGrade = student.status == 'EN_CURSO';
 
     return Card(
       elevation: 2,
@@ -116,11 +118,11 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             _buildInfoRow(Icons.person_outline, "Nombre", student.name),
             _buildInfoRow(Icons.badge_outlined, "Boleta", student.boleta),
             _buildInfoRow(Icons.email_outlined, "Correo", student.email),
-            _buildInfoRow(Icons.school_outlined, "Academia", student.academy),
+            _buildInfoRow(Icons.school_outlined, "Academias", student.academies.join(", ")),
             _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
             if (isGraded)
               _buildInfoRow(Icons.star_border, "Calificación Final", student.finalGrade.toString()),
-            
+
             const Divider(height: 20),
 
             if (student.dictamenUrl != null) ...[
@@ -139,10 +141,11 @@ class _StudentDetailViewState extends State<StudentDetailView> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.grading_outlined, size: 18),
                 label: Text(isGraded ? "Editar Calificación Final" : "Asignar Calificación Final"),
-                onPressed: () => _showFinalGradeDialog(context),
+                onPressed: canAssignGrade ? () => _showFinalGradeDialog(context) : null,
+
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
-                  foregroundColor: Colors.white
+                    backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
+                    foregroundColor: Colors.white
                 ),
               ),
             ),
@@ -177,9 +180,9 @@ class _StudentDetailViewState extends State<StudentDetailView> {
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(
-            color: isStatus ? statusColor : Colors.black54,
-            fontSize: 16,
-            fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
+              color: isStatus ? statusColor : Colors.black54,
+              fontSize: 16,
+              fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
           )),
         ])),
       ]),
@@ -205,7 +208,9 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   }
 }
 
-// --- SUB-WIDGETS Y DIALOGS ---
+// ... (Resto de los Widgets privados _FinalGradeDialog, _EvidencePageView, _EvidenceCard, _ReviewScreen, _RejectionDialog se mantienen igual)
+// Asegúrate de copiar las clases privadas al final si estás reemplazando el archivo completo.
+// Para ahorrar espacio, aquí solo se muestra el cambio principal en el `body`.
 
 class _FinalGradeDialog extends StatefulWidget {
   final UserModel student;
@@ -234,11 +239,11 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
 
   void _submit() async {
     final vm = context.read<StudentDetailViewModel>();
-    
+
     // MVVM: Enviamos el input crudo (String) y el booleano al VM.
     final error = await vm.assignFinalGrade(
-      gradeInput: _gradeController.text, 
-      isAccredited: _isAccredited
+        gradeInput: _gradeController.text,
+        isAccredited: _isAccredited
     );
 
     if (!mounted) return;
@@ -343,7 +348,7 @@ class _EvidencePageViewState extends State<_EvidencePageView> {
         SmoothPageIndicator(
           controller: _controller,
           count: subjects.length,
-          effect: const WormEffect(dotHeight: 8, dotWidth: 8, activeDotColor: AppTheme.bluePrimary), 
+          effect: const WormEffect(dotHeight: 8, dotWidth: 8, activeDotColor: AppTheme.bluePrimary),
         ),
       ],
     );
@@ -436,7 +441,7 @@ class _ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<_ReviewScreen> {
-  final _feedbackController = TextEditingController();
+  // 1. Eliminamos el controller manual que tenías aquí
 
   bool get _isImage {
     final fileName = widget.evidence.fileName.toLowerCase();
@@ -444,23 +449,24 @@ class _ReviewScreenState extends State<_ReviewScreen> {
   }
 
   Future<void> _launchUrl() async {
-      final uri = Uri.parse(widget.evidence.fileUrl);
-      final launched = await launchUrl(uri);
-      
-      if (!mounted) return;
-      if (!launched) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace.')));
-      }
+    final uri = Uri.parse(widget.evidence.fileUrl);
+    final launched = await launchUrl(uri);
+
+    if (!mounted) return;
+    if (!launched) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace.')));
+    }
   }
 
-  void _submitReview(bool isApproved) async {
+  // 2. Modificamos para aceptar feedback opcional
+  void _submitReview(bool isApproved, {String? feedback}) async {
     final vm = context.read<StudentDetailViewModel>();
-    
-    // MVVM: Le pasamos los datos al VM. El VM decide si son válidos.
+
+    // MVVM: Le pasamos los datos al VM.
     final error = await vm.reviewEvidence(
       evidenceId: widget.evidence.id,
       isApproved: isApproved,
-      feedback: _feedbackController.text,
+      feedback: feedback ?? '', // Usamos el feedback que viene del diálogo
     );
 
     if (!mounted) return;
@@ -475,22 +481,17 @@ class _ReviewScreenState extends State<_ReviewScreen> {
     }
   }
 
-  void _showFeedbackDialog() {
-    showDialog(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text("Motivo del Rechazo"),
-      content: TextField(controller: _feedbackController, decoration: const InputDecoration(labelText: "Escribe una breve explicación...", border: OutlineInputBorder()), autofocus: true, maxLines: 3),
-      actions: [
-        TextButton(child: const Text("Cancelar"), onPressed: () => Navigator.of(dialogContext).pop()),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-          onPressed: () {
-            Navigator.of(dialogContext).pop();
-            _submitReview(false);
-          }, 
-          child: const Text("Confirmar Rechazo"),
-        ),
-      ],
-    ));
+  // 3. Método actualizado para usar el nuevo diálogo
+  void _showFeedbackDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => const _RejectionDialog(),
+    );
+
+    // Si result no es null, es porque el usuario confirmó el rechazo con sus motivos
+    if (result != null && mounted) {
+      _submitReview(false, feedback: result);
+    }
   }
 
   @override
@@ -510,12 +511,12 @@ class _ReviewScreenState extends State<_ReviewScreen> {
             alignment: Alignment.center,
             child: _isImage
                 ? InteractiveViewer(child: Image.network(widget.evidence.fileUrl, fit: BoxFit.contain,
-                    loadingBuilder: (context, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator())))
+                loadingBuilder: (context, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator())))
                 : Center(child: ElevatedButton.icon(
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text("Abrir PDF en nueva pestaña"),
-                    onPressed: _launchUrl,
-                  ),),
+              icon: const Icon(Icons.open_in_new),
+              label: const Text("Abrir PDF en nueva pestaña"),
+              onPressed: _launchUrl,
+            ),),
           )),
           const SizedBox(height: 16),
           if (vm.isLoading)
@@ -533,11 +534,128 @@ class _ReviewScreenState extends State<_ReviewScreen> {
       const SizedBox(height: 16),
       Row(children: [
         Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.close), label: const Text("Rechazar"),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: _showFeedbackDialog)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), onPressed: _showFeedbackDialog)),
         const SizedBox(width: 16),
         Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.check), label: const Text("Aprobar"),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white), onPressed: () => _submitReview(true))),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white), onPressed: () => _submitReview(true))),
       ]),
     ])));
+  }
+}
+
+// 4. NUEVA CLASE: Diálogo de rechazo con Chips
+class _RejectionDialog extends StatefulWidget {
+  const _RejectionDialog();
+
+  @override
+  State<_RejectionDialog> createState() => _RejectionDialogState();
+}
+
+class _RejectionDialogState extends State<_RejectionDialog> {
+  final TextEditingController _commentCtrl = TextEditingController();
+
+  // Lista de motivos predefinidos (Sin mencionar al tutor)
+  final List<String> _reasons = [
+    "Archivo ilegible o dañado",
+    "No corresponde al mes reportado",
+    "Información incompleta",
+    "Formato no oficial",
+    "Evidencia duplicada",
+  ];
+
+  // Set para guardar los motivos seleccionados
+  final Set<String> _selectedReasons = {};
+
+  @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    // Construimos el mensaje final
+    final List<String> finalReasons = _selectedReasons.toList();
+
+    // Si escribió un comentario extra, lo agregamos
+    if (_commentCtrl.text.trim().isNotEmpty) {
+      finalReasons.add("Nota: ${_commentCtrl.text.trim()}");
+    }
+
+    if (finalReasons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Selecciona al menos un motivo")),
+      );
+      return;
+    }
+
+    // Devolvemos los motivos unidos por puntos y espacio
+    Navigator.of(context).pop(finalReasons.join(". "));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Motivo del Rechazo", style: TextStyle(fontWeight: FontWeight.bold)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Selecciona los motivos:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 4.0,
+              children: _reasons.map((reason) {
+                final isSelected = _selectedReasons.contains(reason);
+                return FilterChip(
+                  label: Text(reason),
+                  selected: isSelected,
+                  selectedColor: Colors.red.shade100,
+                  checkmarkColor: Colors.red,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.red.shade900 : Colors.black87,
+                    fontSize: 12,
+                  ),
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedReasons.add(reason);
+                      } else {
+                        _selectedReasons.remove(reason);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            const Divider(height: 24),
+            TextField(
+              controller: _commentCtrl,
+              decoration: const InputDecoration(
+                labelText: "Comentario adicional (Opcional)",
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: const Text("Cancelar"),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _submit,
+          child: const Text("Confirmar Rechazo"),
+        ),
+      ],
+    );
   }
 }

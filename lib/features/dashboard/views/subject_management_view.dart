@@ -1,39 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/professor_model.dart';
 import '../viewmodels/subject_management_viewmodel.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
 
 class SubjectManagementView extends StatelessWidget {
-  const SubjectManagementView({super.key});
+  final String academy;
+  const SubjectManagementView({super.key, required this.academy});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SubjectManagementViewModel(),
+      create: (_) => SubjectManagementViewModel(currentAcademy: academy),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Gestión de Materias"),
+          title: Text("Materias de: $academy"),
         ),
-        body: Consumer<SubjectManagementViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (vm.errorMessage != null) {
-              return Center(child: Text(vm.errorMessage!));
-            }
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<SubjectManagementViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (vm.errorMessage != null) {
+                return Center(child: Text(vm.errorMessage!));
+              }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: vm.subjects.length,
-              itemBuilder: (context, index) {
-                final subject = vm.subjects[index];
-                return _SubjectCard(subject: subject);
-              },
-            );
-          },
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: vm.subjects.length,
+                itemBuilder: (context, index) {
+                  final subject = vm.subjects[index];
+                  return _SubjectCard(subject: subject);
+                },
+              );
+            },
+          ),
         ),
         floatingActionButton: Consumer<SubjectManagementViewModel>(
           builder: (context, vm, _) => FloatingActionButton(
@@ -96,20 +101,20 @@ class _SubjectCard extends StatelessWidget {
               const Text("No hay profesores asignados.", style: TextStyle(color: Colors.grey))
             else
               ...subject.professors.map((prof) => ListTile(
-                    leading: const Icon(Icons.person, color: AppTheme.bluePrimary),
-                    title: Text(prof.name),
-                    subtitle: Text(prof.schedule),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey, size: 20),
-                        onPressed: () => _showEditProfessorDialog(context, vm, subject.id, prof),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        onPressed: () => vm.removeProfessorFromSubject(subject.id, prof),
-                      ),
-                    ]),
-                  )),
+                leading: const Icon(Icons.person, color: AppTheme.bluePrimary),
+                title: Text(prof.name),
+                subtitle: Text(prof.schedule),
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey, size: 20),
+                    onPressed: () => _showEditProfessorDialog(context, vm, subject.id, prof),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                    onPressed: () => vm.removeProfessorFromSubject(subject.id, prof),
+                  ),
+                ]),
+              )),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,

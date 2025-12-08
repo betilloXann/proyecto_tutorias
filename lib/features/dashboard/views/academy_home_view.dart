@@ -1,223 +1,181 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/professor_model.dart';
 import '../../../data/models/subject_model.dart';
-import '../../../theme/theme.dart';
 import '../../../data/models/user_model.dart';
+import '../../../theme/theme.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
-import 'student_detail_view.dart';
+import 'student_list_view.dart';
 import 'subject_management_view.dart';
 
 class AcademyHomeView extends StatelessWidget {
   const AcademyHomeView({super.key});
 
-  // --- UPDATED: Now it's async and calls a refresh on the vm ---
-  void _navigateToDetail(BuildContext context, UserModel student, AcademyViewModel vm) async {
-    // Wait for the detail page to be closed
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => StudentDetailView(student: student)),
+  void _showAssignmentForm(BuildContext context, AcademyViewModel vm, UserModel student) {
+    vm.filterSubjectsForStudent(student);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: vm,
+        child: _AssignmentForm(student: student),
+      ),
     );
-    // After returning, refresh the data on this screen
-    vm.loadInitialData();
   }
 
   void _navigateToSubjectManagement(BuildContext context) {
+    final currentUser = context.read<HomeMenuViewModel>().currentUser;
+    if (currentUser == null) return;
+    final String targetAcademy = currentUser.academies.isNotEmpty ? currentUser.academies.first : 'INFORMATICA';
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SubjectManagementView()),
+      MaterialPageRoute(builder: (context) => SubjectManagementView(academy: targetAcademy)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.select<HomeMenuViewModel, UserModel?>((vm) => vm.currentUser);
     final menuViewModel = context.read<HomeMenuViewModel>();
 
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return ChangeNotifierProvider(
-      create: (_) => AcademyViewModel(),
+      create: (_) => AcademyViewModel(myAcademies: currentUser.academies),
       child: Scaffold(
         backgroundColor: AppTheme.baseLight,
         appBar: AppBar(
-          title: const Text("Gestión Académica"),
+          title: Text("ACADEMIA ${currentUser.academies.join(', ')}"),
           actions: [
             IconButton(
               icon: const Icon(Icons.ballot_outlined),
               tooltip: "Gestionar Materias",
               onPressed: () => _navigateToSubjectManagement(context),
             ),
-            IconButton(icon: const Icon(Icons.logout), onPressed: () async {
-              await menuViewModel.logout();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              }
-            })
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                final navigator = Navigator.of(context);
+                await menuViewModel.logout();
+                if (!context.mounted) return;
+                navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+              },
+            )
           ],
         ),
-        body: Consumer<AcademyViewModel>(
-          builder: (context, vm, child) {
-            if (vm.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        // --- APLICANDO RESPONSIVE CONTAINER ---
+        body: ResponsiveContainer(
+          child: Consumer<AcademyViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) return const Center(child: CircularProgressIndicator());
 
-            bool allListsEmpty = vm.pendingStudents.isEmpty &&
-                                 vm.assignedStudents.isEmpty &&
-                                 vm.accreditedStudents.isEmpty &&
-                                 vm.notAccreditedStudents.isEmpty;
-
-            if (allListsEmpty) {
-              return Center(child: RefreshIndicator(
-                  onRefresh: vm.loadInitialData,
-                  child: ListView(children: const [Center(child: Text("No hay alumnos para mostrar."))]),
-              ));
-            }
-
-            return RefreshIndicator(
-              onRefresh: vm.loadInitialData,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // Pass the vm to the navigation method
-                  _buildSection("PENDIENTES DE ASIGNACIÓN", vm.pendingStudents, (student) => _StudentCard(student: student), context, vm),
-                  _buildSection("ALUMNOS CON CARGA ACADÉMICA", vm.assignedStudents, (student) => _AssignedStudentCard(student: student), context, vm),
-                  _buildSection("HISTORIAL DE ACREDITADOS", vm.accreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: true), context, vm),
-                  _buildSection("HISTORIAL DE NO ACREDITADOS", vm.notAccreditedStudents, (student) => _FinishedStudentCard(student: student, isAccredited: false), context, vm),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, List<UserModel> students, Widget Function(UserModel) cardBuilder, BuildContext context, AcademyViewModel vm) {
-    if (students.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-          child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _getTitleColor(title))),
-        ),
-        ...students.map((student) => GestureDetector(onTap: () => _navigateToDetail(context, student, vm), child: cardBuilder(student))),
-      ],
-    );
-  }
-
-  Color _getTitleColor(String title) {
-    if (title.contains("PENDIENTES")) return AppTheme.bluePrimary;
-    if (title.contains("CARGA ACADÉMICA")) return Colors.green;
-    return Colors.grey.shade700;
-  }
-}
-
-// --- WIDGETS (UNCHANGED) ---
-
-class _FinishedStudentCard extends StatelessWidget {
-  final UserModel student;
-  final bool isAccredited;
-
-  const _FinishedStudentCard({required this.student, required this.isAccredited});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: isAccredited ? Colors.green.withAlpha(25) : Colors.red.withAlpha(25),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: isAccredited ? Colors.green.withAlpha(100) : Colors.red.withAlpha(100))),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(children: [
-          CircleAvatar(backgroundColor: isAccredited ? Colors.green : Colors.red, child: Icon(isAccredited ? Icons.check_circle_outline : Icons.cancel_outlined, color: Colors.white, size: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-          ])),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ]),
-      ),
-    );
-  }
-}
-
-class _AssignedStudentCard extends StatelessWidget {
-  final UserModel student;
-  const _AssignedStudentCard({required this.student});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: const Color(0xffe8f5e9),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.green)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(children: [
-          const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.check, color: Colors.white, size: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-          ])),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ]),
-      ),
-    );
-  }
-}
-
-class _StudentCard extends StatelessWidget {
-  final UserModel student;
-  const _StudentCard({required this.student});
-
-  @override
-  Widget build(BuildContext context) {
-    final vm = context.read<AcademyViewModel>();
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(children: [
-            CircleAvatar(backgroundColor: AppTheme.blueSoft, child: Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold))),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text("Boleta: ${student.boleta}", style: const TextStyle(color: Colors.grey)),
-            ])),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ]),
-        ),
-        const Divider(height: 1, indent: 16, endIndent: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
-          child: TextButton.icon(
-            icon: const Icon(Icons.add_circle_outline, size: 18),
-            label: const Text("Asignar Materia"),
-            style: TextButton.styleFrom(foregroundColor: AppTheme.bluePrimary),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: vm,
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                    child: _AssignmentForm(student: student),
-                  ),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withValues(alpha: 0.8))),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.3,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Pendientes de Asignación',
+                                  students: vm.pendingStudents,
+                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                )
+                            ),
+                          ),
+                          child: _buildSummaryCard('Pendientes', vm.pendingStudents.length.toString(), Icons.hourglass_top_outlined, Colors.orange.shade700),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos en Curso',
+                                  students: vm.assignedStudents,
+                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                )
+                            ),
+                          ),
+                          child: _buildSummaryCard('En Curso', vm.assignedStudents.length.toString(), Icons.school_outlined, AppTheme.bluePrimary),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos Acreditados',
+                                  students: vm.accreditedStudents,
+                                )
+                            ),
+                          ),
+                          child: _buildSummaryCard('Acreditados', vm.accreditedStudents.length.toString(), Icons.check_circle_outlined, Colors.green.shade700),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos No Acreditados',
+                                  students: vm.notAccreditedStudents,
+                                )
+                            ),
+                          ),
+                          child: _buildSummaryCard('No Acreditados', vm.notAccreditedStudents.length.toString(), Icons.cancel_outlined, Colors.red.shade700),
+                        ),
+                      ],
+                    )
+                  ],
                 ),
               );
             },
           ),
-        )
-      ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
+    return Container(
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08), // Corregido deprecation
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)) // Corregido deprecation
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, size: 32, color: color),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+                Text(title, style: TextStyle(color: color.withValues(alpha: 0.8))),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -238,6 +196,15 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    final vm = context.read<AcademyViewModel>();
+    if (vm.availableSubjectsForStudent.length == 1) {
+      _selectedSubject = vm.availableSubjectsForStudent.first;
+    }
+  }
+
+  @override
   void dispose() {
     _scheduleCtrl.dispose();
     _salonCtrl.dispose();
@@ -246,7 +213,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
 
   void _submit() async {
     final vm = context.read<AcademyViewModel>();
-    if (_selectedSubject == null || _selectedProfessor == null || _scheduleCtrl.text.isEmpty || _salonCtrl.text.isEmpty) {
+    if (_selectedSubject == null || _selectedProfessor == null || _salonCtrl.text.isEmpty) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Todos los campos son obligatorios")));
       return;
     }
@@ -256,12 +223,12 @@ class _AssignmentFormState extends State<_AssignmentForm> {
       studentId: widget.student.id,
       subjectName: _selectedSubject!.name,
       professorName: _selectedProfessor!.name,
-      schedule: _scheduleCtrl.text,
+      schedule: _selectedProfessor!.schedule,
       salon: _salonCtrl.text,
     );
 
-    if (mounted && success){ 
-    Navigator.pop(context);
+    if (mounted && success){
+      Navigator.pop(context);
     } else if(mounted) {
       setState(() => _isSaving = false);
     }
@@ -270,26 +237,27 @@ class _AssignmentFormState extends State<_AssignmentForm> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AcademyViewModel>();
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Asignar Carga Académica", style: Theme.of(context).textTheme.titleLarge),
+          Text("Asignar Materia y Profesor", style: Theme.of(context).textTheme.titleLarge),
           Text("Alumno: ${widget.student.name}", style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
-          
+
           DropdownButtonFormField<SubjectModel>(
-            key: ValueKey(_selectedSubject), 
+            key: ValueKey(_selectedSubject),
+            initialValue: _selectedSubject, // Corregido deprecation
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
-            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue' (issue: deprecated_member_use)
-            initialValue: _selectedSubject,
-            items: vm.subjects.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+            items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
               _selectedSubject = val;
               _selectedProfessor = null;
-              _scheduleCtrl.text = val?.professors.first.schedule ?? '';
+              _scheduleCtrl.clear();
             }),
           ),
           const SizedBox(height: 15),
@@ -297,15 +265,16 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           DropdownButtonFormField<ProfessorModel>(
             key: ValueKey(_selectedProfessor),
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
-            // CORRECCIÓN: Reemplazo de 'value' por 'initialValue'
-            initialValue: _selectedProfessor,
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
-            onChanged: (val) => setState(() => _selectedProfessor = val),
+            onChanged: (val) => setState(() {
+              _selectedProfessor = val;
+              _scheduleCtrl.text = val?.schedule ?? '';
+            }),
           ),
           const SizedBox(height: 15),
 
           Row(children: [
-            Expanded(child: TextField(controller: _scheduleCtrl, decoration: const InputDecoration(labelText: "Horario", hintText: "Ej. Lun-Mie 7-9", border: OutlineInputBorder()))),
+            Expanded(child: TextField(controller: _scheduleCtrl, readOnly: true, decoration: const InputDecoration(labelText: "Horario", border: OutlineInputBorder()))),
             const SizedBox(width: 10),
             Expanded(child: TextField(controller: _salonCtrl, decoration: const InputDecoration(labelText: "Salón", hintText: "Ej. A-04", border: OutlineInputBorder()))),
           ]),
@@ -316,14 +285,13 @@ class _AssignmentFormState extends State<_AssignmentForm> {
             child: _isSaving
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
-                    onPressed: _submit,
-                    child: const Text("Guardar Asignación"),
-                  ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.bluePrimary, foregroundColor: Colors.white),
+              onPressed: _submit,
+              child: const Text("Guardar Asignación"),
+            ),
           )
         ],
       ),
     );
   }
 }
-

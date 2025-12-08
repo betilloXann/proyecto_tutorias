@@ -3,58 +3,74 @@ import 'package:flutter/material.dart';
 class TextInputField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
-  final IconData? icon;
+  final IconData icon;
   final bool obscureText;
-  final Widget? suffixIcon;
-  final TextInputType? keyboardType;
+  final TextInputType keyboardType;
+  final TextInputAction textInputAction;
+  final FocusNode? focusNode;
+  final ValueChanged<String>? onFieldSubmitted;
   final bool readOnly;
 
-  // --- NEW: Parameters for focus and keyboard actions ---
-  final FocusNode? focusNode;
-  final TextInputAction? textInputAction;
-  final ValueChanged<String>? onFieldSubmitted;
+  // NUEVO: Propiedad para el icono del final (ojito)
+  final Widget? suffixIcon;
 
   const TextInputField({
     super.key,
     required this.label,
     required this.controller,
-    this.icon,
+    required this.icon,
     this.obscureText = false,
-    this.suffixIcon,
-    this.keyboardType,
-    this.readOnly = false,
-    // --- NEW: Add to constructor ---
+    this.keyboardType = TextInputType.text,
+    this.textInputAction = TextInputAction.next,
     this.focusNode,
-    this.textInputAction,
     this.onFieldSubmitted,
+    this.readOnly = false,
+    this.suffixIcon, // Lo recibimos en el constructor
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField( // Changed to TextFormField for better form handling
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      // --- NEW: Connect new properties ---
-      focusNode: focusNode,
-      textInputAction: textInputAction,
-      onFieldSubmitted: onFieldSubmitted,
+    // Mantenemos el diseño Neumórfico original (Container con Sombras)
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xFFDDE6F3),
+            offset: Offset(4, 4),
+            blurRadius: 10,
+          ),
+          BoxShadow(
+            color: Colors.white,
+            offset: Offset(-4, -4),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        focusNode: focusNode,
+        onFieldSubmitted: onFieldSubmitted,
+        readOnly: readOnly,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[600]),
+          prefixIcon: Icon(icon, color: const Color(0xFF2F5A93)), // Color azul de tu tema
 
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: icon != null ? Icon(icon, color: Colors.grey) : null,
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 20,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          // AQUI SE AGREGA EL ICONO DEL OJITO
+          suffixIcon: suffixIcon,
+
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none, // Sin borde porque usamos el Container para la sombra
+          ),
+          filled: true,
+          fillColor: Colors.transparent, // Transparente para ver el color del Container
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         ),
       ),
     );

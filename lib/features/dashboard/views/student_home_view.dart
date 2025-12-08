@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'upload_evidence_view.dart';
 import 'subject_list_view.dart';
+import '../../../data/services/pdf_generator_service.dart';
 
 class StudentHomeView extends StatelessWidget {
   final UserModel user;
@@ -25,76 +27,78 @@ class StudentHomeView extends StatelessWidget {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
-          // --- NEW: Button to see available subjects ---
           IconButton(
             icon: const Icon(Icons.menu_book_outlined, color: AppTheme.blueDark),
             tooltip: "Ver Materias Disponibles",
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SubjectListView()),
+                MaterialPageRoute(builder: (context) => SubjectListView(myAcademies: user.academies)),
               );
             },
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: AppTheme.blueDark),
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await viewModel.logout();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              }
+              if (!context.mounted) return;
+              navigator.pushNamedAndRemoveUntil('/login', (route) => false);
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Hola,", style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.textSecondary, fontSize: 20)),
-            Text(user.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+      // --- APLICANDO RESPONSIVE CONTAINER ---
+      body: ResponsiveContainer(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Hola,", style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.textSecondary, fontSize: 20)),
+              Text(user.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            _StatusCard(status: user.status),
+              _StatusCard(status: user.status),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            _ClassesList(studentUid: user.id),
+              _ClassesList(studentUid: user.id),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            Text("Acciones Rápidas", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-            const SizedBox(height: 15),
+              Text("Acciones Rápidas", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              const SizedBox(height: 15),
 
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                _ActionItem(
-                  icon: Icons.upload_file,
-                  label: "Subir Evidencia",
-                  color: AppTheme.bluePrimary,
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UploadEvidenceView())
-                    );
-                  },
-                ),
-                _ActionItem(
-                  icon: Icons.history,
-                  label: "Historial",
-                  color: AppTheme.purpleMist,
-                  onTap: () {},
-                ),
-              ],
-            ),
-          ],
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _ActionItem(
+                    icon: Icons.upload_file,
+                    label: "Subir Evidencia",
+                    color: AppTheme.bluePrimary,
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const UploadEvidenceView())
+                      );
+                    },
+                  ),
+                  _ActionItem(
+                    icon: Icons.history,
+                    label: "Historial",
+                    color: AppTheme.purpleMist,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -261,6 +265,8 @@ class _ClassesList extends StatelessWidget {
             const SizedBox(height: 10),
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
+              //String academiaMateria = data['academy'] ?? "Ingeniería Informática";
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(16),
@@ -276,21 +282,37 @@ class _ClassesList extends StatelessWidget {
                     child: const Icon(Icons.book, color: AppTheme.bluePrimary),
                   ),
                   const SizedBox(width: 15),
+                  // INFO DE LA MATERIA
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(data['subject'] ?? 'Materia', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 4),
                     Text("Prof: ${data['professor']}", style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 6),
-                    Row(children: [
-                      const Icon(Icons.access_time, size: 14, color: AppTheme.bluePrimary),
-                      const SizedBox(width: 4),
-                      Text(data['schedule'] ?? '--:--', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      const SizedBox(width: 15),
-                      const Icon(Icons.location_on, size: 14, color: Colors.orange),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text(data['salon'] ?? 'Sin Salón', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis, maxLines: 1)),
-                    ]),
+                    Text(data['schedule'] ?? '--:--', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ])),
+
+                  // --- AQUÍ ESTÁ LA MAGIA: BOTÓN DE IMPRIMIR POR MATERIA ---
+                  IconButton(
+                    icon: const Icon(Icons.print, color: Colors.orange),
+                    tooltip: "Descargar Bitácora",
+                    onPressed: () async {
+                      final user = Provider.of<HomeMenuViewModel>(context, listen: false).currentUser;
+                      if (user == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Error: No se encontró información del usuario"))
+                        );
+                        return;
+                      }
+                        await PdfGeneratorService().generarBitacora(
+                          user: user,
+                          materia: data['subject'] ?? "Materia",
+                          profesor: data['professor'] ?? "Sin Asignar",
+                          horario: data['schedule'] ?? "",
+                          salon: data['salon'] ?? "",
+                          academia: data['academy'] ?? "Sin Asignar",
+                        );
+                    },
+                  )
                 ]),
               );
             }),

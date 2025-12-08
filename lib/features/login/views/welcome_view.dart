@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/responsive_container.dart';
 
 class WelcomeView extends StatelessWidget {
   const WelcomeView({super.key});
@@ -10,60 +11,107 @@ class WelcomeView extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // LOGO
-            SvgPicture.asset(
-              'assets/images/logo.svg',
-              height: 120,
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
 
-            const SizedBox(height: 20),
+        // Fondo degradado azul inspirado en la ilustración
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFEBF3FF), // azul muy claro
+              Color(0xFFD6E7FF), // azul pastel
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
 
-            // TITULO
-            Text(
-              "Bienvenido",
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
+        child: ResponsiveContainer(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 32,
+                  horizontal: 24,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                      color: Colors.black.withValues(alpha: 0.08),
+                    )
+                  ],
+                ),
 
-            const SizedBox(height: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Ilustración o logo
+                    SvgPicture.asset(
+                      'assets/images/image5.svg',
+                      width: 200,
+                      height: 180,
+                    ),
 
-            // SUBTITULO
-            Text(
-              "Inicia sesión o activa tu cuenta para continuar",
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
+                    // Título moderno
+                    Text(
+                      "Bienvenido",
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2F5A93),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
 
-            const SizedBox(height: 40),
+                    const SizedBox(height: 12),
 
-            // BOTÓN PRINCIPAL
-            PrimaryButton(
-              text: "Activar cuenta",
-              onPressed: () => Navigator.pushNamed(context, "/activation"),
-            ),
+                    // Subtítulo más suave
+                    Text(
+                      "Inicia sesión o activa tu cuenta para continuar",
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.blueGrey.shade700,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
 
-            const SizedBox(height: 12),
+                    const SizedBox(height: 32),
 
-            // TEXTO SECUNDARIO
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, "/login"),
-              child: Text(
-                "Inicia sesión",
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+                    // Botón principal estilo azul
+                    SizedBox(
+                      width: double.infinity,
+                      child: PrimaryButton(
+                        text: "Activar cuenta",
+                        onPressed: () =>
+                            Navigator.pushNamed(context, "/activation"),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Botón secundario como texto azul
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, "/login"),
+                      child: Text(
+                        "Inicia sesión",
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

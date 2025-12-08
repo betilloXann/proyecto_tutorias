@@ -26,11 +26,11 @@ class StudentDetailViewModel extends ChangeNotifier {
   final String studentId;
 
   StudentDetailViewModel({
-    required UserModel initialStudent, 
-    required this.studentId, 
+    required UserModel initialStudent,
+    required this.studentId,
     required AuthRepository authRepo
   }) : student = initialStudent,
-       _authRepo = authRepo {
+        _authRepo = authRepo {
     loadStudentData();
   }
 
@@ -77,13 +77,11 @@ class StudentDetailViewModel extends ChangeNotifier {
     }
   }
 
-  /// Retorna null si es exitoso, o un String con el error si falla o no valida.
   Future<String?> reviewEvidence({
     required String evidenceId,
     required bool isApproved,
     String? feedback,
   }) async {
-    // 1. Lógica de validación en el ViewModel (MVVM puro)
     if (!isApproved && (feedback == null || feedback.trim().isEmpty)) {
       return "El motivo del rechazo es obligatorio.";
     }
@@ -94,27 +92,24 @@ class StudentDetailViewModel extends ChangeNotifier {
 
     try {
       await _authRepo.reviewEvidence(
-        evidenceId: evidenceId, 
-        newStatus: isApproved ? 'APROBADA' : 'RECHAZADA', 
-        feedback: feedback
+          evidenceId: evidenceId,
+          newStatus: isApproved ? 'APROBADA' : 'RECHAZADA',
+          feedback: feedback
       );
       await loadStudentData();
-      return null; // Éxito
+      return null;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
-      return e.toString(); // Retornamos el error para que la UI sepa
+      return e.toString();
     }
   }
 
-  /// Retorna null si es exitoso, o un String con el error.
-  /// Recibe el String crudo del input para validar aquí.
   Future<String?> assignFinalGrade({
-    required String gradeInput, 
+    required String gradeInput,
     required bool isAccredited
   }) async {
-    // 1. Validación de negocio
     final grade = double.tryParse(gradeInput);
     if (grade == null || grade < 0 || grade > 10) {
       return "Por favor, introduce una calificación válida (0-10).";
@@ -125,13 +120,25 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // NOTA: Como este método es general, por ahora actualiza el estatus global.
+      // Si en el futuro necesitas que 'Asignar Calificación' solo acredite una academia,
+      // deberías pasar aquí el nombre de la academia y actualizar 'academy_status.<ACADEMY>'.
+      // Por compatibilidad con el cambio anterior, actualizaremos ambos si es posible,
+      // o dejaremos que el AuthRepo maneje el update global.
+
       await _authRepo.assignFinalGrade(
-        studentId: studentId, 
-        finalGrade: grade, 
-        finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
+          studentId: studentId,
+          finalGrade: grade,
+          finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
       );
+
+      // FIX ADICIONAL SUGERIDO: Si quieres que esto impacte todas las academias activas:
+      await _db.collection('users').doc(studentId).update({
+        'status': isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
+       });
+
       await loadStudentData();
-      return null; // Éxito
+      return null;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;

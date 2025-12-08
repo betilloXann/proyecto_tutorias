@@ -5,7 +5,8 @@ import '../../../data/models/professor_model.dart';
 
 class SubjectManagementViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final String currentAcademy = 'SISTEMAS';
+
+  final String currentAcademy;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -15,7 +16,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   List<SubjectModel> get subjects => _subjects;
 
-  SubjectManagementViewModel() {
+  SubjectManagementViewModel({required this.currentAcademy}) {
     loadSubjects();
   }
 
@@ -31,6 +32,10 @@ class SubjectManagementViewModel extends ChangeNotifier {
           .get();
 
       _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
+
+      // --- FIX: Sort subjects alphabetically by name ---
+      _subjects.sort((a, b) => a.name.compareTo(b.name));
+
     } catch (e) {
       _errorMessage = "Error al cargar las materias: $e";
     } finally {
@@ -49,7 +54,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
     try {
       await _db.collection('subjects').add({
         'name': subjectName,
-        'academy': currentAcademy,
+        'academy': currentAcademy, 
         'professors': [],
       });
       await loadSubjects();
@@ -67,7 +72,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-
     try {
       final newProfessor = ProfessorModel(name: professorName, schedule: schedule);
       await _db.collection('subjects').doc(subjectId).update({
@@ -82,7 +86,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
     }
   }
 
-  // --- NEW: Function to update a professor's details ---
   Future<bool> updateProfessorToSubject(String subjectId, ProfessorModel oldProfessor, String newProfessorName, String newSchedule) async {
     if (newProfessorName.isEmpty || newSchedule.isEmpty) {
       _errorMessage = "El nombre y el horario no pueden estar vacíos.";
@@ -92,8 +95,6 @@ class SubjectManagementViewModel extends ChangeNotifier {
 
     try {
       final newProfessor = ProfessorModel(name: newProfessorName, schedule: newSchedule);
-      
-      // To "edit" an item in a Firestore array, we remove the old one and add the new one.
       await _db.collection('subjects').doc(subjectId).update({
         'professors': FieldValue.arrayRemove([oldProfessor.toMap()]),
       });

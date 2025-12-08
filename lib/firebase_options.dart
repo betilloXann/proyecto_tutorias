@@ -56,7 +56,7 @@ class DefaultFirebaseOptions {
     projectId: 'upipets-ffc92',
     authDomain: 'upipets-ffc92.firebaseapp.com',
     databaseURL: 'https://upipets-ffc92-default-rtdb.firebaseio.com',
-    storageBucket: 'upipets-ffc92.firebasestorage.app',
+    storageBucket: 'upipets-ffc92.appspot.com',
     measurementId: 'G-PGTXRDRF56',
   );
 
@@ -66,6 +66,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '70051656301',
     projectId: 'upipets-ffc92',
     databaseURL: 'https://upipets-ffc92-default-rtdb.firebaseio.com',
-    storageBucket: 'upipets-ffc92.firebasestorage.app',
+    storageBucket: 'upipets-ffc92.appspot.com',
   );
 }

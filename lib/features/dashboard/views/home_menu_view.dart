@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+//import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 
@@ -20,38 +21,55 @@ class HomeMenuView extends StatelessWidget {
         body: Consumer<HomeMenuViewModel>(
           builder: (context, viewModel, child) {
 
-            // 1. CARGANDO
             if (viewModel.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // 2. ERROR O SIN SESIÓN
             if (viewModel.currentUser == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.pushReplacementNamed(context, '/login');
-              });
-              return const Center(child: Text("Error de sesión"));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 60, color: Colors.redAccent),
+                      const SizedBox(height: 16),
+                      const Text("Error de Sesión", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      const Text("No se pudieron cargar los datos de tu usuario. Por favor, intenta iniciar sesión de nuevo.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.logout),
+                        label: const Text("Cerrar Sesión"),
+                        onPressed: () async {
+                          final navigator = Navigator.of(context);
+                          await viewModel.logout();
+                          if (!context.mounted) return;
+                          navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                      )
+                    ],
+                  ),
+                ),
+              );
             }
 
             final user = viewModel.currentUser!;
 
-            // 3. SWITCH DE ROLES (Ajustado a tu UserModel)
-            // Asegúrate que en Firebase el campo 'role' tenga estos valores exactos
             switch (user.role) {
               case 'student':
-              // Pasamos el usuario como argumento para no volver a buscarlo
                 return StudentHomeView(user: user);
 
-              case 'tutorias':       // Depto. de Tutorías
-              case 'gestion_escolar': // Gestión Escolar
-              case 'admin':          // Admin general
-                return const DepartmentHomeView();
+              // --- FIX: Pass the user object to DepartmentHomeView ---
+              case 'tutorias':
+              case 'admin':
+                return DepartmentHomeView(user: user);
 
-              case 'jefe_academia':   // Jefes de Academia
+              case 'jefe_academia':
                 return const AcademyHomeView();
 
               default:
-              // Si el rol está mal escrito en la BD o es nuevo
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
