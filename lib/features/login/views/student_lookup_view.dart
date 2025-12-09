@@ -25,10 +25,12 @@ class _StudentLookupViewState extends State<StudentLookupView> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     return ChangeNotifierProvider(
       create: (context) => StudentLookupViewModel(context.read<AuthRepository>()),
       child: Scaffold(
         backgroundColor: const Color(0xFFE6EEF8),
+        resizeToAvoidBottomInset: false, // <--- OPTIMIZACIÓN TECLADO
 
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -43,7 +45,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
           builder: (context, viewModel, child) {
             return ResponsiveContainer(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

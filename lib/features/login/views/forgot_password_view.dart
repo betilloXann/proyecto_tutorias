@@ -17,11 +17,12 @@ class ForgotPasswordView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<ForgotPasswordViewModel>();
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6EEF8),
+      resizeToAvoidBottomInset: false,
+
       appBar: AppBar(
         backgroundColor: const Color(0xFFE6EEF8),
         elevation: 0,
@@ -45,6 +46,7 @@ class ForgotPasswordView extends StatelessWidget {
       body: ResponsiveContainer(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
+
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -71,58 +73,59 @@ class ForgotPasswordView extends StatelessWidget {
                 controller: emailCtrl,
                 icon: Icons.email_outlined,
               ),
-
-              if (viewModel.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    viewModel.errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
+            Consumer<ForgotPasswordViewModel>(
+                builder: (context, viewModel, _) {
+                  if (viewModel.errorMessage == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      viewModel.errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                },
+            ),
 
               const SizedBox(height: 30),
 
-              viewModel.isLoading
-                  ? const CircularProgressIndicator()
-                  : PrimaryButton(
-                text: "Enviar correo",
-                onPressed: () async {
-                  if (emailCtrl.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Por favor ingresa un correo")),
-                    );
-                    return;
-                  }
-
-                  final success = await viewModel.sendRecoveryEmail(emailCtrl.text);
-
-                  if (success && context.mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text("¡Correo enviado!"),
-                        content: const Text("Revisa tu bandeja de entrada (y spam) para restablecer tu contraseña."),
-                        actions: [
-    TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.pop(context);
-                            },
-                            child: const Text("Aceptar"),
-                          )
-                        ],
-                      ),
-                    );
-                  }
+              Consumer<ForgotPasswordViewModel>(
+                builder: (context, viewModel, _) {
+                  return viewModel.isLoading
+                      ? const CircularProgressIndicator()
+                      : PrimaryButton(
+                    text: "Enviar correo",
+                    onPressed: () async {
+                      if (emailCtrl.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Por favor ingresa un correo")),
+                        );
+                        return;
+                      }
+                      final success = await viewModel.sendRecoveryEmail(emailCtrl.text);
+                      if (success && context.mounted) {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text("¡Correo enviado!"),
+                            content: const Text("Revisa tu bandeja de entrada..."),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context); // Cierra dialogo
+                                  Navigator.pop(context); // Cierra pantalla
+                                },
+                                child: const Text("Aceptar"),
+                              )
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                  );
                 },
               ),
 
               const SizedBox(height: 20),
-
-              // Asegúrate de tener estos imports al inicio de tu archivo:
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 
               TextButton(
                 onPressed: () async {

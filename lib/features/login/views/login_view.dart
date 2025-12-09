@@ -65,7 +65,6 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final vm = context.watch<LoginViewModel>();
 
     // 1. OBTENER METADATOS DE LA PANTALLA
     final size = MediaQuery.of(context);
@@ -78,6 +77,7 @@ class _LoginViewState extends State<LoginView> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: false,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -110,10 +110,7 @@ class _LoginViewState extends State<LoginView> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFEBF3FF),
-              Color(0xFFD6E7FF),
-            ],
+            colors: [Color(0xFFEBF3FF), Color(0xFFD6E7FF),],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -122,12 +119,11 @@ class _LoginViewState extends State<LoginView> {
         child: ResponsiveContainer(
           child: Center(
             child: SingleChildScrollView(
-              // Usamos el headerHeight ajustado (asegurando que no sea negativo)
               padding: EdgeInsets.fromLTRB(
                   24,
                   headerHeight > 0 ? headerHeight : 24,
                   24,
-                  24 + bottomPadding
+                  24 + bottomPadding // <--- Esto sigue empujando el contenido hacia arriba
               ),
 
               child: Container(
@@ -161,8 +157,6 @@ class _LoginViewState extends State<LoginView> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
-                    // CAMBIO: Espacio reducido de 32 a 24
                     const SizedBox(height: 24),
 
                     TextInputField(
@@ -175,8 +169,8 @@ class _LoginViewState extends State<LoginView> {
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
                     ),
-                    const SizedBox(height: 16),
 
+                    const SizedBox(height: 16),
                     TextInputField(
                       key: const Key('login_password_input'),
                       label: "Contraseña",
@@ -220,12 +214,16 @@ class _LoginViewState extends State<LoginView> {
                     SizedBox(
                       width: double.infinity,
                       height: 56,
-                      child: vm.isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : PrimaryButton(
-                        key: const Key('login_button'),
-                        text: "Ingresar",
-                        onPressed: _submitLogin,
+                      child: Consumer<LoginViewModel>(
+                        builder: (context, vm, child) {
+                          return vm.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : PrimaryButton(
+                            key: const Key('login_button'),
+                            text: "Ingresar",
+                            onPressed: _submitLogin,
+                          );
+                        },
                       ),
                     ),
 

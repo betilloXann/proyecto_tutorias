@@ -159,12 +159,12 @@ class _RegisterViewState extends State<RegisterView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-    // --- FIX: Get the LAST word of the name ---
     final nameParts = widget.foundName.split(' ');
     final firstName = nameParts.isNotEmpty ? nameParts.last : widget.foundName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6EEF8),
+      resizeToAvoidBottomInset: false,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
