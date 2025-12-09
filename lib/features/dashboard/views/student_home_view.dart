@@ -9,6 +9,7 @@ import '../viewmodels/home_menu_viewmodel.dart';
 import 'upload_evidence_view.dart';
 import 'subject_list_view.dart';
 import '../../../data/services/pdf_generator_service.dart';
+import 'student_history_view.dart';
 
 class StudentHomeView extends StatelessWidget {
   final UserModel user;
@@ -93,7 +94,13 @@ class StudentHomeView extends StatelessWidget {
                     icon: Icons.history,
                     label: "Historial",
                     color: AppTheme.purpleMist,
-                    onTap: () {},
+                    onTap: () {
+                      // NAVEGACIÓN AL HISTORIAL
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StudentHistoryView(user: user)),
+                      );
+                    },
                   ),
                 ],
               ),

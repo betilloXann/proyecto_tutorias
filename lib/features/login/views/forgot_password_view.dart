@@ -133,20 +133,20 @@ class ForgotPasswordView extends StatelessWidget {
                   final List<Map<String, dynamic>> usersToCreate = [
                     // --- ACADEMIAS ---
                     {
-                      'email': 'flores@gmail.com', 'pass': 'flores', 'name': 'Jefe Computación',
+                      'email': 'flores@computacion.ipn.mx', 'pass': 'flores', 'name': 'Jefe Computación',
                       'role': 'jefe_academia', 'academies': ['COMPUTACION'], 'status': 'ACTIVO'
                     },
                     {
-                      'email': 'marisol@gmail.com', 'pass': 'marisol', 'name': 'Jefe Lab. Elect.',
+                      'email': 'marisol@electrica.ipn.mx', 'pass': 'marisol', 'name': 'Jefe Lab. Elect.',
                       'role': 'jefe_academia', 'academies': ['LAB. ELECT. Y CONTROL'], 'status': 'ACTIVO'
                     },
                     {
-                      'email': 'abdiel@gmail.com', 'pass': 'abdiel', 'name': 'Jefe Informática',
+                      'email': 'abdiel@informatica.ipn.mx', 'pass': 'abdiel', 'name': 'Jefe Informática',
                       'role': 'jefe_academia', 'academies': ['INFORMATICA'], 'status': 'ACTIVO'
                     },
                     // --- TUTORIAS (ADMIN) ---
                     {
-                      'email': 'fernando@gmail.com', 'pass': 'fernando', 'name': 'Fernando Admin',
+                      'email': 'fernando@tutorias.ipn.mx', 'pass': 'fernando', 'name': 'Fernando Admin',
                       'role': 'tutorias', 'academies': [], 'status': 'ACTIVO'
                     },
                   ];

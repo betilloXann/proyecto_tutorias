@@ -116,6 +116,29 @@ class UploadEvidenceViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final user = await _authRepo.getCurrentUserData();
+      if (user == null) throw Exception("Usuario no identificado");
+
+      // 1. VALIDACIÓN: Verificar si ya existe evidencia
+      final existingQuery = await _db.collection('evidence')
+          .where('uid', isEqualTo: user.id)
+          .where('materia', isEqualTo: _selectedClassData!['subject'])
+          .where('mes', isEqualTo: _selectedMonth)
+          .get();
+
+      if (existingQuery.docs.isNotEmpty) {
+        final existingDoc = existingQuery.docs.first;
+        final status = existingDoc['status'];
+
+        if (status == 'EN_REVISION' || status == 'APROBADA') {
+          throw Exception("Ya existe una evidencia para $_selectedMonth en estatus: $status.");
+        }
+        //Borrar la anterior para que  sea un "reemplazo" limpio:
+        await _db.collection('evidence').doc(existingDoc.id).delete();
+        // O simplemente el AuthRepo.uploadEvidence creará una nueva y en el historial saldrá la nueva arriba.
+      }
+
+      // 2. SUBIDA
       await _authRepo.uploadEvidence(
         materia: _selectedClassData!['subject'],
         mes: _selectedMonth!,
@@ -128,7 +151,7 @@ class UploadEvidenceViewModel extends ChangeNotifier {
       _errorMessage = e.toString().replaceAll("Exception: ", "");
       return false;
     } finally {
-       _isLoading = false;
+      _isLoading = false;
       notifyListeners();
     }
   }
