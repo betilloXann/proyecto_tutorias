@@ -27,15 +27,19 @@ class AcademyHomeView extends StatelessWidget {
     );
   }
 
-  void _navigateToSubjectManagement(BuildContext context) {
+  void _navigateToSubjectManagement(BuildContext context) async {
     final currentUser = context.read<HomeMenuViewModel>().currentUser;
     if (currentUser == null) return;
     final String targetAcademy = currentUser.academies.isNotEmpty ? currentUser.academies.first : 'INFORMATICA';
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SubjectManagementView(academy: targetAcademy)),
     );
+
+    if (context.mounted) {
+      context.read<AcademyViewModel>().loadInitialData();
+    }
   }
 
   @override
@@ -82,6 +86,35 @@ class AcademyHomeView extends StatelessWidget {
                   children: [
                     Text("Resumen de Alumnos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark.withAlpha(200))),
                     const SizedBox(height: 16),
+
+                    // --- 1. TARJETA RECTANGULAR ANCHA (PRE-REGISTRO) ---
+                    // Se coloca FUERA del GridView para que ocupe todo el ancho.
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) =>
+                            StudentListView(
+                              title: 'Alumnos en Pre-registro',
+                              students: vm.preRegisteredStudents,
+                            )
+                        ),
+                      ),
+                      // Usamos SizedBox para forzar una altura de rectángulo delgado
+                      child: SizedBox(
+                        height: 100,
+                        child: _HoverableSummaryCard(
+                          title: 'Pre-registro',
+                          count: vm.preRegisteredStudents.length.toString(),
+                          icon: Icons.person_add_alt_1_outlined,
+                          color: Colors.purple.shade700,
+                          isWide: true, // <-- Importante: activa el modo horizontal
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16), // Espacio entre el banner y el grid
+
+                    // --- 2. GRID PARA LAS TARJETAS CUADRADAS RESTANTES ---
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -90,29 +123,6 @@ class AcademyHomeView extends StatelessWidget {
                       mainAxisSpacing: 16,
                       childAspectRatio: 1.3,
                       children: [
-
-                        // --- 1. TARJETA NUEVA: PRE-REGISTRO ---
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) =>
-                                StudentListView(
-                                  title: 'Alumnos en Pre-registro',
-                                  students: vm.preRegisteredStudents,
-                                  // Normalmente en pre-registro no se asignan materias todavía,
-                                  // pero si quisieras, descomentas la línea de abajo:
-                                  // onAssign: (student) => _showAssignmentForm(context, vm, student),
-                                )
-                            ),
-                          ),
-                          child: _HoverableSummaryCard(
-                            title: 'Pre-registro', // Título corto para el cuadro
-                            count: vm.preRegisteredStudents.length.toString(),
-                            icon: Icons.person_add_alt_1_outlined, // Icono sugerido
-                            color: Colors.purple.shade700, // Color distintivo (Morado)
-                          ),
-                        ),
-
                         GestureDetector(
                           onTap: () => Navigator.push(
                             context,
@@ -196,14 +206,21 @@ class AcademyHomeView extends StatelessWidget {
   }
 }
 
-// --- NEW: Hoverable Card Widget ---
+// --- WIDGET DE TARJETA MODIFICADO PARA SOPORTAR MODO ANCHO ---
 class _HoverableSummaryCard extends StatefulWidget {
   final String title;
   final String count;
   final IconData icon;
   final Color color;
+  final bool isWide; // Nuevo parámetro
 
-  const _HoverableSummaryCard({required this.title, required this.count, required this.icon, required this.color});
+  const _HoverableSummaryCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+    this.isWide = false, // Por defecto es cuadrada (false)
+  });
 
   @override
   State<_HoverableSummaryCard> createState() => _HoverableSummaryCardState();
@@ -214,8 +231,48 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
 
   @override
   Widget build(BuildContext context) {
-    final transform = kIsWeb && _isHovered ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity();
+    // Corrección del 'scale' deprecado usando los 3 ejes explícitamente
+    final transform = kIsWeb && _isHovered
+        ? (Matrix4.identity()..scaleByDouble(1.05, 1.05, 1.05, 1.0))
+        : Matrix4.identity();
     final duration = const Duration(milliseconds: 200);
+
+    Widget cardContent;
+
+    if (widget.isWide) {
+      // --- Diseño Horizontal (Para el banner ancho) ---
+      cardContent = Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Icon(widget.icon, size: 40, color: widget.color),
+          const SizedBox(width: 24), // Separación entre icono y texto
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
+              Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha: 0.8))),
+            ],
+          ),
+        ],
+      );
+    } else {
+      // --- Diseño Vertical Original (Para el grid) ---
+      cardContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(widget.icon, size: 32, color: widget.color),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
+              Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha: 0.8))),
+            ],
+          ),
+        ],
+      );
+    }
 
     return MouseRegion(
       onEnter: (_) => { if (kIsWeb) setState(() => _isHovered = true) },
@@ -226,33 +283,20 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
         transformAlignment: FractionalOffset.center,
         child: Container(
           decoration: BoxDecoration(
-            color: widget.color.withAlpha(_isHovered && kIsWeb ? 40 : 20),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: widget.color.withAlpha(50)),
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withAlpha(_isHovered && kIsWeb ? 60 : 30),
-                blurRadius: _isHovered && kIsWeb ? 12 : 8,
-                offset: Offset(0, _isHovered && kIsWeb ? 6 : 4),
-              )
-            ]
+              color: widget.color.withAlpha(_isHovered && kIsWeb ? 40 : 20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: widget.color.withAlpha(50)),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.color.withAlpha(_isHovered && kIsWeb ? 60 : 30),
+                  blurRadius: _isHovered && kIsWeb ? 12 : 8,
+                  offset: Offset(0, _isHovered && kIsWeb ? 6 : 4),
+                )
+              ]
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(widget.icon, size: 32, color: widget.color),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
-                    Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha:0.8))),
-                  ],
-                ),
-              ],
-            ),
+            child: cardContent, // Usamos el contenido determinado arriba
           ),
         ),
       ),
@@ -313,7 +357,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
     );
 
     if (mounted && success){
-      Navigator.of(context).pop(); 
+      Navigator.of(context).pop();
       Navigator.of(context).pop();
     } else if(mounted) {
       setState(() => _isSaving = false);
