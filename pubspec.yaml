@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  dio: ^5.0.0           # Para descargar el archivo
+  path_provider: ^2.0.0 # Para buscar dónde guardarlo en el celular
+  open_filex: ^4.3.0    # Para abrir el archivo con el nombre nuevo (o open_file)
 
   flutter_svg: ^2.0.9
 
