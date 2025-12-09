@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -148,7 +147,8 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   children: [
                     // CAMBIO: Altura reducida de 160 a 140
-                    SvgPicture.asset("assets/images/image2.svg", width: 210, height: 150),
+                    Image.asset('assets/images/sesion.webp',
+                        width: 210, height: 150),
 
                     // CAMBIO: Espacio reducido de 24 a 16
                     const SizedBox(height: 16),

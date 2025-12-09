@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
@@ -49,8 +48,8 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     /// IMAGEN PRINCIPAL
-                    SvgPicture.asset(
-                      "assets/images/image1.svg",
+                    Image.asset(''
+                        'assets/images/consulta.webp',
                       width: 260,
                       height: 240,
                     ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart'; // Necesario para la instancia secundaria
 import 'package:firebase_auth/firebase_auth.dart'; // <--- FALTABA ESTE
@@ -49,12 +48,10 @@ class ForgotPasswordView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SvgPicture.asset(
-                'assets/images/image4.svg',
+              Image.asset(
+                'assets/images/recuperar.webp',
                 width: 200,
                 height: 210,
-                //width: 200,
-//                       height: 180,
               ),
               const SizedBox(height: 20),
               const Text(
