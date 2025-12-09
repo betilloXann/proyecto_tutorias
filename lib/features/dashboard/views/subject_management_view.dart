@@ -14,14 +14,33 @@ class SubjectManagementView extends StatefulWidget {
   State<SubjectManagementView> createState() => _SubjectManagementViewState();
 }
 
-class _SubjectManagementViewState extends State<SubjectManagementView> {
+// 1. Agregamos 'with WidgetsBindingObserver' para detectar cuando la app vuelve al foco
+class _SubjectManagementViewState extends State<SubjectManagementView> with WidgetsBindingObserver {
   late SubjectManagementViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
+    // 2. Registramos el observador
+    WidgetsBinding.instance.addObserver(this);
     _viewModel = SubjectManagementViewModel(currentAcademy: widget.academy);
-    _viewModel.loadSubjects(); // Asumiendo que este es el método que carga data
+    _viewModel.loadSubjects();
+  }
+
+  @override
+  void dispose() {
+    // 3. Eliminamos el observador al salir
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 4. Lógica: Si minimizas la app y vuelves, se recargan las materias
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint("🔄 Volviendo a obtener los datos...");
+      _viewModel.loadSubjects();
+    }
   }
 
   // Método para forzar la actualización de la data
@@ -33,52 +52,60 @@ class _SubjectManagementViewState extends State<SubjectManagementView> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _viewModel,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Materias de: ${widget.academy}"),
-        ),
-        body: ResponsiveContainer(
-          child: Consumer<SubjectManagementViewModel>(
-            builder: (context, vm, child) {
-              if (vm.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (vm.errorMessage != null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(vm.errorMessage!),
-                      TextButton(onPressed: _refreshData, child: const Text("Reintentar"))
-                    ],
+      // Usamos PopScope para asegurar el comportamiento al salir (opcional, pero buena práctica)
+      child: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) {
+          // Nota: El "refresh" en la pantalla anterior (AcademyHomeView)
+          // ya está garantizado por el 'await Navigator.push' que pusimos en el archivo anterior.
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text("Materias de: ${widget.academy}"),
+          ),
+          body: ResponsiveContainer(
+            child: Consumer<SubjectManagementViewModel>(
+              builder: (context, vm, child) {
+                if (vm.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (vm.errorMessage != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(vm.errorMessage!),
+                        TextButton(onPressed: _refreshData, child: const Text("Reintentar"))
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: vm.subjects.length,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      final subject = vm.subjects[index];
+                      return _SubjectCard(subject: subject);
+                    },
                   ),
                 );
-              }
-
-              return RefreshIndicator(
-                onRefresh: _refreshData,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: vm.subjects.length,
-                  physics: const AlwaysScrollableScrollPhysics(), // Necesario para RefreshIndicator
-                  itemBuilder: (context, index) {
-                    final subject = vm.subjects[index];
-                    return _SubjectCard(subject: subject);
-                  },
-                ),
-              );
-            },
+              },
+            ),
           ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddSubjectDialog(context, _viewModel),
-          child: const Icon(Icons.add),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showAddSubjectDialog(context, _viewModel),
+            child: const Icon(Icons.add),
+          ),
         ),
       ),
     );
   }
 
-  // Mantenemos el diálogo de añadir materia aquí por el contexto
+  // Diálogo añadir materia
   void _showAddSubjectDialog(BuildContext context, SubjectManagementViewModel vm) {
     final controller = TextEditingController();
     showDialog(
@@ -97,7 +124,7 @@ class _SubjectManagementViewState extends State<SubjectManagementView> {
               final success = await vm.addSubject(controller.text);
               if (success && dialogContext.mounted) {
                 Navigator.pop(dialogContext);
-                // Opcional: _refreshData(); // Si el vm no actualiza localmente
+                // No es necesario llamar _refreshData() aquí porque addSubject ya hace reload internamente
               }
             },
             child: const Text("Guardar"),
@@ -160,7 +187,6 @@ class _SubjectCard extends StatelessWidget {
     );
   }
 
-  // Diálogos internos actualizados para asegurar cierre correcto
   void _showAddProfessorDialog(BuildContext context, SubjectManagementViewModel vm, String subjectId) {
     final nameController = TextEditingController();
     final scheduleController = TextEditingController();

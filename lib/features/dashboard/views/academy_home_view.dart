@@ -11,8 +11,37 @@ import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
 import 'subject_management_view.dart';
 
-class AcademyHomeView extends StatelessWidget {
+// 1. Convertimos a StatefulWidget para escuchar el ciclo de vida (focus)
+class AcademyHomeView extends StatefulWidget {
   const AcademyHomeView({super.key});
+
+  @override
+  State<AcademyHomeView> createState() => _AcademyHomeViewState();
+}
+
+// 2. Agregamos el Observer para detectar cuando la app se reanuda
+class _AcademyHomeViewState extends State<AcademyHomeView> with WidgetsBindingObserver {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // 3. Lógica para recargar datos al volver a la app
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final vm = context.read<AcademyViewModel>();
+      vm.loadInitialData();
+    }
+  }
 
   void _showAssignmentForm(BuildContext context, AcademyViewModel vm, UserModel student) {
     vm.filterSubjectsForStudent(student);
@@ -27,6 +56,7 @@ class AcademyHomeView extends StatelessWidget {
     );
   }
 
+  // Navegación con recarga al volver
   void _navigateToSubjectManagement(BuildContext context) async {
     final currentUser = context.read<HomeMenuViewModel>().currentUser;
     if (currentUser == null) return;
@@ -88,33 +118,35 @@ class AcademyHomeView extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // --- 1. TARJETA RECTANGULAR ANCHA (PRE-REGISTRO) ---
-                    // Se coloca FUERA del GridView para que ocupe todo el ancho.
                     GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) =>
-                            StudentListView(
-                              title: 'Alumnos en Pre-registro',
-                              students: vm.preRegisteredStudents,
-                            )
-                        ),
-                      ),
-                      // Usamos SizedBox para forzar una altura de rectángulo delgado
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) =>
+                              StudentListView(
+                                title: 'Alumnos en Pre-registro',
+                                students: vm.preRegisteredStudents,
+                              )
+                          ),
+                        );
+                        // Recargar al volver por si cambió algo
+                        vm.loadInitialData();
+                      },
                       child: SizedBox(
                         height: 100,
                         child: _HoverableSummaryCard(
-                          title: 'Pre-registro',
+                          title: 'Sin Activar Cuenta (Pre Registro)',
                           count: vm.preRegisteredStudents.length.toString(),
                           icon: Icons.person_add_alt_1_outlined,
                           color: Colors.purple.shade700,
-                          isWide: true, // <-- Importante: activa el modo horizontal
+                          isWide: true, // Modo Horizontal activado
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 16), // Espacio entre el banner y el grid
+                    const SizedBox(height: 16),
 
-                    // --- 2. GRID PARA LAS TARJETAS CUADRADAS RESTANTES ---
+                    // --- 2. GRID PARA LAS TARJETAS RESTANTES ---
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -124,16 +156,19 @@ class AcademyHomeView extends StatelessWidget {
                       childAspectRatio: 1.3,
                       children: [
                         GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) =>
-                                StudentListView(
-                                  title: 'Pendientes de Asignación',
-                                  students: vm.pendingStudents,
-                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
-                                )
-                            ),
-                          ),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) =>
+                                  StudentListView(
+                                    title: 'Pendientes de Asignación',
+                                    students: vm.pendingStudents,
+                                    onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                  )
+                              ),
+                            );
+                            vm.loadInitialData();
+                          },
                           child: _HoverableSummaryCard(
                             title: 'Pendientes',
                             count: vm.pendingStudents.length.toString(),
@@ -142,16 +177,19 @@ class AcademyHomeView extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) =>
-                                StudentListView(
-                                  title: 'Alumnos en Curso',
-                                  students: vm.assignedStudents,
-                                  onAssign: (student) => _showAssignmentForm(context, vm, student),
-                                )
-                            ),
-                          ),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) =>
+                                  StudentListView(
+                                    title: 'Alumnos en Curso',
+                                    students: vm.assignedStudents,
+                                    onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                  )
+                              ),
+                            );
+                            vm.loadInitialData();
+                          },
                           child: _HoverableSummaryCard(
                             title: 'En Curso',
                             count: vm.assignedStudents.length.toString(),
@@ -160,15 +198,18 @@ class AcademyHomeView extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) =>
-                                StudentListView(
-                                  title: 'Alumnos Acreditados',
-                                  students: vm.accreditedStudents,
-                                )
-                            ),
-                          ),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) =>
+                                  StudentListView(
+                                    title: 'Alumnos Acreditados',
+                                    students: vm.accreditedStudents,
+                                  )
+                              ),
+                            );
+                            vm.loadInitialData();
+                          },
                           child: _HoverableSummaryCard(
                             title: 'Acreditados',
                             count: vm.accreditedStudents.length.toString(),
@@ -177,15 +218,18 @@ class AcademyHomeView extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) =>
-                                StudentListView(
-                                  title: 'Alumnos No Acreditados',
-                                  students: vm.notAccreditedStudents,
-                                )
-                            ),
-                          ),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) =>
+                                  StudentListView(
+                                    title: 'Alumnos No Acreditados',
+                                    students: vm.notAccreditedStudents,
+                                  )
+                              ),
+                            );
+                            vm.loadInitialData();
+                          },
                           child: _HoverableSummaryCard(
                             title: 'No Acreditados',
                             count: vm.notAccreditedStudents.length.toString(),
@@ -206,20 +250,20 @@ class AcademyHomeView extends StatelessWidget {
   }
 }
 
-// --- WIDGET DE TARJETA MODIFICADO PARA SOPORTAR MODO ANCHO ---
+// --- WIDGET DE TARJETA ---
 class _HoverableSummaryCard extends StatefulWidget {
   final String title;
   final String count;
   final IconData icon;
   final Color color;
-  final bool isWide; // Nuevo parámetro
+  final bool isWide;
 
   const _HoverableSummaryCard({
     required this.title,
     required this.count,
     required this.icon,
     required this.color,
-    this.isWide = false, // Por defecto es cuadrada (false)
+    this.isWide = false,
   });
 
   @override
@@ -231,33 +275,37 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Corrección del 'scale' deprecado usando los 3 ejes explícitamente
+    // CORRECCIÓN: Usamos scale con 3 argumentos (x,y,z)
     final transform = kIsWeb && _isHovered
         ? (Matrix4.identity()..scaleByDouble(1.05, 1.05, 1.05, 1.0))
         : Matrix4.identity();
+
     final duration = const Duration(milliseconds: 200);
 
     Widget cardContent;
 
     if (widget.isWide) {
-      // --- Diseño Horizontal (Para el banner ancho) ---
+      // Diseño Horizontal
       cardContent = Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Icon(widget.icon, size: 40, color: widget.color),
-          const SizedBox(width: 24), // Separación entre icono y texto
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
-              Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha: 0.8))),
-            ],
+          const SizedBox(width: 24),
+          Expanded( // Expanded evita overflow de texto en pantallas pequeñas
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
+                // Usamos withOpacity para mayor compatibilidad
+                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha:0.8))),
+              ],
+            ),
           ),
         ],
       );
     } else {
-      // --- Diseño Vertical Original (Para el grid) ---
+      // Diseño Vertical
       cardContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -296,7 +344,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: cardContent, // Usamos el contenido determinado arriba
+            child: cardContent,
           ),
         ),
       ),
@@ -304,7 +352,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
   }
 }
 
-
+// --- FORMULARIO DE ASIGNACIÓN ---
 class _AssignmentForm extends StatefulWidget {
   final UserModel student;
   const _AssignmentForm({required this.student});
@@ -380,7 +428,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 20),
 
           DropdownButtonFormField<SubjectModel>(
-            initialValue: _selectedSubject,
+            initialValue: _selectedSubject, // Usar value en lugar de initialValue para que reaccione a setState
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {

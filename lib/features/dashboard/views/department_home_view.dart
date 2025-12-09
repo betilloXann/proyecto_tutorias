@@ -18,14 +18,31 @@ class DepartmentHomeView extends StatefulWidget {
   State<DepartmentHomeView> createState() => _DepartmentHomeViewState();
 }
 
-class _DepartmentHomeViewState extends State<DepartmentHomeView> {
+// 1. Agregamos el Observer para detectar el ciclo de vida
+class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBindingObserver {
   late DepartmentHomeViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Registrar observer
     _viewModel = DepartmentHomeViewModel(context.read<AuthRepository>());
     _viewModel.loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Limpiar observer
+    super.dispose();
+  }
+
+  // 2. Lógica de Refetch on Focus
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint("🔄 Volviendo a obtener los datos...");
+      _viewModel.loadDashboardData();
+    }
   }
 
   Future<void> _refreshData() async {
@@ -37,7 +54,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> {
       context,
       MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
     );
-    _refreshData();
+    _refreshData(); // Recargar al volver de la lista
   }
 
   @override
@@ -87,6 +104,25 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> {
                     children: [
                       const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
                       const SizedBox(height: 16),
+
+                      // --- 3. DISEÑO: TOTAL ALUMNOS COMO BANNER ANCHO ---
+                      GestureDetector(
+                        onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
+                        child: SizedBox(
+                          height: 100,
+                          child: _HoverableSummaryCard(
+                            title: 'Total Alumnos',
+                            count: vm.totalStudents.toString(),
+                            icon: Icons.groups_outlined,
+                            color: Colors.blue.shade700,
+                            isWide: true, // Modo ancho activado
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // --- GRID PARA EL RESTO DE TARJETAS (4 elementos restantes) ---
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -95,15 +131,6 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> {
                         mainAxisSpacing: 16,
                         childAspectRatio: 1.3,
                         children: [
-                          GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
-                            child: _HoverableSummaryCard(
-                              title: 'Total Alumnos',
-                              count: vm.totalStudents.toString(),
-                              icon: Icons.groups_outlined,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
                           GestureDetector(
                             onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
                             child: _HoverableSummaryCard(
@@ -165,13 +192,21 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> {
   }
 }
 
+// --- WIDGET TARJETA ACTUALIZADO ---
 class _HoverableSummaryCard extends StatefulWidget {
   final String title;
   final String count;
   final IconData icon;
   final Color color;
+  final bool isWide; // Nuevo parámetro
 
-  const _HoverableSummaryCard({required this.title, required this.count, required this.icon, required this.color});
+  const _HoverableSummaryCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.color,
+    this.isWide = false,
+  });
 
   @override
   State<_HoverableSummaryCard> createState() => _HoverableSummaryCardState();
@@ -182,8 +217,51 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
 
   @override
   Widget build(BuildContext context) {
-    final transform = kIsWeb && _isHovered ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity();
+    // Corrección del scale deprecado
+    final transform = kIsWeb && _isHovered
+        ? (Matrix4.identity()..scaleByDouble(1.05, 1.05, 1.05, 1.0))
+        : Matrix4.identity();
+
     final duration = const Duration(milliseconds: 200);
+
+    Widget cardContent;
+
+    if (widget.isWide) {
+      // Diseño Horizontal
+      cardContent = Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Icon(widget.icon, size: 40, color: widget.color),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
+                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha:0.8))),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Diseño Vertical (Grid)
+      cardContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(widget.icon, size: 32, color: widget.color),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
+              Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha:0.8))),
+            ],
+          ),
+        ],
+      );
+    }
 
     return MouseRegion(
       onEnter: (_) => { if (kIsWeb) setState(() => _isHovered = true) },
@@ -207,20 +285,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(widget.icon, size: 32, color: widget.color),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
-                    Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
-                  ],
-                ),
-              ],
-            ),
+            child: cardContent,
           ),
         ),
       ),
