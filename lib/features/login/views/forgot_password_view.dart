@@ -75,8 +75,9 @@ class ForgotPasswordView extends StatelessWidget {
               ),
               Consumer<ForgotPasswordViewModel>(
                 builder: (context, viewModel, _) {
-                  if (viewModel.errorMessage == null)
+                  if (viewModel.errorMessage == null){
                     return const SizedBox.shrink();
+                    }
                   return Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
@@ -258,7 +259,7 @@ class ForgotPasswordView extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // --- BOTÓN PARA BORRAR TODO ---
+              // --- BOTÓN PARA BORRAR ALL
               TextButton(
                 onPressed: () async {
                   final confirm = await showDialog<bool>(

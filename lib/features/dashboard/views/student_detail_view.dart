@@ -67,7 +67,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
         );
         final blob = html.Blob([response.data]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
+        html.AnchorElement(href: url)
           ..setAttribute("download", fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
@@ -247,7 +247,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
           return Card(
             margin: const EdgeInsets.only(top: 8, bottom: 4),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: statusColor.withOpacity(0.5))),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: statusColor.withValues(alpha:0.5))),
             child: ListTile(
               leading: Icon(Icons.class_outlined, color: statusColor),
               title: Text(e.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -364,9 +364,9 @@ class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-                color: _statusColor.withOpacity(0.1),
+                color: _statusColor.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _statusColor.withOpacity(0.3))
+                border: Border.all(color: _statusColor.withValues(alpha:0.3))
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

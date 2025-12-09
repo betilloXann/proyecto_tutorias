@@ -122,8 +122,8 @@ class BarChartCard extends StatelessWidget {
                     return SideTitleWidget(
                       axisSide: meta.axisSide,
                       space: 8.0,
-                      child: Text(title, style: const TextStyle(fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis),
-                      angle: -0.5, // Rotación para mejor legibilidad
+                      angle: -0.5,
+                      child: Text(title, style: const TextStyle(fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis), // Rotación para mejor legibilidad
                     );
                   },
                 ),

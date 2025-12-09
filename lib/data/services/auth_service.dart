@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
-class AuthService {
+class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Obtener usuario actual (si ya está logueado)

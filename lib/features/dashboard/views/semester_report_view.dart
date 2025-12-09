@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/widgets/responsive_container.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../../../theme/theme.dart';
+// Eliminado: import '../../../data/repositories/auth_repository.dart'; <--- Ya no se necesita
 import '../viewmodels/semester_report_viewmodel.dart';
 import 'semester_charts_view.dart';
 
@@ -37,7 +36,10 @@ class SemesterReportView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => SemesterReportViewModel(authRepo: context.read<AuthRepository>()),
+      // --- CORRECCIÓN AQUÍ ---
+      // Ya no pasamos 'authRepo' porque el constructor ya no lo pide
+      create: (context) => SemesterReportViewModel(),
+      
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Reportes de Fin de Semestre'),
@@ -63,7 +65,7 @@ class SemesterReportView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                     if (vm.errorMessage != null)
+                      if (vm.errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
                         child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),

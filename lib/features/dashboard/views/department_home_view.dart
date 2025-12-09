@@ -255,7 +255,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
-                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withOpacity(0.8))),
+                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha:0.8))),
               ],
             ),
           ),
@@ -271,7 +271,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
-              Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
+              Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha:0.8))),
             ],
           ),
         ],
