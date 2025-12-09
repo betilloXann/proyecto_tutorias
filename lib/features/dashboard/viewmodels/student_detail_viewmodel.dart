@@ -40,12 +40,10 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 0. Obtener academias del usuario actual (el que está viendo la pantalla)
+      // 0. Obtener usuario actual y sus academias
       final currentUser = await _authRepo.getCurrentUserData();
-      if (currentUser == null || currentUser.academies.isEmpty) {
-        throw Exception("No se pudieron determinar las academias del usuario actual para filtrar.");
-      }
-      final userAcademies = currentUser.academies;
+      // SI EL USUARIO NO TIENE ACADEMIAS, SE TRATARÁ COMO LISTA VACÍA, NO LANZARÁ ERROR
+      final userAcademies = currentUser?.academies ?? [];
 
       // 1. Recargar datos del alumno
       final studentDoc = await _db.collection('users').doc(studentId).get();
@@ -55,7 +53,16 @@ class StudentDetailViewModel extends ChangeNotifier {
         throw Exception("No se pudo encontrar al estudiante.");
       }
 
-      // 2. Cargar inscripciones (Materias), filtrando por LAS ACADEMIAS DEL PROFESOR
+      // Si el usuario no tiene academias, no hay nada que mostrar.
+      if (userAcademies.isEmpty) {
+        _enrollments = [];
+        _groupedEvidences.clear();
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // 2. Cargar inscripciones (Materias) FILTRADAS por las academias del usuario
       final enrollmentsSnapshot = await _db
           .collection('enrollments')
           .where('uid', isEqualTo: studentId)
@@ -102,6 +109,7 @@ class StudentDetailViewModel extends ChangeNotifier {
     }
   }
 
+
   Future<String?> reviewEvidence({
     required String evidenceId,
     required bool isApproved,
@@ -145,7 +153,6 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Llamada al repositorio para calificar la materia individual
       await _authRepo.assignSubjectGrade(
         studentId: student.id,
         enrollmentId: enrollmentId,

@@ -9,6 +9,7 @@ import '../viewmodels/department_home_viewmodel.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 import 'student_list_view.dart';
 import 'bulk_upload_view.dart';
+import 'semester_report_view.dart'; // <-- AÑADIDO
 
 class DepartmentHomeView extends StatefulWidget {
   final UserModel user;
@@ -18,25 +19,23 @@ class DepartmentHomeView extends StatefulWidget {
   State<DepartmentHomeView> createState() => _DepartmentHomeViewState();
 }
 
-// 1. Agregamos el Observer para detectar el ciclo de vida
 class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBindingObserver {
   late DepartmentHomeViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // Registrar observer
+    WidgetsBinding.instance.addObserver(this);
     _viewModel = DepartmentHomeViewModel(context.read<AuthRepository>());
     _viewModel.loadDashboardData();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Limpiar observer
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  // 2. Lógica de Refetch on Focus
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -54,7 +53,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
       context,
       MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
     );
-    _refreshData(); // Recargar al volver de la lista
+    _refreshData();
   }
 
   @override
@@ -105,7 +104,6 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                       const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
                       const SizedBox(height: 16),
 
-                      // --- 3. DISEÑO: TOTAL ALUMNOS COMO BANNER ANCHO ---
                       GestureDetector(
                         onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
                         child: SizedBox(
@@ -115,14 +113,13 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             count: vm.totalStudents.toString(),
                             icon: Icons.groups_outlined,
                             color: Colors.blue.shade700,
-                            isWide: true, // Modo ancho activado
+                            isWide: true,
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 16),
 
-                      // --- GRID PARA EL RESTO DE TARJETAS (4 elementos restantes) ---
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -168,7 +165,29 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             ),
                           ),
                         ],
-                      )
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // --- SECCIÓN DE FIN DE SEMESTRE (AÑADIDA DE NUEVO) ---
+                      const Text("Herramientas Adicionales", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                      const SizedBox(height: 16),
+
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SemesterReportView()));
+                        },
+                        child: const SizedBox(
+                          height: 100,
+                          child: _HoverableSummaryCard(
+                            title: 'Fin de Semestre',
+                            count: 'Reportes',
+                            icon: Icons.assessment_outlined,
+                            color: Colors.teal,
+                            isWide: true,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -192,13 +211,12 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
   }
 }
 
-// --- WIDGET TARJETA ACTUALIZADO ---
 class _HoverableSummaryCard extends StatefulWidget {
   final String title;
   final String count;
   final IconData icon;
   final Color color;
-  final bool isWide; // Nuevo parámetro
+  final bool isWide;
 
   const _HoverableSummaryCard({
     required this.title,
@@ -217,7 +235,6 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Corrección del scale deprecado
     final transform = kIsWeb && _isHovered
         ? (Matrix4.identity()..scaleByDouble(1.05, 1.05, 1.05, 1.0))
         : Matrix4.identity();
@@ -227,7 +244,6 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
     Widget cardContent;
 
     if (widget.isWide) {
-      // Diseño Horizontal
       cardContent = Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -239,14 +255,13 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(widget.count, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.color)),
-                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withValues(alpha:0.8))),
+                Text(widget.title, style: TextStyle(fontSize: 16, color: widget.color.withOpacity(0.8))),
               ],
             ),
           ),
         ],
       );
     } else {
-      // Diseño Vertical (Grid)
       cardContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -256,7 +271,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
-              Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha:0.8))),
+              Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
             ],
           ),
         ],
