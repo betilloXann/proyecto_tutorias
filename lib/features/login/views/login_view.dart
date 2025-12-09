@@ -40,6 +40,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _submitLogin() async {
+    // Usamos read aquí (una sola vez) para no escuchar cambios continuos
     final vm = context.read<LoginViewModel>();
     FocusScope.of(context).unfocus();
 
@@ -66,23 +67,25 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // 1. OBTENER METADATOS DE LA PANTALLA
+    // 1. OBTENER METADATOS (Solo lo necesario para layout inicial)
     final size = MediaQuery.of(context);
+
+    // El padding del teclado se actualiza frame a frame, lo usaremos SOLO en el scroll
     final bottomPadding = size.viewInsets.bottom;
     final topPadding = size.padding.top;
-
-    // 2. CALCULAR EL ESPACIO REAL DEL HEADER (Status Bar + AppBar)
-    // CAMBIO: Restamos 8 en lugar de sumar 16 para subir todo el bloque.
     final double headerHeight = topPadding + kToolbarHeight - 8;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+
+      // 🔥 LA CLAVE DEL RENDIMIENTO:
+      // Esto evita que el Scaffold recalcule el fondo/gradiente cada vez que el teclado se mueve.
       resizeToAvoidBottomInset: false,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0, // Evita cambio de color al hacer scroll
+        scrolledUnderElevation: 0,
         leadingWidth: 70,
         leading: Container(
           margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
@@ -108,9 +111,13 @@ class _LoginViewState extends State<LoginView> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        // Al usar resizeToAvoidBottomInset: false, este gradiente ya no se repinta 60 veces/segundo
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEBF3FF), Color(0xFFD6E7FF),],
+            colors: [
+              Color(0xFFEBF3FF),
+              Color(0xFFD6E7FF),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -119,11 +126,13 @@ class _LoginViewState extends State<LoginView> {
         child: ResponsiveContainer(
           child: Center(
             child: SingleChildScrollView(
+              // Aplicamos el padding del teclado MANUALMENTE aquí.
+              // Solo se mueve el contenido scrollable, el fondo se queda quieto.
               padding: EdgeInsets.fromLTRB(
                   24,
                   headerHeight > 0 ? headerHeight : 24,
                   24,
-                  24 + bottomPadding // <--- Esto sigue empujando el contenido hacia arriba
+                  24 + bottomPadding // <--- Aquí ocurre la magia suave
               ),
 
               child: Container(
@@ -142,13 +151,9 @@ class _LoginViewState extends State<LoginView> {
 
                 child: Column(
                   children: [
-                    // CAMBIO: Altura reducida de 160 a 140
                     Image.asset('assets/images/sesion.webp',
                         width: 210, height: 150),
-
-                    // CAMBIO: Espacio reducido de 24 a 16
                     const SizedBox(height: 16),
-
                     Text(
                       "Iniciar Sesión",
                       style: theme.textTheme.headlineMedium?.copyWith(
@@ -169,8 +174,8 @@ class _LoginViewState extends State<LoginView> {
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
                     ),
-
                     const SizedBox(height: 16),
+
                     TextInputField(
                       key: const Key('login_password_input'),
                       label: "Contraseña",
@@ -214,6 +219,7 @@ class _LoginViewState extends State<LoginView> {
                     SizedBox(
                       width: double.infinity,
                       height: 56,
+                      // Usamos Consumer para escuchar cambios SOLO en el botón
                       child: Consumer<LoginViewModel>(
                         builder: (context, vm, child) {
                           return vm.isLoading

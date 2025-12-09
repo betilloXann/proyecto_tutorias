@@ -49,7 +49,7 @@ class _RegisterViewState extends State<RegisterView> {
     personalEmailCtrl = TextEditingController(text: widget.email);
     phoneCtrl = TextEditingController();
     passCtrl = TextEditingController();
-    confirmPassCtrl = TextEditingController(); // Inicializar
+    confirmPassCtrl = TextEditingController();
   }
 
   @override
@@ -158,13 +158,12 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final nameParts = widget.foundName.split(' ');
     final firstName = nameParts.isNotEmpty ? nameParts.last : widget.foundName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE6EEF8),
-      resizeToAvoidBottomInset: false,
+      // Al eliminar resizeToAvoidBottomInset: false, Flutter redimensionará el body automáticamente
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -177,7 +176,8 @@ class _RegisterViewState extends State<RegisterView> {
 
       body: ResponsiveContainer(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, 40 + bottomPadding),
+          // Eliminado el cálculo manual del padding
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -257,14 +257,14 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 16),
 
-              // NUEVO CAMPO: Confirmar Contraseña
               TextInputField(
                 label: "Confirmar Contraseña",
                 controller: confirmPassCtrl,
                 icon: Icons.lock_outline,
-                obscureText:
-                    !_isPasswordVisible, // Usa la misma visibilidad o crea una variable nueva
+                obscureText: !_isPasswordVisible,
               ),
+
+              const SizedBox(height: 16), // Agregué un pequeño espacio para que no pegue con el texto
 
               const Align(
                 alignment: Alignment.centerLeft,
@@ -330,9 +330,9 @@ class _RegisterViewState extends State<RegisterView> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : PrimaryButton(
-                        text: "Finalizar Activación",
-                        onPressed: _submitActivation,
-                      ),
+                  text: "Finalizar Activación",
+                  onPressed: _submitActivation,
+                ),
               ),
             ],
           ),
