@@ -90,6 +90,29 @@ class AcademyHomeView extends StatelessWidget {
                       mainAxisSpacing: 16,
                       childAspectRatio: 1.3,
                       children: [
+
+                        // --- 1. TARJETA NUEVA: PRE-REGISTRO ---
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) =>
+                                StudentListView(
+                                  title: 'Alumnos en Pre-registro',
+                                  students: vm.preRegisteredStudents,
+                                  // Normalmente en pre-registro no se asignan materias todavía,
+                                  // pero si quisieras, descomentas la línea de abajo:
+                                  // onAssign: (student) => _showAssignmentForm(context, vm, student),
+                                )
+                            ),
+                          ),
+                          child: _HoverableSummaryCard(
+                            title: 'Pre-registro', // Título corto para el cuadro
+                            count: vm.preRegisteredStudents.length.toString(),
+                            icon: Icons.person_add_alt_1_outlined, // Icono sugerido
+                            color: Colors.purple.shade700, // Color distintivo (Morado)
+                          ),
+                        ),
+
                         GestureDetector(
                           onTap: () => Navigator.push(
                             context,
@@ -225,7 +248,7 @@ class _HoverableSummaryCardState extends State<_HoverableSummaryCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.count, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: widget.color)),
-                    Text(widget.title, style: TextStyle(color: widget.color.withOpacity(0.8))),
+                    Text(widget.title, style: TextStyle(color: widget.color.withValues(alpha:0.8))),
                   ],
                 ),
               ],
@@ -313,7 +336,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 20),
 
           DropdownButtonFormField<SubjectModel>(
-            value: _selectedSubject,
+            initialValue: _selectedSubject,
             decoration: const InputDecoration(labelText: "Materia", border: OutlineInputBorder()),
             items: vm.availableSubjectsForStudent.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
             onChanged: (val) => setState(() {
@@ -329,7 +352,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
           const SizedBox(height: 15),
 
           DropdownButtonFormField<ProfessorModel>(
-            value: _selectedProfessor,
+            initialValue: _selectedProfessor,
             decoration: const InputDecoration(labelText: "Profesor", border: OutlineInputBorder()),
             items: _selectedSubject?.professors.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
             onChanged: (val) => setState(() {
