@@ -75,9 +75,9 @@ class ForgotPasswordView extends StatelessWidget {
               ),
               Consumer<ForgotPasswordViewModel>(
                 builder: (context, viewModel, _) {
-                  if (viewModel.errorMessage == null){
+                  if (viewModel.errorMessage == null) {
                     return const SizedBox.shrink();
-                    }
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
@@ -95,39 +95,39 @@ class ForgotPasswordView extends StatelessWidget {
                   return viewModel.isLoading
                       ? const CircularProgressIndicator()
                       : PrimaryButton(
-                    text: "Enviar correo",
-                    onPressed: () async {
-                      if (emailCtrl.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                              Text("Por favor ingresa un correo")),
+                          text: "Enviar correo",
+                          onPressed: () async {
+                            if (emailCtrl.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text("Por favor ingresa un correo")),
+                              );
+                              return;
+                            }
+                            final success = await viewModel
+                                .sendRecoveryEmail(emailCtrl.text);
+                            if (success && context.mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text("¡Correo enviado!"),
+                                  content: const Text(
+                                      "Revisa tu bandeja de entrada..."),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context); // Cierra dialogo
+                                        Navigator.pop(context); // Cierra pantalla
+                                      },
+                                      child: const Text("Aceptar"),
+                                    )
+                                  ],
+                                ),
+                              );
+                            }
+                          },
                         );
-                        return;
-                      }
-                      final success = await viewModel
-                          .sendRecoveryEmail(emailCtrl.text);
-                      if (success && context.mounted) {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text("¡Correo enviado!"),
-                            content: const Text(
-                                "Revisa tu bandeja de entrada..."),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context); // Cierra dialogo
-                                  Navigator.pop(context); // Cierra pantalla
-                                },
-                                child: const Text("Aceptar"),
-                              )
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                  );
                 },
               ),
 
@@ -188,7 +188,8 @@ class ForgotPasswordView extends StatelessWidget {
                     options: Firebase.app().options,
                   );
 
-                  FirebaseAuth tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+                  FirebaseAuth tempAuth =
+                      FirebaseAuth.instanceFor(app: tempApp);
                   final firestore = FirebaseFirestore.instance;
 
                   int createdCount = 0;
@@ -199,7 +200,7 @@ class ForgotPasswordView extends StatelessWidget {
                       try {
                         debugPrint("Procesando: ${userData['email']}...");
                         UserCredential cred =
-                        await tempAuth.createUserWithEmailAndPassword(
+                            await tempAuth.createUserWithEmailAndPassword(
                           email: userData['email'],
                           password: userData['pass'],
                         );
@@ -211,13 +212,13 @@ class ForgotPasswordView extends StatelessWidget {
                               .set({
                             'uid': cred.user!.uid,
                             'name': userData['name'],
-                            'email': userData['email'],
+                            'email_inst': userData['email'], // Ajustado a email_inst
                             'role': userData['role'],
                             'status': userData['status'],
                             'academies': userData['academies'],
                             'boleta': userData['boleta'] ?? '',
-                            'subjectsToTake': [],
-                            'createdAt': FieldValue.serverTimestamp(),
+                            'subjects_to_take': [],
+                            'created_at': FieldValue.serverTimestamp(),
                           });
                           createdCount++;
                           await tempAuth.signOut();
@@ -316,7 +317,8 @@ class ForgotPasswordView extends StatelessWidget {
                         context: context,
                         builder: (_) => AlertDialog(
                           title: const Text("🗑️ Limpieza Terminada"),
-                          content: const Text("Se eliminaron todos los usuarios."),
+                          content:
+                              const Text("Se eliminaron todos los usuarios."),
                           actions: [
                             TextButton(
                                 onPressed: () => Navigator.pop(context),
@@ -332,83 +334,112 @@ class ForgotPasswordView extends StatelessWidget {
                 child: const Text(
                   "BORRAR BD (DELETE ALL)",
                   style:
-                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
 
               const SizedBox(height: 20),
 
               // ==========================================================
-              // === NUEVO BOTÓN: GENERAR 37 ALUMNOS DEL EXCEL ===
+              // === BOTÓN CORREGIDO: GENERAR 40 ALUMNOS DEL EXCEL ===
               // ==========================================================
               TextButton(
                 style: TextButton.styleFrom(
-                  backgroundColor: Colors.blue[50], // Fondo suave para destacar
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  backgroundColor: Colors.blue[50],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 onPressed: () async {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Generando 37 Alumnos del Excel..."),
+                      content: Text("Generando 40 Alumnos... (Espera por favor)"),
                       duration: Duration(seconds: 4),
                     ),
                   );
 
-                  // 1. Configuración de Academias y Profesores (Hardcodeados para coincidir con los Jefes)
-                  // Indice 0: Computación, 1: Eléctrica, 2: Informática
-                  final academiesList = ['COMPUTACION', 'LAB. ELECT. Y CONTROL', 'INFORMATICA'];
+                  // 1. Configuración de Academias y Profesores
+                  final academiesList = [
+                    'COMPUTACION',
+                    'LAB. ELECT. Y CONTROL',
+                    'INFORMATICA'
+                  ];
+                  // Correos de los jefes que fungirán como tutores
                   final professorsMap = {
                     'COMPUTACION': 'flores@computacion.ipn.mx',
                     'LAB. ELECT. Y CONTROL': 'marisol@electrica.ipn.mx',
                     'INFORMATICA': 'abdiel@informatica.ipn.mx',
                   };
 
-                  // 2. Generar lista de 37 estudiantes en memoria
+                  // 2. Preparar datos en memoria
                   List<Map<String, dynamic>> studentsToCreate = [];
                   final random = Random();
+                  final statuses = [
+                    'PRE_REGISTRO',
+                    'PENDIENTE_ASIGNACION',
+                    'EN_CURSO',
+                    'ACREDITADO',
+                    'NO_ACREDITADO'
+                  ];
 
-                  // Estados posibles
-                  final statuses = ['PRE_REGISTRO', 'EN_CURSO', 'ACREDITADO', 'NO_ACREDITADO'];
+                  // Materias dummy para simular un registro real
+                  final dummySubjects = [
+                    'FUNDAMENTOS DE PROGRAMACIÓN',
+                    'ESTRUCTURAS DE DATOS',
+                    'BASES DE DATOS',
+                    'INGENIERÍA DE SOFTWARE'
+                  ];
 
-                  for (int i = 1; i <= 37; i++) {
-                    // Distribuir academias equitativamente (ciclo 0, 1, 2)
+                  for (int i = 1; i <= 40; i++) {
+                    // Cíclico: 0, 1, 2
                     int academyIndex = (i - 1) % 3;
                     String academy = academiesList[academyIndex];
                     String assignedProfEmail = professorsMap[academy]!;
 
-                    // Distribuir estados cíclicamente
+                    // Cíclico: 0, 1, 2, 3
                     String status = statuses[(i - 1) % 4];
 
-                    // Determinar calificación según estado
+                    // Calificación
                     double? grade;
                     if (status == 'ACREDITADO') {
                       grade = 6 + random.nextInt(5).toDouble(); // 6 a 10
                     } else if (status == 'NO_ACREDITADO') {
                       grade = random.nextInt(6).toDouble(); // 0 a 5
                     } else {
-                      grade = null; // Pre-registro o en curso no tienen calif final
+                      grade = null;
                     }
 
+                    // Email único
+                    String email = 'alumno$i@ipn.mx';
+
+                    // Mapa de estatus (Nuevo requerimiento del UserModel)
+                    Map<String, String> academyStatus = {
+                      academy: status
+                    };
+
                     studentsToCreate.add({
-                      'email': 'alumno$i@ipn.mx',
-                      'pass': 'alumno123', // Contraseña genérica
-                      'name': 'Alumno Excel $i',
-                      'boleta': '202460${i.toString().padLeft(2, '0')}', // Genera boletas 20246001...
-                      'role': 'alumno',
-                      'academies': [academy],
+                      'email': email,
+                      'pass': 'alumno123',
+                      'name': 'Alumno Test $i',
+                      'boleta': '202460${i.toString().padLeft(2, '0')}',
+                      'role': 'student', 
+                      'academy': academy,
                       'status': status,
-                      'grade': grade,
-                      'tutorEmail': (status != 'PRE_REGISTRO') ? assignedProfEmail : null, // Asigna profe si ya está en trámite
+                      'academy_status': academyStatus,
+                      'final_grade': grade,
+                      'tutorEmail': (status != 'PRE_REGISTRO')
+                          ? assignedProfEmail
+                          : null,
                     });
                   }
 
-                  // 3. Inicializar Auth Secundaria
+                  // 3. Inicializar App Secundaria
                   FirebaseApp tempApp = await Firebase.initializeApp(
-                    name: 'SecondaryAppAlumnos', // Nombre distinto por seguridad
+                    name: 'SecondaryAppAlumnos',
                     options: Firebase.app().options,
                   );
-                  FirebaseAuth tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+                  FirebaseAuth tempAuth =
+                      FirebaseAuth.instanceFor(app: tempApp);
                   final firestore = FirebaseFirestore.instance;
 
                   int successCount = 0;
@@ -417,31 +448,37 @@ class ForgotPasswordView extends StatelessWidget {
                   try {
                     for (var student in studentsToCreate) {
                       try {
-                        // Crear usuario en Auth
-                        UserCredential cred = await tempAuth.createUserWithEmailAndPassword(
+                        // Crear en Authentication
+                        UserCredential cred =
+                            await tempAuth.createUserWithEmailAndPassword(
                           email: student['email'],
                           password: student['pass'],
                         );
 
                         if (cred.user != null) {
-                          // Crear documento en Firestore
-                          await firestore.collection('users').doc(cred.user!.uid).set({
+                          // Crear en Firestore (Estructura COMPLETA de alumno activado)
+                          await firestore
+                              .collection('users')
+                              .doc(cred.user!.uid)
+                              .set({
                             'uid': cred.user!.uid,
                             'name': student['name'],
-                            'email': student['email'],
-                            'role': 'alumno',
+                            'email_inst': student['email'], 
+                            'email_personal': 'personal.${student['email'].split('@')[0]}@gmail.com', // Dummy personal email
+                            'role': student['role'],
                             'boleta': student['boleta'],
-                            'academies': student['academies'], // Array como en el modelo original
-                            'status': student['status'],
-                            // Campos extra para simular el excel y asignación
-                            'currentGrade': student['grade'],
-                            'assignedTutorEmail': student['tutorEmail'],
-                            'createdAt': FieldValue.serverTimestamp(),
-                            'subjectsToTake': [], // Campo requerido en algunos modelos
+                            'academies': [student['academy']], 
+                            'status': student['status'], 
+                            'academy_status': student['academy_status'], 
+                            'final_grade': student['final_grade'],
+                            'assigned_tutor_email': student['tutorEmail'],
+                            'created_at': FieldValue.serverTimestamp(),
+                            'updated_at': FieldValue.serverTimestamp(), // Simular activación
+                            'subjects_to_take': dummySubjects.sublist(0, 2), // 2 materias dummy
+                            'phone': '55${Random().nextInt(90000000) + 10000000}', // Teléfono dummy
+                            'dictamen_url': 'https://firebasestorage.googleapis.com/v0/b/dummy-bucket/o/dictamen.pdf?alt=media', // URL dummy
                           });
                           successCount++;
-
-                          // Limpieza sesión temporal
                           await tempAuth.signOut();
                         }
                       } catch (e) {
@@ -450,7 +487,7 @@ class ForgotPasswordView extends StatelessWidget {
                       }
                     }
 
-                    // 4. Limpiar App secundaria
+                    // 4. Limpieza final
                     await tempApp.delete();
 
                     if (context.mounted) {
@@ -460,13 +497,10 @@ class ForgotPasswordView extends StatelessWidget {
                           title: const Text("🎓 Alumnos Generados"),
                           content: SingleChildScrollView(
                             child: Text(
-                                "Proceso finalizado.\n\n"
-                                    "✅ Creados: $successCount\n"
-                                    "❌ Fallidos/Duplicados: $failCount\n\n"
-                                    "Detalles:\n"
-                                    "- Se asignaron profesores según academia.\n"
-                                    "- Se distribuyeron estados (Pre, En curso, Acreditado, No Acred).\n"
-                                    "- Se generaron calificaciones aleatorias."
+                              "Proceso finalizado.\n\n"
+                              "✅ Creados: $successCount\n"
+                              "❌ Fallidos/Duplicados: $failCount\n\n"
+                              "Se incluyeron campos de activación (teléfono, email personal, url dictamen) para simular alumnos reales."
                             ),
                           ),
                           actions: [
@@ -478,12 +512,13 @@ class ForgotPasswordView extends StatelessWidget {
                         ),
                       );
                     }
-
                   } catch (e) {
-                    // Limpieza de emergencia
-                    try { await tempApp.delete(); } catch (_) {}
+                    try {
+                      await tempApp.delete();
+                    } catch (_) {}
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error script: $e")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error script: $e")));
                     }
                   }
                 },
@@ -492,14 +527,16 @@ class ForgotPasswordView extends StatelessWidget {
                     Icon(Icons.people_alt_outlined, color: Colors.blueAccent),
                     SizedBox(height: 5),
                     Text(
-                      "GENERAR 37 ALUMNOS (Excel)",
-                      style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                      "GENERAR 40 ALUMNOS",
+                      style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 40), // Espacio final
+              const SizedBox(height: 40),
             ],
           ),
         ),

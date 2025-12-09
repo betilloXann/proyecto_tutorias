@@ -164,6 +164,15 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                               color: Colors.green.shade700,
                             ),
                           ),
+                          GestureDetector(
+                            onTap: () => _navigateToStudentList(context, 'No Acreditados', vm.students.where((s) => s.status == 'NO_ACREDITADO').toList()),
+                            child: _HoverableSummaryCard(
+                              title: 'No Acreditados',
+                              count: vm.notAccreditedCount.toString(),
+                              icon: Icons.cancel_outlined,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
                         ],
                       ),
 

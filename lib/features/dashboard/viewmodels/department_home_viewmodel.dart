@@ -19,6 +19,7 @@ class DepartmentHomeViewModel extends ChangeNotifier {
   int get pendingCount => _allStudents.where((s) => s.status == 'PENDIENTE_ASIGNACION').length;
   int get inCourseCount => _allStudents.where((s) => s.status == 'EN_CURSO').length;
   int get accreditedCount => _allStudents.where((s) => s.status == 'ACREDITADO').length;
+  int get notAccreditedCount => _allStudents.where((s) => s.status == 'NO_ACREDITADO').length;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
