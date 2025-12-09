@@ -135,7 +135,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> with WidgetsBindingOb
                       child: SizedBox(
                         height: 100,
                         child: _HoverableSummaryCard(
-                          title: 'Sin Activar Cuenta (Pre Registro)',
+                          title: 'Sin Activar (Pre Registro)',
                           count: vm.preRegisteredStudents.length.toString(),
                           icon: Icons.person_add_alt_1_outlined,
                           color: Colors.purple.shade700,
