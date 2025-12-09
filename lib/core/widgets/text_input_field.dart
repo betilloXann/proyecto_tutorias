@@ -14,6 +14,8 @@ class TextInputField extends StatelessWidget {
   // NUEVO: Propiedad para el icono del final (ojito)
   final Widget? suffixIcon;
 
+  final String? Function(String?)? validator;
+
   const TextInputField({
     super.key,
     required this.label,
@@ -26,6 +28,7 @@ class TextInputField extends StatelessWidget {
     this.onFieldSubmitted,
     this.readOnly = false,
     this.suffixIcon, // Lo recibimos en el constructor
+    this.validator, // Lo recibimos aquí
   });
 
   @override
@@ -56,6 +59,7 @@ class TextInputField extends StatelessWidget {
         focusNode: focusNode,
         onFieldSubmitted: onFieldSubmitted,
         readOnly: readOnly,
+        validator: validator,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey[600]),
