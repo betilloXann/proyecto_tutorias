@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/user_model.dart';
-import '../../../data/repositories/auth_repository.dart';
+// Eliminé la importación de AuthRepository porque ya no se usa
+// import '../../../data/repositories/auth_repository.dart'; 
 
 // Para la generación de Excel
 import 'package:universal_html/html.dart' as html;
@@ -14,7 +14,7 @@ typedef Stats = ({int accredited, int notAccredited});
 
 class SemesterReportViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final AuthRepository _authRepo;
+  // Eliminado: final AuthRepository _authRepo;
 
   bool _isLoading = false;
   String? _loadingMessage;
@@ -31,7 +31,9 @@ class SemesterReportViewModel extends ChangeNotifier {
   Map<String, Stats> get accreditedBySubject => _accreditedBySubject;
   Map<String, Stats> get accreditedByAcademy => _accreditedByAcademy;
 
-  SemesterReportViewModel({required AuthRepository authRepo}) : _authRepo = authRepo;
+  // --- CONSTRUCTOR CORREGIDO ---
+  // Ya no pedimos 'authRepo' porque no lo usamos
+  SemesterReportViewModel(); 
 
   void _setLoading(bool loading, [String? message]) {
     _isLoading = loading;
@@ -42,6 +44,7 @@ class SemesterReportViewModel extends ChangeNotifier {
   // --- FUNCIÓN PRIVADA PARA OBTENER DATOS ---
   Future<({List<UserModel> students, Map<String, List<EnrollmentModel>> enrollments})> _fetchReportData() async {
     _setLoading(true, "Obteniendo datos de alumnos...");
+    
     // ROL TUTORIAS: Obtiene todos los alumnos sin filtrar por academia
     final studentsSnapshot = await _db.collection('users')
         .where('role', isEqualTo: 'student')
@@ -56,6 +59,8 @@ class SemesterReportViewModel extends ChangeNotifier {
 
     _setLoading(true, "Obteniendo inscripciones...");
     final Map<String, List<EnrollmentModel>> allEnrollments = {};
+    
+    // Firestore 'whereIn' solo soporta hasta 10 elementos, por eso procesamos en lotes
     for (int i = 0; i < studentIds.length; i += 10) {
       final chunk = studentIds.sublist(i, i + 10 > studentIds.length ? studentIds.length : i + 10);
       final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', whereIn: chunk).get();
@@ -89,6 +94,7 @@ class SemesterReportViewModel extends ChangeNotifier {
         final studentEnrollments = data.enrollments[student.id] ?? [];
         for (final enrollment in studentEnrollments) {
           if (enrollment.status == 'ACREDITADO' || enrollment.status == 'NO_ACREDITADO') {
+            
             // Conteo por materia
             final subjectStat = tempBySubject.putIfAbsent(enrollment.subject, () => (accredited: 0, notAccredited: 0));
             if (enrollment.status == 'ACREDITADO') {
@@ -116,7 +122,6 @@ class SemesterReportViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
 
   // --- LÓGICA PARA EXCEL ---
   Future<void> generateExcelReport() async {
@@ -157,7 +162,9 @@ class SemesterReportViewModel extends ChangeNotifier {
       if (fileBytes != null && kIsWeb) {
         final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)..setAttribute("download", "Reporte_Fin_Semestre.xlsx")..click();
+        html.AnchorElement(href: url)
+          ..setAttribute("download", "Reporte_Fin_Semestre.xlsx")
+          ..click();
         html.Url.revokeObjectUrl(url);
       } else if (!kIsWeb) {
         throw Exception("La descarga de archivos solo está soportada en la versión web.");
@@ -170,7 +177,7 @@ class SemesterReportViewModel extends ChangeNotifier {
     }
   }
 
-  // --- LÓGICA DE LIMPIEZA (CORREGIDA) ---
+  // --- LÓGICA DE LIMPIEZA ---
   Future<String?> deleteAllStudents() async {
     _setLoading(true, "Eliminando TODOS los alumnos...");
     _errorMessage = null;
