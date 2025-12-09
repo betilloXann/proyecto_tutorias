@@ -8,6 +8,7 @@ class EnrollmentModel {
   final String salon;
   final String status;
   final DateTime assignedAt;
+  final double? finalGrade; // <-- Nueva propiedad opcional
 
   EnrollmentModel({
     required this.id,
@@ -17,6 +18,7 @@ class EnrollmentModel {
     required this.salon,
     required this.status,
     required this.assignedAt,
+    this.finalGrade, // <-- opcional
   });
 
   // Factory constructor to create an instance from a Firestore document
@@ -29,6 +31,7 @@ class EnrollmentModel {
       salon: data['salon'] ?? 'N/A',
       status: data['status'] ?? 'N/A',
       assignedAt: (data['assigned_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      finalGrade: (data['final_grade'] != null) ? (data['final_grade'] as num).toDouble() : null,
     );
   }
 }

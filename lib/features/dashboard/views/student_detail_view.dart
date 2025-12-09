@@ -7,10 +7,11 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
-// IMPORTACIÓN PARA EL TRUCO WEB (Funciona en móvil también sin romper)
+// IMPORTACIÓN PARA EL TRUCO WEB
 import 'package:universal_html/html.dart' as html;
 
 import '../../../core/widgets/responsive_container.dart';
+import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -45,12 +46,10 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     final boleta = widget.student.boleta;
     final initialsSubject = _getInitials(subjectName);
 
-    // Estandarizamos a PDF si no tiene extensión, o respetamos la original si la tuviéramos.
-    // Asumiremos PDF para reportes y dictamenes por defecto para el nombre.
     return "${initialsName}_${boleta}_${initialsSubject}_$docType.pdf";
   }
 
-  // --- FUNCIÓN DE DESCARGA MAESTRA (WEB Y MÓVIL) ---
+  // --- FUNCIÓN DE DESCARGA MAESTRA ---
   Future<void> _downloadAndOpenFile(String? urlString, String fileName) async {
     if (urlString == null || urlString.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay archivo disponible.')));
@@ -60,29 +59,22 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Preparando descarga de $fileName...')));
 
-      // 1. SI ES WEB: Usamos el truco del AnchorElement con universal_html
+      // 1. SI ES WEB
       if (kIsWeb) {
-        // Descargamos los bytes primero
         final response = await Dio().get(
           urlString,
           options: Options(responseType: ResponseType.bytes),
         );
-
-        // Creamos un "Blob" (archivo en memoria)
         final blob = html.Blob([response.data]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-
-        // Creamos un elemento <a> invisible y le damos click
         final anchor = html.AnchorElement(href: url)
-          ..setAttribute("download", fileName) // <--- AQUÍ SE FUERZA EL NOMBRE
+          ..setAttribute("download", fileName)
           ..click();
-
-        // Limpiamos
         html.Url.revokeObjectUrl(url);
         return;
       }
 
-      // 2. SI ES MÓVIL (Android/iOS): Descarga normal a sistema de archivos
+      // 2. SI ES MÓVIL
       final dir = await getApplicationDocumentsDirectory();
       final savePath = "${dir.path}/$fileName";
 
@@ -98,13 +90,16 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     }
   }
 
-  void _showFinalGradeDialog(BuildContext context) {
+  // --- DIÁLOGOS ---
+
+  // Diálogo para calificar MATERIA INDIVIDUAL
+  void _showSubjectGradeDialog(BuildContext context, EnrollmentModel enrollment) {
     final vm = context.read<StudentDetailViewModel>();
     showDialog(
       context: context,
       builder: (_) => ChangeNotifierProvider.value(
         value: vm,
-        child: _FinalGradeDialog(student: vm.student),
+        child: _SubjectGradeDialog(enrollment: enrollment),
       ),
     );
   }
@@ -137,7 +132,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                     _buildStudentInfoCard(context, vm.student),
                     const SizedBox(height: 24),
                     _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
-                    _buildEnrollmentsList(vm),
+                    _buildEnrollmentsList(vm, context), // Pasamos context para los diálogos
                     const SizedBox(height: 24),
                     _buildSectionTitle("EVIDENCIAS SUBIDAS"),
                     if (vm.groupedEvidences.isEmpty)
@@ -147,7 +142,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                         groupedEvidences: vm.groupedEvidences,
                         studentName: widget.student.name,
                         studentBoleta: widget.student.boleta,
-                        onDownload: _downloadAndOpenFile, // Pasamos la función mejorada
+                        onDownload: _downloadAndOpenFile,
                       ),
                   ],
                 ),
@@ -165,7 +160,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
   Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
     final bool isGraded = student.finalGrade != null;
-    final bool canAssignGrade = student.status == 'EN_CURSO';
 
     return Card(
       elevation: 2,
@@ -179,8 +173,9 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             _buildInfoRow(Icons.email_outlined, "Correo", student.email),
             _buildInfoRow(Icons.school_outlined, "Academias", student.academies.join(", ")),
             _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
+            // Si el sistema calculó promedio final, lo mostramos
             if (isGraded)
-              _buildInfoRow(Icons.star_border, "Calificación Final", student.finalGrade.toString()),
+              _buildInfoRow(Icons.star_border, "Promedio Final", student.finalGrade.toString()),
 
             const Divider(height: 20),
 
@@ -191,7 +186,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                   icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
                   label: const Text("Descargar Dictamen"),
                   onPressed: () {
-                    // Generamos nombre y descargamos
                     final name = _generateFileName(docType: "Dictamen", subjectName: "General");
                     _downloadAndOpenFile(student.dictamenUrl, name);
                   },
@@ -199,18 +193,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                 ),
               ),
             ],
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.grading_outlined, size: 18),
-                label: Text(isGraded ? "Editar Calificación Final" : "Asignar Calificación Final"),
-                onPressed: canAssignGrade ? () => _showFinalGradeDialog(context) : null,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: isGraded ? Colors.blueGrey : AppTheme.blueDark,
-                    foregroundColor: Colors.white
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -251,21 +233,43 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     );
   }
 
-  Widget _buildEnrollmentsList(StudentDetailViewModel vm) {
+  Widget _buildEnrollmentsList(StudentDetailViewModel vm, BuildContext context) {
     if (vm.enrollments.isEmpty) {
       return const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No tiene materias asignadas."))));
     }
     return Column(
-      children: vm.enrollments.map((e) => Card(
-        margin: const EdgeInsets.only(top: 8, bottom: 4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: ListTile(
-          leading: const Icon(Icons.class_outlined, color: AppTheme.bluePrimary),
-          title: Text(e.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text("${e.professor}\n${e.schedule} - Salón: ${e.salon}\nAsignado: ${DateFormat.yMd().add_jm().format(e.assignedAt)}"),
-          isThreeLine: true,
-        ),
-      )).toList(),
+        children: vm.enrollments.map((e) {
+          final bool isGraded = e.status == 'ACREDITADO' || e.status == 'NO_ACREDITADO';
+          Color statusColor = Colors.grey;
+          if (e.status == 'ACREDITADO') statusColor = Colors.green;
+          if (e.status == 'NO_ACREDITADO') statusColor = Colors.red;
+          if (e.status == 'EN_CURSO') statusColor = AppTheme.bluePrimary;
+
+          return Card(
+            margin: const EdgeInsets.only(top: 8, bottom: 4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: statusColor.withOpacity(0.5))),
+            child: ListTile(
+              leading: Icon(Icons.class_outlined, color: statusColor),
+              title: Text(e.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("${e.professor} (${e.schedule})"),
+                  if (isGraded)
+                    Text("Calificación: ${e.finalGrade ?? '-'}", style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+                  if (!isGraded)
+                    const Text("Estatus: En Curso", style: TextStyle(fontSize: 12)),
+                ],
+              ),
+              // BOTÓN PARA CALIFICAR ESTA MATERIA
+              trailing: IconButton(
+                icon: Icon(isGraded ? Icons.edit : Icons.grading, color: AppTheme.blueDark),
+                tooltip: "Calificar esta materia",
+                onPressed: () => _showSubjectGradeDialog(context, e),
+              ),
+            ),
+          );
+        }).toList()
     );
   }
 }
@@ -274,23 +278,28 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 // COMPONENTES PRIVADOS
 // ==========================================
 
-class _FinalGradeDialog extends StatefulWidget {
-  final UserModel student;
-  const _FinalGradeDialog({required this.student});
+class _SubjectGradeDialog extends StatefulWidget {
+  final EnrollmentModel enrollment;
+  const _SubjectGradeDialog({required this.enrollment});
 
   @override
-  State<_FinalGradeDialog> createState() => _FinalGradeDialogState();
+  State<_SubjectGradeDialog> createState() => _SubjectGradeDialogState();
 }
 
-class _FinalGradeDialogState extends State<_FinalGradeDialog> {
+class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
   late final TextEditingController _gradeController;
-  late bool _isAccredited;
+
+  // Estado calculado automáticamente
+  bool _isAccredited = false;
+  String _statusMessage = "";
+  Color _statusColor = Colors.grey;
 
   @override
   void initState() {
     super.initState();
-    _gradeController = TextEditingController(text: widget.student.finalGrade?.toString() ?? '');
-    _isAccredited = widget.student.status == 'ACREDITADO';
+    _gradeController = TextEditingController(text: widget.enrollment.finalGrade?.toString() ?? '');
+    // Calculamos el estado inicial si ya había calificación
+    _updateStatus(_gradeController.text);
   }
 
   @override
@@ -299,11 +308,32 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
     super.dispose();
   }
 
+  void _updateStatus(String value) {
+    final grade = double.tryParse(value);
+    setState(() {
+      if (grade == null) {
+        _isAccredited = false;
+        _statusMessage = "Ingresa la calificación";
+        _statusColor = Colors.grey;
+      } else if (grade > 5) {
+        _isAccredited = true;
+        _statusMessage = "¡Felicidades! Alumno Acreditado";
+        _statusColor = Colors.green;
+      } else {
+        _isAccredited = false;
+        _statusMessage = "Alumno Reprobado";
+        _statusColor = Colors.red;
+      }
+    });
+  }
+
   void _submit() async {
     final vm = context.read<StudentDetailViewModel>();
-    final error = await vm.assignFinalGrade(
+
+    final error = await vm.assignSubjectGrade(
+        enrollmentId: widget.enrollment.id,
         gradeInput: _gradeController.text,
-        isAccredited: _isAccredited
+        isAccredited: _isAccredited // Se envía el valor calculado
     );
 
     if (!mounted) return;
@@ -318,7 +348,7 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Asignar Calificación Final"),
+      title: Text("Calificar: ${widget.enrollment.subject}", style: const TextStyle(fontSize: 16)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -326,19 +356,46 @@ class _FinalGradeDialogState extends State<_FinalGradeDialog> {
             controller: _gradeController,
             decoration: const InputDecoration(labelText: "Calificación (0-10)", border: OutlineInputBorder()),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: _updateStatus, // <--- AQUÍ OCURRE LA MAGIA REACTIVA
           ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: Text(_isAccredited ? "ACREDITADO" : "NO ACREDITADO", style: TextStyle(color: _isAccredited ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
-            value: _isAccredited,
-            onChanged: (value) => setState(() => _isAccredited = value),
-            activeTrackColor: Colors.green,
-          ),
+          const SizedBox(height: 20),
+
+          // Mensaje Reactivo
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+                color: _statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _statusColor.withOpacity(0.3))
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _isAccredited ? Icons.check_circle : (_statusMessage == "Ingresa la calificación" ? Icons.edit : Icons.cancel),
+                  color: _statusColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _statusMessage,
+                  style: TextStyle(
+                      color: _statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14
+                  ),
+                ),
+              ],
+            ),
+          )
         ],
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancelar")),
-        ElevatedButton(onPressed: _submit, child: const Text("Guardar")),
+        ElevatedButton(
+          onPressed: _submit,
+          style: ElevatedButton.styleFrom(backgroundColor: _statusColor),
+          child: const Text("Guardar", style: TextStyle(color: Colors.white)),
+        ),
       ],
     );
   }
@@ -483,7 +540,6 @@ class _EvidenceCard extends StatelessWidget {
 
           final initialsName = _getInitials(studentName);
           final initialsSubj = _getInitials(subjectName);
-          // Nombre personalizado
           final fileName = "${initialsName}_${studentBoleta}_${initialsSubj}_Reporte.pdf";
 
           showDialog(

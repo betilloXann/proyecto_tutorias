@@ -40,6 +40,7 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 1. Recargar datos del alumno (para ver si cambió el estatus global)
       final studentDoc = await _db.collection('users').doc(studentId).get();
       if (studentDoc.exists) {
         student = UserModel.fromMap(studentDoc.data()!, studentDoc.id);
@@ -47,10 +48,13 @@ class StudentDetailViewModel extends ChangeNotifier {
         throw Exception("No se pudo encontrar al estudiante.");
       }
 
+      // 2. Cargar inscripciones (Materias)
       final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', isEqualTo: studentId).get();
       _enrollments = enrollmentsSnapshot.docs.map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id)).toList();
 
+      // 3. Cargar evidencias (Corregido a 'evidencias' en español)
       final evidencesSnapshot = await _db.collection('evidencias').where('uid', isEqualTo: studentId).get();
+
       _groupedEvidences.clear();
       for (var doc in evidencesSnapshot.docs) {
         final evidence = EvidenceModel.fromMap(doc.data(), doc.id);
@@ -96,7 +100,7 @@ class StudentDetailViewModel extends ChangeNotifier {
           newStatus: isApproved ? 'APROBADA' : 'RECHAZADA',
           feedback: feedback
       );
-      await loadStudentData();
+      await loadStudentData(); // Recargar para actualizar la vista
       return null;
     } catch (e) {
       _errorMessage = e.toString();
@@ -106,44 +110,37 @@ class StudentDetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<String?> assignFinalGrade({
+  Future<String?> assignSubjectGrade({
+    required String enrollmentId,
     required String gradeInput,
-    required bool isAccredited
+    required bool isAccredited,
   }) async {
     final grade = double.tryParse(gradeInput);
     if (grade == null || grade < 0 || grade > 10) {
-      return "Por favor, introduce una calificación válida (0-10).";
+      return "Ingresa una calificación válida (0-10)";
     }
 
     _isLoading = true;
-    _errorMessage = null;
     notifyListeners();
 
     try {
-      // NOTA: Como este método es general, por ahora actualiza el estatus global.
-      // Si en el futuro necesitas que 'Asignar Calificación' solo acredite una academia,
-      // deberías pasar aquí el nombre de la academia y actualizar 'academy_status.<ACADEMY>'.
-      // Por compatibilidad con el cambio anterior, actualizaremos ambos si es posible,
-      // o dejaremos que el AuthRepo maneje el update global.
-
-      await _authRepo.assignFinalGrade(
-          studentId: studentId,
-          finalGrade: grade,
-          finalStatus: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
+      // Llamada al repositorio para calificar la materia individual
+      await _authRepo.assignSubjectGrade(
+        studentId: student.id,
+        enrollmentId: enrollmentId,
+        finalGrade: grade,
+        status: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO',
       );
 
-      // FIX ADICIONAL SUGERIDO: Si quieres que esto impacte todas las academias activas:
-      await _db.collection('users').doc(studentId).update({
-        'status': isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO'
-       });
-
+      // CORRECCIÓN AQUÍ: Llamamos al método correcto para recargar
       await loadStudentData();
+
       return null;
     } catch (e) {
-      _errorMessage = e.toString();
+      return e.toString().replaceAll("Exception: ", "");
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return e.toString();
     }
   }
 }
