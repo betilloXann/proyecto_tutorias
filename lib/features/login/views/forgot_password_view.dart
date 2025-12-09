@@ -213,6 +213,7 @@ class ForgotPasswordView extends StatelessWidget {
                             'uid': cred.user!.uid,
                             'name': userData['name'],
                             'email_inst': userData['email'], // Ajustado a email_inst
+                            'email_personal': 'personal.${userData['email'].split('@')[0]}@gmail.com', // Dummy personal email
                             'role': userData['role'],
                             'status': userData['status'],
                             'academies': userData['academies'],
@@ -341,7 +342,7 @@ class ForgotPasswordView extends StatelessWidget {
               const SizedBox(height: 20),
 
               // ==========================================================
-              // === BOTÓN CORREGIDO: GENERAR 40 ALUMNOS DEL EXCEL ===
+              // === BOTÓN CORREGIDO: GENERAR 40 ALUMNOS CON 5 ESTATUS ===
               // ==========================================================
               TextButton(
                 style: TextButton.styleFrom(
@@ -374,6 +375,8 @@ class ForgotPasswordView extends StatelessWidget {
                   // 2. Preparar datos en memoria
                   List<Map<String, dynamic>> studentsToCreate = [];
                   final random = Random();
+                  
+                  // LISTA DE LOS 5 ESTATUS
                   final statuses = [
                     'PRE_REGISTRO',
                     'PENDIENTE_ASIGNACION',
@@ -391,13 +394,14 @@ class ForgotPasswordView extends StatelessWidget {
                   ];
 
                   for (int i = 1; i <= 40; i++) {
-                    // Cíclico: 0, 1, 2
+                    // Cíclico: 0, 1, 2 (Academias)
                     int academyIndex = (i - 1) % 3;
                     String academy = academiesList[academyIndex];
                     String assignedProfEmail = professorsMap[academy]!;
 
-                    // Cíclico: 0, 1, 2, 3
-                    String status = statuses[(i - 1) % 4];
+                    // Cíclico: 0, 1, 2, 3, 4 (Los 5 estatus)
+                    // CORRECCIÓN AQUÍ: Se usa % 5 para incluir todos
+                    String status = statuses[(i - 1) % 5];
 
                     // Calificación
                     double? grade;
@@ -427,7 +431,7 @@ class ForgotPasswordView extends StatelessWidget {
                       'status': status,
                       'academy_status': academyStatus,
                       'final_grade': grade,
-                      'tutorEmail': (status != 'PRE_REGISTRO')
+                      'tutorEmail': (status != 'PRE_REGISTRO' && status != 'PENDIENTE_ASIGNACION')
                           ? assignedProfEmail
                           : null,
                     });
@@ -456,7 +460,7 @@ class ForgotPasswordView extends StatelessWidget {
                         );
 
                         if (cred.user != null) {
-                          // Crear en Firestore (Estructura COMPLETA de alumno activado)
+                          // Crear en Firestore
                           await firestore
                               .collection('users')
                               .doc(cred.user!.uid)
@@ -464,7 +468,7 @@ class ForgotPasswordView extends StatelessWidget {
                             'uid': cred.user!.uid,
                             'name': student['name'],
                             'email_inst': student['email'], 
-                            'email_personal': 'personal.${student['email'].split('@')[0]}@gmail.com', // Dummy personal email
+                            'email_personal': 'personal.${student['email'].split('@')[0]}@gmail.com',
                             'role': student['role'],
                             'boleta': student['boleta'],
                             'academies': [student['academy']], 
@@ -473,10 +477,10 @@ class ForgotPasswordView extends StatelessWidget {
                             'final_grade': student['final_grade'],
                             'assigned_tutor_email': student['tutorEmail'],
                             'created_at': FieldValue.serverTimestamp(),
-                            'updated_at': FieldValue.serverTimestamp(), // Simular activación
-                            'subjects_to_take': dummySubjects.sublist(0, 2), // 2 materias dummy
-                            'phone': '55${Random().nextInt(90000000) + 10000000}', // Teléfono dummy
-                            'dictamen_url': 'https://firebasestorage.googleapis.com/v0/b/dummy-bucket/o/dictamen.pdf?alt=media', // URL dummy
+                            'updated_at': FieldValue.serverTimestamp(),
+                            'subjects_to_take': dummySubjects.sublist(0, 2),
+                            'phone': '55${Random().nextInt(90000000) + 10000000}',
+                            'dictamen_url': 'https://firebasestorage.googleapis.com/v0/b/dummy-bucket/o/dictamen.pdf?alt=media',
                           });
                           successCount++;
                           await tempAuth.signOut();
@@ -500,7 +504,7 @@ class ForgotPasswordView extends StatelessWidget {
                               "Proceso finalizado.\n\n"
                               "✅ Creados: $successCount\n"
                               "❌ Fallidos/Duplicados: $failCount\n\n"
-                              "Se incluyeron campos de activación (teléfono, email personal, url dictamen) para simular alumnos reales."
+                              "Se han creado 40 alumnos distribuidos en los 5 estados."
                             ),
                           ),
                           actions: [
@@ -527,7 +531,7 @@ class ForgotPasswordView extends StatelessWidget {
                     Icon(Icons.people_alt_outlined, color: Colors.blueAccent),
                     SizedBox(height: 5),
                     Text(
-                      "GENERAR 40 ALUMNOS",
+                      "GENERAR 40 ALUMNOS (5 ESTATUS)",
                       style: TextStyle(
                           color: Colors.blueAccent,
                           fontWeight: FontWeight.bold),
