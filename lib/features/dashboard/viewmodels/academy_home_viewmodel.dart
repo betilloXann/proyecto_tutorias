@@ -125,7 +125,10 @@ class AcademyViewModel extends ChangeNotifier {
       // Pedimos las inscripciones en lotes de 10
       for (int i = 0; i < studentIds.length; i += 10) {
         final chunk = studentIds.sublist(i, i + 10 > studentIds.length ? studentIds.length : i + 10);
-        final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', whereIn: chunk).get();
+        final enrollmentsSnapshot = await _db.collection('enrollments')
+        .where('uid', whereIn: chunk)
+        .where('academy', whereIn: myAcademies)
+        .get();
 
         for (var doc in enrollmentsSnapshot.docs) {
           final data = doc.data();

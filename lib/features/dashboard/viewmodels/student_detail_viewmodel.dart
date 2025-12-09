@@ -40,7 +40,14 @@ class StudentDetailViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Recargar datos del alumno (para ver si cambió el estatus global)
+      // 0. Obtener academias del usuario actual (el que está viendo la pantalla)
+      final currentUser = await _authRepo.getCurrentUserData();
+      if (currentUser == null || currentUser.academies.isEmpty) {
+        throw Exception("No se pudieron determinar las academias del usuario actual para filtrar.");
+      }
+      final userAcademies = currentUser.academies;
+
+      // 1. Recargar datos del alumno
       final studentDoc = await _db.collection('users').doc(studentId).get();
       if (studentDoc.exists) {
         student = UserModel.fromMap(studentDoc.data()!, studentDoc.id);
@@ -48,28 +55,42 @@ class StudentDetailViewModel extends ChangeNotifier {
         throw Exception("No se pudo encontrar al estudiante.");
       }
 
-      // 2. Cargar inscripciones (Materias)
-      final enrollmentsSnapshot = await _db.collection('enrollments').where('uid', isEqualTo: studentId).get();
+      // 2. Cargar inscripciones (Materias), filtrando por LAS ACADEMIAS DEL PROFESOR
+      final enrollmentsSnapshot = await _db
+          .collection('enrollments')
+          .where('uid', isEqualTo: studentId)
+          .where('academy', whereIn: userAcademies)
+          .get();
       _enrollments = enrollmentsSnapshot.docs.map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id)).toList();
 
-      // 3. Cargar evidencias (Corregido a 'evidencias' en español)
-      final evidencesSnapshot = await _db.collection('evidencias').where('uid', isEqualTo: studentId).get();
+      // 3. Crear un set de nombres de materias desde las inscripciones ya filtradas.
+      final enrolledSubjectNames = _enrollments.map((e) => e.subject.trim().toLowerCase()).toSet();
 
+      // 4. Cargar TODAS las evidencias del alumno
+      final evidencesSnapshot = await _db
+          .collection('evidencias')
+          .where('uid', isEqualTo: studentId)
+          .get();
+
+      // 5. Limpiar y llenar las evidencias aplicando el filtro por NOMBRE de materia
       _groupedEvidences.clear();
       for (var doc in evidencesSnapshot.docs) {
         final evidence = EvidenceModel.fromMap(doc.data(), doc.id);
-        final subject = evidence.subject;
+        
+        // FILTRO CLAVE: Comprobar si la materia de la evidencia está en las materias inscritas (y filtradas por academia).
+        if (enrolledSubjectNames.contains(evidence.subject.trim().toLowerCase())) {
+          final subject = evidence.subject;
+          _groupedEvidences.putIfAbsent(subject, () => {
+            'pending': [],
+            'approved': [],
+            'rejected': [],
+          });
 
-        _groupedEvidences.putIfAbsent(subject, () => {
-          'pending': [],
-          'approved': [],
-          'rejected': [],
-        });
-
-        switch (evidence.status) {
-          case 'APROBADA': _groupedEvidences[subject]!['approved']!.add(evidence); break;
-          case 'RECHAZADA': _groupedEvidences[subject]!['rejected']!.add(evidence); break;
-          default: _groupedEvidences[subject]!['pending']!.add(evidence); break;
+          switch (evidence.status) {
+            case 'APROBADA': _groupedEvidences[subject]!['approved']!.add(evidence); break;
+            case 'RECHAZADA': _groupedEvidences[subject]!['rejected']!.add(evidence); break;
+            default: _groupedEvidences[subject]!['pending']!.add(evidence); break;
+          }
         }
       }
 
@@ -132,7 +153,6 @@ class StudentDetailViewModel extends ChangeNotifier {
         status: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO',
       );
 
-      // CORRECCIÓN AQUÍ: Llamamos al método correcto para recargar
       await loadStudentData();
 
       return null;
