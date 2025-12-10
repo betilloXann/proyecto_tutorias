@@ -93,6 +93,8 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                 ));
               }
 
+              final academyStats = vm.studentsByAcademy.entries.toList();
+
               return RefreshIndicator(
                 onRefresh: _refreshData,
                 child: SingleChildScrollView(
@@ -178,7 +180,44 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
 
                       const SizedBox(height: 24),
 
-                      // --- SECCIÓN DE FIN DE SEMESTRE (AÑADIDA DE NUEVO) ---
+
+                      // --- NUEVA SECCIÓN: DESGLOSE POR ACADEMIA ---
+                      if (academyStats.isNotEmpty) ...[
+                        const Text("Desglose por Academia", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                        const SizedBox(height: 16),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 1.5, // Tarjetas un poco más compactas
+                          ),
+                          itemCount: academyStats.length,
+                          itemBuilder: (context, index) {
+                            final academyName = academyStats[index].key;
+                            final count = academyStats[index].value;
+                            
+                            return GestureDetector(
+                              onTap: () => _navigateToStudentList(
+                                context, 
+                                academyName, 
+                                vm.getStudentsByAcademy(academyName)
+                              ),
+                              child: _HoverableSummaryCard(
+                                title: academyName,
+                                count: count.toString(),
+                                icon: Icons.business_outlined, // Icono de edificio/academia
+                                color: Colors.teal.shade700,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // --- SECCIÓN DE FIN DE SEMESTRE ---
                       const Text("Herramientas Adicionales", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
                       const SizedBox(height: 16),
 

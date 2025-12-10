@@ -11,7 +11,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../../../core/widgets/responsive_container.dart';
-import '../../../data/models/enrollment_model.dart';
+import '../../../data/models/enrollment_model.dart'; //
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -129,10 +129,11 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStudentInfoCard(context, vm.student),
+                    // AHORA PASAMOS TAMBIÉN LA LISTA DE INSCRIPCIONES (vm.enrollments)
+                    _buildStudentInfoCard(context, vm.student, vm.enrollments),
                     const SizedBox(height: 24),
                     _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
-                    _buildEnrollmentsList(vm, context), // Pasamos context para los diálogos
+                    _buildEnrollmentsList(vm, context), 
                     const SizedBox(height: 24),
                     _buildSectionTitle("EVIDENCIAS SUBIDAS"),
                     if (vm.groupedEvidences.isEmpty)
@@ -158,8 +159,18 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     return Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.bluePrimary));
   }
 
-  Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
+  // --- MODIFICADO: ACEPTA LISTA DE MATERIAS ---
+  Widget _buildStudentInfoCard(BuildContext context, UserModel student, List<EnrollmentModel> enrollments) {
     final bool isGraded = student.finalGrade != null;
+
+    // Lógica para formatear materias y academias
+    String subjectsInfo;
+    if (enrollments.isEmpty) {
+      subjectsInfo = "Sin carga académica registrada";
+    } else {
+      // Crea una lista tipo: "• Cálculo (Básicas)"
+      subjectsInfo = enrollments.map((e) => "• ${e.subject} (${e.academy})").join("\n");
+    }
 
     return Card(
       elevation: 2,
@@ -171,9 +182,13 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             _buildInfoRow(Icons.person_outline, "Nombre", student.name),
             _buildInfoRow(Icons.badge_outlined, "Boleta", student.boleta),
             _buildInfoRow(Icons.email_outlined, "Correo", student.email),
-            _buildInfoRow(Icons.school_outlined, "Academias", student.academies.join(", ")),
+            
+            // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
+            // En lugar de usar student.academies, usamos la cadena generada arriba
+            _buildInfoRow(Icons.menu_book_outlined, "Materias por Academia", subjectsInfo),
+            
             _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
-            // Si el sistema calculó promedio final, lo mostramos
+            
             if (isGraded)
               _buildInfoRow(Icons.star_border, "Promedio Final", student.finalGrade.toString()),
 
@@ -217,7 +232,9 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(children: [
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start, // Alineación superior para textos largos
+        children: [
         Icon(statusIcon, color: isStatus ? statusColor : Colors.grey.shade600, size: 20),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -226,7 +243,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
           Text(value, style: TextStyle(
               color: isStatus ? statusColor : Colors.black54,
               fontSize: 16,
-              fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
+              fontWeight: isStatus ? FontWeight.bold : FontWeight.normal,
+              height: 1.3 // Mejor espaciado para lista de materias
           )),
         ])),
       ]),

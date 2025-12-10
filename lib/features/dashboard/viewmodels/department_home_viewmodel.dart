@@ -21,6 +21,19 @@ class DepartmentHomeViewModel extends ChangeNotifier {
   int get accreditedCount => _allStudents.where((s) => s.status == 'ACREDITADO').length;
   int get notAccreditedCount => _allStudents.where((s) => s.status == 'NO_ACREDITADO').length;
 
+  Map<String, int> get studentsByAcademy {
+    final Map<String, int> counts = {};
+    for (final student in _allStudents) {
+      // Como 'academies' es una lista, recorremos cada una
+      for (final academy in student.academies) {
+        // Normalizamos el nombre (opcional, por si hay diferencias de mayúsculas)
+        final key = academy.trim(); 
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<UserModel> get students => _filteredStudents;
@@ -57,6 +70,11 @@ class DepartmentHomeViewModel extends ChangeNotifier {
       }).toList();
     }
     notifyListeners();
+  }
+
+  // Método auxiliar para filtrar vista por academia (Opcional, para navegación futura)
+  List<UserModel> getStudentsByAcademy(String academyName) {
+    return _allStudents.where((s) => s.academies.contains(academyName)).toList();
   }
 
   Future<void> logout({VoidCallback? onDone}) async {
