@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data'; // Necesario para Uint8List
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,28 +19,27 @@ import 'package:proyecto_tutorias/features/login/views/login_view.dart';
 class MockAuthRepository extends Mock implements AuthRepository {
   @override
   Future<User?> signIn({required String email, required String password}) async {
-    // Simulamos la lógica aquí para evitar problemas con 'when' y argumentos nombrados
     if (email == 'error@ipn.mx') {
       throw Exception('Credenciales inválidas'); // Simular error
     }
-    return null; // Simular éxito (User? es null en tu implementación actual al loguear)
+    return null; // Simular éxito
   }
 }
 
 class TestAssetBundle extends CachingAssetBundle {
-  // 1x1 Pixel transparente en formato PNG (Base64)
-  // Esto evita que Image.asset falle al intentar decodificar bytes inválidos
+  // Un PNG de 1x1 pixel transparente en base64. 
+  // Esto es válido para que Image.asset lo decodifique sin errores.
   final String _base64Png =
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
   @override
   Future<String> loadString(String key, {bool cache = true}) async {
-    return 'Simulated String Content';
+    return "Dummy String Content";
   }
 
   @override
   Future<ByteData> load(String key) async {
-    // Decodificamos el PNG real para que el motor gráfico de Flutter no falle
+    // Decodificamos el base64 a bytes reales de imagen
     final Uint8List bytes = base64Decode(_base64Png);
     return ByteData.view(bytes.buffer);
   }
@@ -80,11 +80,9 @@ void main() {
 
   // Helper para configurar la pantalla como un celular
   void setScreenSize(WidgetTester tester) {
-    // Configura una resolución de 1080x2400 (celular moderno)
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
 
-    // Importante: resetear esto al terminar el test para no afectar otros
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
   }
