@@ -261,22 +261,27 @@ class ForgotPasswordView extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // --- BOTÓN PARA BORRAR ALL
+              // ==========================================================
+              // === BOTÓN: BORRADO DE LA BASE DE DATOS SOLO ALUMNOS    ===
+              // ==========================================================
               TextButton(
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text("⚠️ PELIGRO: BORRAR TODO"),
+                      title: const Text("⚠️ ELIMINAR ALUMNOS"),
                       content: const Text(
-                          "¿Estás seguro? Esto eliminará TODOS los usuarios permanentemente."),
+                          "Se eliminarán SOLO los usuarios con rol 'student'.\n\n"
+                          "• Jefes de Academia: SE CONSERVAN\n"
+                          "• Admin Tutorías: SE CONSERVA\n"
+                          "• Auth: Se intentará borrar la cuenta si la contraseña es 'alumno123'."),
                       actions: [
                         TextButton(
                             onPressed: () => Navigator.pop(context, false),
                             child: const Text("CANCELAR")),
                         TextButton(
                             onPressed: () => Navigator.pop(context, true),
-                            child: const Text("SÍ, BORRAR TODO",
+                            child: const Text("SÍ, BORRAR ALUMNOS",
                                 style: TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.bold))),
@@ -285,57 +290,126 @@ class ForgotPasswordView extends StatelessWidget {
                   );
 
                   if (confirm != true) return;
-
                   if (!context.mounted) return;
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text("Eliminando todos los usuarios..."),
+                        content: Text("Iniciando limpieza de alumnos..."),
                         duration: Duration(seconds: 5)),
                   );
 
+                  // Inicializamos contadores
+                  int deletedFirestore = 0;
+                  int deletedAuth = 0;
+                  //int errors = 0;
+
                   try {
+                    // 2. Configuración para Auth "Hack" (App Secundaria)
+                    FirebaseApp tempApp = await Firebase.initializeApp(
+                      name: 'DeleteWorkerApp',
+                      options: Firebase.app().options,
+                    );
+                    FirebaseAuth tempAuth = FirebaseAuth.instanceFor(app: tempApp);
                     final firestore = FirebaseFirestore.instance;
-                    final usersRef = firestore.collection('users');
-                    final snapshot = await usersRef.get();
+
+                    // 3. CONSULTA SEGURA: Traer SOLO estudiantes
+                    // Esto garantiza que Jefes y Tutorías ni siquiera se lean.
+                    final snapshot = await firestore
+                        .collection('users')
+                        .where('role', isEqualTo: 'student') 
+                        .get();
+
+                    if (snapshot.docs.isEmpty) {
+                      await tempApp.delete();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("No hay alumnos para borrar.")));
+                      }
+                      return;
+                    }
+
+                    // Preparamos el batch para Firestore
                     WriteBatch batch = firestore.batch();
                     int batchCount = 0;
 
-                    if (snapshot.docs.isEmpty) return;
-
+                    // 4. Iterar sobre cada alumno encontrado
                     for (var doc in snapshot.docs) {
+                      final data = doc.data();
+                      final email = data['email_inst'] as String?;
+
+                      // --- A. Borrado de Auth (Intento) ---
+                      if (email != null) {
+                        try {
+                          // Intentamos loguear con la contraseña por defecto de tus seeders
+                          await tempAuth.signInWithEmailAndPassword(
+                              email: email, password: 'alumno123');
+                          
+                          // Si entra, lo borramos
+                          if (tempAuth.currentUser != null) {
+                            await tempAuth.currentUser!.delete();
+                            deletedAuth++;
+                            debugPrint("Auth borrado: $email");
+                          }
+                        } catch (e) {
+                          // Si falla (ej. contraseña cambiada o ya no existe en Auth), 
+                          // solo lo logueamos y seguimos con Firestore.
+                          debugPrint("No se pudo borrar Auth de $email: $e");
+                        }
+                      }
+
+                      // --- B. Borrado de Firestore ---
                       batch.delete(doc.reference);
+                      deletedFirestore++;
                       batchCount++;
-                      if (batchCount >= 450) {
+
+                      // Commit cada 400 docs para no saturar
+                      if (batchCount >= 400) {
                         await batch.commit();
                         batch = firestore.batch();
                         batchCount = 0;
                       }
                     }
+
+                    // Commit final de los restantes
                     if (batchCount > 0) await batch.commit();
 
+                    // Limpieza de la app secundaria
+                    await tempApp.delete();
+
+                    // 5. Resultado
                     if (context.mounted) {
                       showDialog(
                         context: context,
                         builder: (_) => AlertDialog(
-                          title: const Text("🗑️ Limpieza Terminada"),
-                          content:
-                              const Text("Se eliminaron todos los usuarios."),
+                          title: const Text("🧹 Limpieza Finalizada"),
+                          content: Text(
+                              "Resultados:\n\n"
+                              "✅ Alumnos en BD borrados: $deletedFirestore\n"
+                              "✅ Cuentas Auth borradas: $deletedAuth\n"
+                              "🛡️ Jefes y Admins: INTACTOS\n\n"
+                              "Nota: Si 'Cuentas Auth' es menor, es porque esos alumnos cambiaron su contraseña o ya no existían."),
                           actions: [
                             TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text("OK"))
+                                child: const Text("Perfecto"))
                           ],
                         ),
                       );
                     }
+
                   } catch (e) {
-                    debugPrint(e.toString());
+                    debugPrint("Error fatal: $e");
+                    // Intentar limpiar la app secundaria si falló algo crítico
+                  try { await Firebase.app('DeleteWorkerApp').delete(); } catch (_) {}                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error: $e")));
+                    }
                   }
                 },
                 child: const Text(
-                  "BORRAR BD (DELETE ALL)",
-                  style:
-                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  "BORRAR SOLO ALUMNOS",
+                  style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
                 ),
               ),
 
