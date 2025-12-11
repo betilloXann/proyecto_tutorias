@@ -27,20 +27,20 @@ class MockAuthRepository extends Mock implements AuthRepository {
 }
 
 class TestAssetBundle extends CachingAssetBundle {
-  final String _svgDummy = '''
-<svg viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
-  <rect width="10" height="10" fill="transparent"/>
-</svg>
-''';
+  // 1x1 Pixel transparente en formato PNG (Base64)
+  // Esto evita que Image.asset falle al intentar decodificar bytes inválidos
+  final String _base64Png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
   @override
   Future<String> loadString(String key, {bool cache = true}) async {
-    return _svgDummy;
+    return 'Simulated String Content';
   }
 
   @override
   Future<ByteData> load(String key) async {
-    final Uint8List bytes = utf8.encode(_svgDummy);
+    // Decodificamos el PNG real para que el motor gráfico de Flutter no falle
+    final Uint8List bytes = base64Decode(_base64Png);
     return ByteData.view(bytes.buffer);
   }
 }
@@ -90,7 +90,7 @@ void main() {
   }
 
   testWidgets('Renderizado Inicial: Debe mostrar campos y botón', (tester) async {
-    setScreenSize(tester); // 1. Ajustar pantalla
+    setScreenSize(tester);
 
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
@@ -99,12 +99,11 @@ void main() {
     expect(find.byKey(const Key('login_email_input')), findsOneWidget);
     expect(find.byKey(const Key('login_password_input')), findsOneWidget);
 
-    // Al ser la pantalla alta, el botón debería ser visible sin scroll
     expect(find.byKey(const Key('login_button')), findsOneWidget);
   });
 
   testWidgets('Login Exitoso: Debe navegar a /home', (tester) async {
-    setScreenSize(tester); // 1. Ajustar pantalla
+    setScreenSize(tester);
 
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
@@ -113,12 +112,11 @@ void main() {
     await tester.enterText(find.byKey(const Key('login_email_input')), 'profe@ipn.mx');
     await tester.enterText(find.byKey(const Key('login_password_input')), '123');
 
-    // 3. Cerrar teclado virtual (buena práctica)
+    // 3. Cerrar teclado virtual
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
 
-    // 4. Presionar botón (Como la pantalla es alta, ya no necesitamos ensureVisible obligatoriamente,
-    // pero lo dejamos por seguridad si el teclado estorba)
+    // 4. Presionar botón
     final loginBtn = find.byKey(const Key('login_button'));
     await tester.ensureVisible(loginBtn);
     await tester.tap(loginBtn);
@@ -130,7 +128,7 @@ void main() {
   });
 
   testWidgets('Login Fallido: Debe mostrar SnackBar con error', (tester) async {
-    setScreenSize(tester); // 1. Ajustar pantalla
+    setScreenSize(tester);
 
     await tester.pumpWidget(createTestWidget());
     await tester.pumpAndSettle();
