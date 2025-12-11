@@ -6,10 +6,10 @@ import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/department_home_viewmodel.dart';
-import '../viewmodels/home_menu_viewmodel.dart';
-import 'student_list_view.dart';
-import 'bulk_upload_view.dart';
-import 'semester_report_view.dart'; // <-- AÑADIDO
+import '../../dashboard/viewmodels/home_menu_viewmodel.dart';
+import '../../students/views/student_list_view.dart';
+import '../../operations/views/bulk_upload_view.dart';
+import '../../reports/views/semester_report_view.dart'; // <-- AÑADIDO
 
 class DepartmentHomeView extends StatefulWidget {
   final UserModel user;

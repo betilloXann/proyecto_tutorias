@@ -7,8 +7,8 @@ import '../../../data/models/subject_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
 import '../viewmodels/academy_home_viewmodel.dart';
-import '../viewmodels/home_menu_viewmodel.dart';
-import 'student_list_view.dart';
+import '../../dashboard/viewmodels/home_menu_viewmodel.dart';
+import '../../students/views/student_list_view.dart';
 import 'subject_management_view.dart';
 
 // 1. Convertimos a StatefulWidget para escuchar el ciclo de vida (focus)

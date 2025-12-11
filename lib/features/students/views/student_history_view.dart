@@ -6,7 +6,7 @@ import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
-import 'upload_evidence_view.dart';
+import '../../operations/views/upload_evidence_view.dart';
 
 class StudentHistoryView extends StatelessWidget {
   final UserModel user;

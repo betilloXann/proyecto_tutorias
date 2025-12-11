@@ -5,9 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/widgets/responsive_container.dart'; // <--- IMPORTAR
 import '../../../data/models/user_model.dart';
 import '../../../theme/theme.dart';
-import '../viewmodels/home_menu_viewmodel.dart';
-import 'upload_evidence_view.dart';
-import 'subject_list_view.dart';
+import '../../dashboard/viewmodels/home_menu_viewmodel.dart';
+import '../../operations/views/upload_evidence_view.dart';
+import '../../academic/views/subject_list_view.dart';
 import '../../../data/services/pdf_generator_service.dart';
 import 'student_history_view.dart';
 
