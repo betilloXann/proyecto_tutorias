@@ -1,17 +1,15 @@
-import 'package:flutter/foundation.dart'; // Para kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-// IMPORTACIONES PARA DESCARGA
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
-// IMPORTACIÓN PARA EL TRUCO WEB
 import 'package:universal_html/html.dart' as html;
 
 import '../../../core/widgets/responsive_container.dart';
-import '../../../data/models/enrollment_model.dart'; //
+import '../../../data/models/enrollment_model.dart';
 import '../../../data/models/evidence_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -28,8 +26,6 @@ class StudentDetailView extends StatefulWidget {
 }
 
 class _StudentDetailViewState extends State<StudentDetailView> {
-
-  // --- GENERADORES DE NOMBRES ---
 
   String _getInitials(String text) {
     if (text.isEmpty) return "X";
@@ -49,7 +45,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     return "${initialsName}_${boleta}_${initialsSubject}_$docType.pdf";
   }
 
-  // --- FUNCIÓN DE DESCARGA MAESTRA ---
   Future<void> _downloadAndOpenFile(String? urlString, String fileName) async {
     if (urlString == null || urlString.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay archivo disponible.')));
@@ -59,22 +54,17 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     try {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Preparando descarga de $fileName...')));
 
-      // 1. SI ES WEB
       if (kIsWeb) {
-        final response = await Dio().get(
-          urlString,
-          options: Options(responseType: ResponseType.bytes),
-        );
+        final response = await Dio().get(urlString, options: Options(responseType: ResponseType.bytes));
         final blob = html.Blob([response.data]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        html.AnchorElement(href: url)
+        final anchor = html.AnchorElement(href: url)
           ..setAttribute("download", fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
         return;
       }
 
-      // 2. SI ES MÓVIL
       final dir = await getApplicationDocumentsDirectory();
       final savePath = "${dir.path}/$fileName";
 
@@ -90,9 +80,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     }
   }
 
-  // --- DIÁLOGOS ---
-
-  // Diálogo para calificar MATERIA INDIVIDUAL
   void _showSubjectGradeDialog(BuildContext context, EnrollmentModel enrollment) {
     final vm = context.read<StudentDetailViewModel>();
     showDialog(
@@ -129,11 +116,13 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // AHORA PASAMOS TAMBIÉN LA LISTA DE INSCRIPCIONES (vm.enrollments)
-                    _buildStudentInfoCard(context, vm.student, vm.enrollments),
+                    _buildStudentInfoCard(context, vm.student),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("MATERIAS POR CURSAR"), // <-- NUEVA SECCIÓN
+                    _buildSubjectsToTake(vm), // <-- NUEVO WIDGET
                     const SizedBox(height: 24),
                     _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
-                    _buildEnrollmentsList(vm, context), 
+                    _buildEnrollmentsList(vm, context),
                     const SizedBox(height: 24),
                     _buildSectionTitle("EVIDENCIAS SUBIDAS"),
                     if (vm.groupedEvidences.isEmpty)
@@ -159,18 +148,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     return Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.bluePrimary));
   }
 
-  // --- MODIFICADO: ACEPTA LISTA DE MATERIAS ---
-  Widget _buildStudentInfoCard(BuildContext context, UserModel student, List<EnrollmentModel> enrollments) {
+  Widget _buildStudentInfoCard(BuildContext context, UserModel student) {
     final bool isGraded = student.finalGrade != null;
-
-    // Lógica para formatear materias y academias
-    String subjectsInfo;
-    if (enrollments.isEmpty) {
-      subjectsInfo = "Sin carga académica registrada";
-    } else {
-      // Crea una lista tipo: "• Cálculo (Básicas)"
-      subjectsInfo = enrollments.map((e) => "• ${e.subject} (${e.academy})").join("\n");
-    }
 
     return Card(
       elevation: 2,
@@ -182,13 +161,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
             _buildInfoRow(Icons.person_outline, "Nombre", student.name),
             _buildInfoRow(Icons.badge_outlined, "Boleta", student.boleta),
             _buildInfoRow(Icons.email_outlined, "Correo", student.email),
-            
-            // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
-            // En lugar de usar student.academies, usamos la cadena generada arriba
-            _buildInfoRow(Icons.menu_book_outlined, "Materias por Academia", subjectsInfo),
-            
+            _buildInfoRow(Icons.school_outlined, "Academias", student.academies.join(", ")),
             _buildInfoRow(Icons.history_toggle_off, "Estatus", student.status, isStatus: true),
-            
             if (isGraded)
               _buildInfoRow(Icons.star_border, "Promedio Final", student.finalGrade.toString()),
 
@@ -232,9 +206,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // Alineación superior para textos largos
-        children: [
+      child: Row(children: [
         Icon(statusIcon, color: isStatus ? statusColor : Colors.grey.shade600, size: 20),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -243,12 +215,52 @@ class _StudentDetailViewState extends State<StudentDetailView> {
           Text(value, style: TextStyle(
               color: isStatus ? statusColor : Colors.black54,
               fontSize: 16,
-              fontWeight: isStatus ? FontWeight.bold : FontWeight.normal,
-              height: 1.3 // Mejor espaciado para lista de materias
+              fontWeight: isStatus ? FontWeight.bold : FontWeight.normal
           )),
         ])),
       ]),
     );
+  }
+
+  // --- WIDGET PARA MATERIAS POR CURSAR (NUEVO) ---
+  Widget _buildSubjectsToTake(StudentDetailViewModel vm) {
+    if (vm.subjectsToTakeStatus.isEmpty) {
+      return const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No tiene materias por cursar definidas."))));
+    }
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: vm.subjectsToTakeStatus.length,
+        separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+        itemBuilder: (context, index) {
+          final subject = vm.subjectsToTakeStatus.keys.elementAt(index);
+          final status = vm.subjectsToTakeStatus.values.elementAt(index);
+          final statusInfo = _getStatusInfoForSubject(status);
+
+          return ListTile(
+            title: Text(subject),
+            trailing: Chip(
+              label: Text(statusInfo.text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              backgroundColor: statusInfo.color,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  ({String text, Color color}) _getStatusInfoForSubject(String status) {
+    switch (status) {
+      case 'ACREDITADO': return (text: 'Acreditado', color: Colors.green);
+      case 'NO_ACREDITADO': return (text: 'No Acreditado', color: Colors.red);
+      case 'EN_CURSO': return (text: 'En Curso', color: AppTheme.bluePrimary);
+      default: return (text: 'Pendiente', color: Colors.orange);
+    }
   }
 
   Widget _buildEnrollmentsList(StudentDetailViewModel vm, BuildContext context) {
@@ -265,7 +277,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
 
           return Card(
             margin: const EdgeInsets.only(top: 8, bottom: 4),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: statusColor.withValues(alpha:0.5))),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: statusColor.withOpacity(0.5))),
             child: ListTile(
               leading: Icon(Icons.class_outlined, color: statusColor),
               title: Text(e.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -279,7 +291,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                     const Text("Estatus: En Curso", style: TextStyle(fontSize: 12)),
                 ],
               ),
-              // BOTÓN PARA CALIFICAR ESTA MATERIA
               trailing: IconButton(
                 icon: Icon(isGraded ? Icons.edit : Icons.grading, color: AppTheme.blueDark),
                 tooltip: "Calificar esta materia",
@@ -292,9 +303,11 @@ class _StudentDetailViewState extends State<StudentDetailView> {
   }
 }
 
-// ==========================================
-// COMPONENTES PRIVADOS
-// ==========================================
+// ... (El resto de la vista se mantiene igual)
+
+
+
+
 
 class _SubjectGradeDialog extends StatefulWidget {
   final EnrollmentModel enrollment;
@@ -307,7 +320,6 @@ class _SubjectGradeDialog extends StatefulWidget {
 class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
   late final TextEditingController _gradeController;
 
-  // Estado calculado automáticamente
   bool _isAccredited = false;
   String _statusMessage = "";
   Color _statusColor = Colors.grey;
@@ -316,7 +328,6 @@ class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
   void initState() {
     super.initState();
     _gradeController = TextEditingController(text: widget.enrollment.finalGrade?.toString() ?? '');
-    // Calculamos el estado inicial si ya había calificación
     _updateStatus(_gradeController.text);
   }
 
@@ -351,7 +362,7 @@ class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
     final error = await vm.assignSubjectGrade(
         enrollmentId: widget.enrollment.id,
         gradeInput: _gradeController.text,
-        isAccredited: _isAccredited // Se envía el valor calculado
+        isAccredited: _isAccredited
     );
 
     if (!mounted) return;
@@ -374,17 +385,16 @@ class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
             controller: _gradeController,
             decoration: const InputDecoration(labelText: "Calificación (0-10)", border: OutlineInputBorder()),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: _updateStatus, // <--- AQUÍ OCURRE LA MAGIA REACTIVA
+            onChanged: _updateStatus,
           ),
           const SizedBox(height: 20),
 
-          // Mensaje Reactivo
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-                color: _statusColor.withValues(alpha:0.1),
+                color: _statusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _statusColor.withValues(alpha:0.3))
+                border: Border.all(color: _statusColor.withOpacity(0.3))
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
