@@ -135,7 +135,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> with WidgetsBindingOb
                       child: SizedBox(
                         height: 100,
                         child: _HoverableSummaryCard(
-                          title: 'Sin Activar (Pre Registro)',
+                          title: 'Sin Activar Cuenta',
                           count: vm.preRegisteredStudents.length.toString(),
                           icon: Icons.person_add_alt_1_outlined,
                           color: Colors.purple.shade700,
@@ -170,7 +170,7 @@ class _AcademyHomeViewState extends State<AcademyHomeView> with WidgetsBindingOb
                             vm.loadInitialData();
                           },
                           child: _HoverableSummaryCard(
-                            title: 'Pendientes',
+                            title: 'Pendientes de Asignación',
                             count: vm.pendingStudents.length.toString(),
                             icon: Icons.hourglass_top_outlined,
                             color: Colors.orange.shade700,

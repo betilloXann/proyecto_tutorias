@@ -133,7 +133,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                           GestureDetector(
                             onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
                             child: _HoverableSummaryCard(
-                              title: 'Pre-registrados',
+                              title: 'Sin Activar Cuenta',
                               count: vm.preRegisteredCount.toString(),
                               icon: Icons.person_add_alt_1_outlined,
                               color: Colors.purple.shade700,
@@ -142,7 +142,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                           GestureDetector(
                             onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
                             child: _HoverableSummaryCard(
-                              title: 'Pendientes',
+                              title: 'Pendientes de Asignar Tutor',
                               count: vm.pendingCount.toString(),
                               icon: Icons.hourglass_top_outlined,
                               color: Colors.orange.shade700,
@@ -151,7 +151,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                           GestureDetector(
                             onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
                             child: _HoverableSummaryCard(
-                              title: 'En Curso',
+                              title: 'Cursando',
                               count: vm.inCourseCount.toString(),
                               icon: Icons.school_outlined,
                               color: AppTheme.bluePrimary,
