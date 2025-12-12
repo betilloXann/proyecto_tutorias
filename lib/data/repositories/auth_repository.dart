@@ -45,6 +45,21 @@ class AuthRepository {
     }
   }
 
+  Future<bool> checkCurpExists(String curp) async {
+    try {
+      // Buscamos si hay algún usuario con ese CURP
+      final snapshot = await _db
+          .collection('users')
+          .where('curp', isEqualTo: curp)
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      throw Exception("Error al verificar CURP: $e");
+    }
+  }
+
   Future<void> activateAccount({
     required String docId,
     required String email,
@@ -54,6 +69,7 @@ class AuthRepository {
     required String dictamenFileName,
     File? dictamenFileMobile,
     Uint8List? dictamenFileWeb,
+    required String curp,
   }) async {
     try {
       UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -78,6 +94,7 @@ class AuthRepository {
         'email_personal': personalEmail,
         'phone': phone,
         'dictamen_url': downloadUrl,
+        'curp': curp,
         'status': 'PENDIENTE_ASIGNACION',
         'updated_at': FieldValue.serverTimestamp(),
       });

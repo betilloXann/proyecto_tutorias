@@ -76,6 +76,14 @@ class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
           as _i3.Future<_i5.UserModel?>);
 
   @override
+  _i3.Future<bool> checkCurpExists(String? curp) =>
+      (super.noSuchMethod(
+            Invocation.method(#checkCurpExists, [curp]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
   _i3.Future<void> activateAccount({
     required String? docId,
     required String? email,
@@ -85,6 +93,7 @@ class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
     required String? dictamenFileName,
     _i6.File? dictamenFileMobile,
     _i7.Uint8List? dictamenFileWeb,
+    required String? curp,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#activateAccount, [], {
@@ -96,6 +105,7 @@ class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
               #dictamenFileName: dictamenFileName,
               #dictamenFileMobile: dictamenFileMobile,
               #dictamenFileWeb: dictamenFileWeb,
+              #curp: curp,
             }),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
@@ -109,6 +119,18 @@ class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
             returnValue: _i3.Future<_i5.UserModel?>.value(),
           )
           as _i3.Future<_i5.UserModel?>);
+
+  @override
+  _i3.Future<void> bulkRegisterStudents(
+    List<Map<String, dynamic>>? students,
+    dynamic Function(int)? onProgress,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#bulkRegisterStudents, [students, onProgress]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 
   @override
   _i3.Future<void> uploadEvidence({
@@ -169,6 +191,25 @@ class MockAuthRepository extends _i1.Mock implements _i2.AuthRepository {
   _i3.Future<void> sendPasswordResetEmail(String? email) =>
       (super.noSuchMethod(
             Invocation.method(#sendPasswordResetEmail, [email]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> assignSubjectGrade({
+    required String? studentId,
+    required String? enrollmentId,
+    required double? finalGrade,
+    required String? status,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#assignSubjectGrade, [], {
+              #studentId: studentId,
+              #enrollmentId: enrollmentId,
+              #finalGrade: finalGrade,
+              #status: status,
+            }),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )

@@ -3,13 +3,13 @@ class UserModel {
   final String boleta;
   final String name;
   final String email;
-  final String status; // Se mantiene como "estatus general/resumen"
+  final String status;
   final String role;
   final List<String> academies;
   final String? dictamenUrl;
   final double? finalGrade;
   final List<String> subjectsToTake;
-  final Map<String, String> academyStatus; // <-- NUEVO: Estatus por academia
+  final Map<String, String> academyStatus;
 
   UserModel({
     required this.id,

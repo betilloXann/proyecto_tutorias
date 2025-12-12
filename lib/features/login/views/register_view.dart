@@ -14,6 +14,7 @@ class RegisterView extends StatefulWidget {
   final String foundName;
   final String docId;
   final String email;
+  final String curp;
 
   const RegisterView({
     super.key,
@@ -21,6 +22,7 @@ class RegisterView extends StatefulWidget {
     required this.foundName,
     required this.docId,
     required this.email,
+    required this.curp,
   });
 
   @override
@@ -120,6 +122,7 @@ class _RegisterViewState extends State<RegisterView> {
         dictamenFileName: _fileName!,
         dictamenFileMobile: _selectedFileMobile,
         dictamenFileWeb: _selectedFileWeb,
+        curp: widget.curp,
       );
 
       if (!mounted) return;

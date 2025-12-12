@@ -10,11 +10,9 @@ class TextInputField extends StatelessWidget {
   final FocusNode? focusNode;
   final ValueChanged<String>? onFieldSubmitted;
   final bool readOnly;
-
-  // NUEVO: Propiedad para el icono del final (ojito)
   final Widget? suffixIcon;
-
   final String? Function(String?)? validator;
+  final TextCapitalization textCapitalization;
 
   const TextInputField({
     super.key,
@@ -29,6 +27,7 @@ class TextInputField extends StatelessWidget {
     this.readOnly = false,
     this.suffixIcon, // Lo recibimos en el constructor
     this.validator, // Lo recibimos aquí
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -60,17 +59,15 @@ class TextInputField extends StatelessWidget {
         onFieldSubmitted: onFieldSubmitted,
         readOnly: readOnly,
         validator: validator,
+        textCapitalization: textCapitalization,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey[600]),
-          prefixIcon: Icon(icon, color: const Color(0xFF2F5A93)), // Color azul de tu tema
-
-          // AQUI SE AGREGA EL ICONO DEL OJITO
+          prefixIcon: Icon(icon, color: const Color(0xFF2F5A93)),
           suffixIcon: suffixIcon,
-
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none, // Sin borde porque usamos el Container para la sombra
+            borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.transparent, // Transparente para ver el color del Container

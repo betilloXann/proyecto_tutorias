@@ -16,6 +16,7 @@ class StudentLookupView extends StatefulWidget {
 
 class _StudentLookupViewState extends State<StudentLookupView> {
   final boletaCtrl = TextEditingController();
+  final curpCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -31,13 +32,24 @@ class _StudentLookupViewState extends State<StudentLookupView> {
       child: Scaffold(
         backgroundColor: const Color(0xFFE6EEF8),
         resizeToAvoidBottomInset: false, // <--- OPTIMIZACIÓN TECLADO
-
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
-            onPressed: () => Navigator.of(context).pop(),
+          leading: Consumer<StudentLookupViewModel>(
+            builder: (context, vm, _) {
+              return IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF2F5A93)),
+                onPressed: () {
+                  // Si estamos en paso de CURP, volvemos a búsqueda de boleta
+                  if (vm.isBoletaVerified) {
+                    vm.resetSearch();
+                    curpCtrl.clear();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+              );
+            },
           ),
         ),
 
@@ -70,10 +82,12 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     const SizedBox(height: 10),
 
                     /// SUBTÍTULO
-                    const Text(
-                      "Ingresa tu número de boleta para verificar que estás en el sistema.",
+                    Text(
+                      viewModel.isBoletaVerified
+                          ? "Hola, ${viewModel.foundUser?.name}.\nPor favor verifica tu CURP para continuar."
+                          : "Ingresa tu número de boleta para verificar que estás en el sistema.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
                         color: Colors.grey,
                       ),
@@ -81,13 +95,26 @@ class _StudentLookupViewState extends State<StudentLookupView> {
 
                     const SizedBox(height: 40),
 
-                    /// INPUT
+                    // --- PASO 1: BOLETA (Visible si NO está verificado) ---
+                    if (!viewModel.isBoletaVerified)
                     TextInputField(
                       label: "Número de Boleta",
                       controller: boletaCtrl,
                       icon: Icons.numbers,
                       keyboardType: TextInputType.number,
                     ),
+
+                    // --- PASO 2: CURP (Visible solo SI está verificado) ---
+                    if (viewModel.isBoletaVerified) ...[
+                      const SizedBox(height: 10),
+                      TextInputField(
+                        label: "Ingresa tu CURP",
+                        controller: curpCtrl,
+                        icon: Icons.badge,
+                        keyboardType: TextInputType.text,
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                    ],
 
                     /// ERROR
                     if (viewModel.errorMessage != null)
@@ -106,31 +133,42 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     const SizedBox(height: 30),
 
                     /// BOTÓN PRINCIPAL
+                    // BOTÓN DE ACCIÓN (Cambia según el paso)
                     SizedBox(
                       width: double.infinity,
                       height: 56,
                       child: viewModel.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : PrimaryButton(
-                        text: "Buscar y Continuar",
+                        text: viewModel.isBoletaVerified
+                            ? "Validar CURP y Continuar"
+                            : "Buscar Estudiante",
                         onPressed: () async {
-                          final success = await viewModel.searchStudent(boletaCtrl.text);
+                          if (!viewModel.isBoletaVerified) {
+                            // ACCIÓN 1: BUSCAR BOLETA
+                            await viewModel.searchStudent(boletaCtrl.text);
+                            // Si tiene éxito, la UI se actualiza sola gracias a isBoletaVerified
+                          } else {
+                            // ACCIÓN 2: VALIDAR CURP
+                            final success = await viewModel.validateCurp(curpCtrl.text);
 
-                          if (success && context.mounted) {
-                            final user = viewModel.foundUser;
-
-                            if (user != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RegisterView(
-                                    boleta: user.boleta,
-                                    foundName: user.name,
-                                    docId: user.id,
-                                    email: user.email, // <-- THE FIX
+                            if (success && context.mounted) {
+                              final user = viewModel.foundUser;
+                              if (user != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RegisterView(
+                                      boleta: user.boleta,
+                                      foundName: user.name,
+                                      docId: user.id,
+                                      email: user.email,
+                                      curp: curpCtrl.text,
+                                      // Nota: Considera pasar el CURP aquí también si RegisterView lo necesita
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              }
                             }
                           }
                         },
