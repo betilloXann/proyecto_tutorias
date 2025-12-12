@@ -90,7 +90,7 @@ void main() {
 
   group('StudentLookupViewModel - Validate CURP', () {
     // Un CURP válido genérico para pruebas
-    const validCurp = 'PEPJ900101HDFRRA01';
+    const validCurp = 'PEPJ900101HDFRRC01';
 
     test('Fallo: Formato de CURP inválido (Regex)', () async {
       final result = await viewModel.validateCurp('INVALIDO');

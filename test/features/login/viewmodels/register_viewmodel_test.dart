@@ -50,7 +50,7 @@ void main() {
     test('Step 0: Search Student - Fallo si status no es PRE_REGISTRO', () async {
       final user = UserModel(
         id: '123', 
-        boleta: '2020123456',
+        boleta: '2020640000',
         role: 'student',
         academies: ['INFORMATICA'],
         name: 'Test', 
