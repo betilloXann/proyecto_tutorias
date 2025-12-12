@@ -50,12 +50,12 @@ void main() {
     test('Step 0: Search Student - Fallo si status no es PRE_REGISTRO', () async {
       final user = UserModel(
         id: '123', 
+        name: 'Test', 
+        email: 'test@test.com', 
+        status: 'ACTIVO',
         boleta: '2020640000',
         role: 'student',
         academies: ['INFORMATICA'],
-        name: 'Test', 
-        email: 'test@test.com', 
-        status: 'PRE_REGISTRO',
       );
       
       when(mockAuthRepository.checkStudentStatus('2020640000'))
