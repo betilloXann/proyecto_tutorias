@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  dio: ^5.0.0
+  path_provider: ^2.0.0
+  open_filex: ^4.3.0
+  universal_html: ^2.0.0
 
   flutter_svg: ^2.0.9
 
@@ -25,6 +29,7 @@ dependencies:
   collection: ^1.19.0
 
   excel: ^4.0.3
+  fl_chart: ^0.63.0 # <-- AÑADIDO
 
   cupertino_icons: ^1.0.8
   firebase_storage: ^13.0.4

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/primary_button.dart';
@@ -41,6 +40,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void _submitLogin() async {
+    // Usamos read aquí (una sola vez) para no escuchar cambios continuos
     final vm = context.read<LoginViewModel>();
     FocusScope.of(context).unfocus();
 
@@ -66,24 +66,26 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final vm = context.watch<LoginViewModel>();
 
-    // 1. OBTENER METADATOS DE LA PANTALLA
+    // 1. OBTENER METADATOS (Solo lo necesario para layout inicial)
     final size = MediaQuery.of(context);
+
+    // El padding del teclado se actualiza frame a frame, lo usaremos SOLO en el scroll
     final bottomPadding = size.viewInsets.bottom;
     final topPadding = size.padding.top;
-
-    // 2. CALCULAR EL ESPACIO REAL DEL HEADER (Status Bar + AppBar)
-    // CAMBIO: Restamos 8 en lugar de sumar 16 para subir todo el bloque.
     final double headerHeight = topPadding + kToolbarHeight - 8;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
 
+      // 🔥 LA CLAVE DEL RENDIMIENTO:
+      // Esto evita que el Scaffold recalcule el fondo/gradiente cada vez que el teclado se mueve.
+      resizeToAvoidBottomInset: false,
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0, // Evita cambio de color al hacer scroll
+        scrolledUnderElevation: 0,
         leadingWidth: 70,
         leading: Container(
           margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
@@ -109,6 +111,7 @@ class _LoginViewState extends State<LoginView> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        // Al usar resizeToAvoidBottomInset: false, este gradiente ya no se repinta 60 veces/segundo
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -123,12 +126,13 @@ class _LoginViewState extends State<LoginView> {
         child: ResponsiveContainer(
           child: Center(
             child: SingleChildScrollView(
-              // Usamos el headerHeight ajustado (asegurando que no sea negativo)
+              // Aplicamos el padding del teclado MANUALMENTE aquí.
+              // Solo se mueve el contenido scrollable, el fondo se queda quieto.
               padding: EdgeInsets.fromLTRB(
                   24,
                   headerHeight > 0 ? headerHeight : 24,
                   24,
-                  24 + bottomPadding
+                  24 + bottomPadding // <--- Aquí ocurre la magia suave
               ),
 
               child: Container(
@@ -147,12 +151,9 @@ class _LoginViewState extends State<LoginView> {
 
                 child: Column(
                   children: [
-                    // CAMBIO: Altura reducida de 160 a 140
-                    SvgPicture.asset("assets/images/image2.svg", width: 210, height: 150),
-
-                    // CAMBIO: Espacio reducido de 24 a 16
+                    Image.asset('assets/images/sesion.webp',
+                        width: 210, height: 150),
                     const SizedBox(height: 16),
-
                     Text(
                       "Iniciar Sesión",
                       style: theme.textTheme.headlineMedium?.copyWith(
@@ -161,8 +162,6 @@ class _LoginViewState extends State<LoginView> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
-                    // CAMBIO: Espacio reducido de 32 a 24
                     const SizedBox(height: 24),
 
                     TextInputField(
@@ -220,12 +219,17 @@ class _LoginViewState extends State<LoginView> {
                     SizedBox(
                       width: double.infinity,
                       height: 56,
-                      child: vm.isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : PrimaryButton(
-                        key: const Key('login_button'),
-                        text: "Ingresar",
-                        onPressed: _submitLogin,
+                      // Usamos Consumer para escuchar cambios SOLO en el botón
+                      child: Consumer<LoginViewModel>(
+                        builder: (context, vm, child) {
+                          return vm.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : PrimaryButton(
+                            key: const Key('login_button'),
+                            text: "Ingresar",
+                            onPressed: _submitLogin,
+                          );
+                        },
                       ),
                     ),
 

@@ -29,12 +29,20 @@ class RegisterViewModel extends ChangeNotifier {
   File? _dictamenFileMobile;
   Uint8List? _dictamenFileWeb;
 
+  String? _curp;
+
   // --- GETTERS ---
   int get currentStep => _currentStep;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   UserModel? get foundStudent => _foundStudent;
   String? get dictamenFileName => _dictamenFileName;
+
+  // 2. NUEVO: Setter para asignar el CURP desde la vista si fuera necesario
+  void setCurp(String value) {
+    _curp = value;
+    notifyListeners(); // Opcional
+  }
 
   // --- METHODS ---
 
@@ -92,6 +100,13 @@ class RegisterViewModel extends ChangeNotifier {
       return false;
     }
 
+    // Validación extra de seguridad
+    if (_curp == null || _curp!.isEmpty) {
+      _errorMessage = "Falta el CURP para completar el registro.";
+      notifyListeners();
+      return false;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -106,6 +121,7 @@ class RegisterViewModel extends ChangeNotifier {
         dictamenFileName: _dictamenFileName!,
         dictamenFileMobile: _dictamenFileMobile,
         dictamenFileWeb: _dictamenFileWeb,
+        curp: _curp!,
       );
       return true;
     } catch (e) {
@@ -122,6 +138,7 @@ class RegisterViewModel extends ChangeNotifier {
     _foundStudent = null;
     _errorMessage = null;
     boletaController.clear();
+    _curp = null;
     notifyListeners();
   }
 

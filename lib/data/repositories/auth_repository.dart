@@ -45,6 +45,21 @@ class AuthRepository {
     }
   }
 
+  Future<bool> checkCurpExists(String curp) async {
+    try {
+      // Buscamos si hay algún usuario con ese CURP
+      final snapshot = await _db
+          .collection('users')
+          .where('curp', isEqualTo: curp)
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      throw Exception("Error al verificar CURP: $e");
+    }
+  }
+
   Future<void> activateAccount({
     required String docId,
     required String email,
@@ -54,6 +69,7 @@ class AuthRepository {
     required String dictamenFileName,
     File? dictamenFileMobile,
     Uint8List? dictamenFileWeb,
+    required String curp,
   }) async {
     try {
       UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -78,6 +94,7 @@ class AuthRepository {
         'email_personal': personalEmail,
         'phone': phone,
         'dictamen_url': downloadUrl,
+        'curp': curp,
         'status': 'PENDIENTE_ASIGNACION',
         'updated_at': FieldValue.serverTimestamp(),
       });
@@ -216,6 +233,102 @@ class AuthRepository {
       throw Exception(e.message ?? 'Error al enviar correo de recuperación.');
     } catch (e) {
       throw Exception('Error desconocido: $e');
+    }
+  }
+
+  // 1. Calificar una inscripción específica (Materia)
+  Future<void> assignSubjectGrade({
+    required String studentId,
+    required String enrollmentId, // ID de la inscripción, NO del alumno
+    required double finalGrade,
+    required String status, // 'ACREDITADO' o 'NO_ACREDITADO'
+  }) async {
+    try {
+      // A. Actualizamos SOLO esa materia
+      await _db.collection('enrollments').doc(enrollmentId).update({
+        'final_grade': finalGrade,
+        'status': status,
+        'graded_at': FieldValue.serverTimestamp(),
+      });
+
+      // B. Calculamos el estatus global del alumno
+      await _recalculateStudentGlobalStatus(studentId);
+
+    } catch (e) {
+      throw Exception("Error al asignar calificación: $e");
+    }
+  }
+
+  // 2. Función inteligente que decide el estatus del alumno
+  Future<void> _recalculateStudentGlobalStatus(String studentId) async {
+    try {
+      // Obtenemos al alumno para saber cuántas debe cursar
+      final userDoc = await _db.collection('users').doc(studentId).get();
+      if (!userDoc.exists) return;
+
+      final userData = userDoc.data()!;
+      final List<dynamic> subjectsToTake = userData['subjects_to_take'] ?? [];
+      final int totalRequired = subjectsToTake.length;
+
+      // Obtenemos TODAS sus inscripciones
+      final enrollmentsSnapshot = await _db.collection('enrollments')
+          .where('uid', isEqualTo: studentId)
+          .get();
+
+      final docs = enrollmentsSnapshot.docs;
+
+      // Variables de control
+      int passedCount = 0;
+      int failedCount = 0;
+      int pendingCount = 0;
+
+      for (var doc in docs) {
+        final data = doc.data();
+        final status = data['status']; // EN_CURSO, ACREDITADO, NO_ACREDITADO
+
+        if (status == 'ACREDITADO') {
+          passedCount++;
+        } else if (status == 'NO_ACREDITADO') {
+          failedCount++;
+        } else {
+          // EN_CURSO o cualquier otro
+          pendingCount++;
+        }
+      }
+
+      // LÓGICA DE DECISIÓN ("LA REGLA DE ORO")
+      String newGlobalStatus = 'EN_CURSO';
+      double? finalAverage;
+
+      // Caso 1: Todavía le faltan materias por inscribir o terminar
+      // Si inscritas < requeridas O hay pendientes de calificar -> EN CURSO
+      if (docs.length < totalRequired || pendingCount > 0) {
+        newGlobalStatus = 'EN_CURSO';
+      }
+      // Caso 2: Ya terminó todo, pero reprobó alguna -> NO ACREDITADO
+      else if (failedCount > 0) {
+        newGlobalStatus = 'NO_ACREDITADO';
+      }
+      // Caso 3: Ya terminó todo y aprobó todo -> ACREDITADO
+      else if (passedCount == docs.length && docs.isNotEmpty) {
+        newGlobalStatus = 'ACREDITADO';
+
+        // Opcional: Calcular promedio global si quieres guardarlo
+        double sumGrades = 0;
+        for (var doc in docs) {
+          sumGrades += (doc.data()['final_grade'] ?? 0.0);
+        }
+        finalAverage = sumGrades / docs.length;
+      }
+
+      // Guardamos el veredicto en el alumno
+      await _db.collection('users').doc(studentId).update({
+        'status': newGlobalStatus,
+        if (finalAverage != null) 'final_grade': finalAverage, // Solo si acreditó todo
+      });
+
+    } catch (e) {
+      debugPrint("Error recalculando estatus global: $e");
     }
   }
 }

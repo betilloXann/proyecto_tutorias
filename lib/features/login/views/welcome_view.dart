@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/responsive_container.dart';
 
@@ -53,8 +52,8 @@ class WelcomeView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Ilustración o logo
-                    SvgPicture.asset(
-                      'assets/images/image5.svg',
+                    Image.asset(
+                      'assets/images/bienvenida.webp',
                       width: 200,
                       height: 180,
                     ),

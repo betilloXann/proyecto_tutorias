@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [ develop, main ]
   push:
-    branches: [ develop ]
+    branches: [ develop, main ]
 
 permissions:
   contents: read
@@ -37,7 +37,31 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # 6️⃣ Reportar fallos a Issues automáticamente
+      # 6️⃣ Build APK SOLO en main
+      - name: Build APK
+        if: github.ref == 'refs/heads/main'
+        run: flutter build apk --release
+
+      # 7️⃣ Subir APK como artifact SOLO en main
+      - name: Upload APK Artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # 8️⃣ Crear Release SOLO en main
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9️⃣ Reportar fallos a Issues automáticamente
       - name: 🤖 Report Failure to Issues
         if: failure()
         env:
@@ -81,7 +105,7 @@ jobs:
               --body "⚠️ **Nueva falla detectada** en el commit \`$SHA\`. Revisa los [nuevos logs aquí]($RUN_URL)."
           fi
 
-      # 7️⃣ Cerrar issue si todo pasa
+      # 🔟 Cerrar issue si todo pasa
       - name: ✅ Close CI Issue if build succeeds
         if: success()
         env:

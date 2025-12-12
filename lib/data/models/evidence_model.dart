@@ -7,7 +7,7 @@ class EvidenceModel {
   final DateTime uploadedAt;
   final String status;
   final String? feedback;
-  final String subject; // <-- RESTORED
+  final String subject;
 
   EvidenceModel({
     required this.id,
@@ -15,7 +15,7 @@ class EvidenceModel {
     required this.fileUrl,
     required this.uploadedAt,
     required this.status,
-    required this.subject, // <-- RESTORED
+    required this.subject,
     this.feedback,
   });
 
@@ -27,7 +27,7 @@ class EvidenceModel {
       uploadedAt: (data['uploaded_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: data['status'] ?? 'EN_REVISION',
       feedback: data['feedback'],
-      subject: data['materia'] ?? 'Materia Desconocida', // <-- RESTORED
+      subject: data['materia'] ?? 'Materia Desconocida',
     );
   }
 }

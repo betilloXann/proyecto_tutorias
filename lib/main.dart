@@ -9,7 +9,7 @@ import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
 import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
-import 'package:proyecto_tutorias/features/dashboard/viewmodels/upload_evidence_viewmodel.dart';
+import 'package:proyecto_tutorias/features/operations/viewmodels/upload_evidence_viewmodel.dart';
 import 'package:proyecto_tutorias/features/login/viewmodels/forgot_password_viewmodel.dart';
 
 // --- NEW: Import the scroll behavior config ---

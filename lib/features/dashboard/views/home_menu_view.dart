@@ -6,9 +6,9 @@ import '../../../data/repositories/auth_repository.dart';
 import '../viewmodels/home_menu_viewmodel.dart';
 
 // Vistas
-import 'student_home_view.dart';
-import 'department_home_view.dart';
-import 'academy_home_view.dart';
+import '../../students/views/student_home_view.dart';
+import '../../academic/views/department_home_view.dart';
+import '../../academic/views/academy_home_view.dart';
 
 class HomeMenuView extends StatelessWidget {
   const HomeMenuView({super.key});
