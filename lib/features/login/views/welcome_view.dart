@@ -54,8 +54,8 @@ class WelcomeView extends StatelessWidget {
                     // Ilustración o logo
                     Image.asset(
                       'assets/images/bienvenida.webp',
-                      width: 200,
-                      height: 180,
+                      width: 220,
+                      height: 200,
                     ),
 
                     // Título moderno

@@ -152,7 +152,7 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   children: [
                     Image.asset('assets/images/sesion.webp',
-                        width: 210, height: 150),
+                        width: 220, height: 170),
                     const SizedBox(height: 16),
                     Text(
                       "Iniciar Sesión",

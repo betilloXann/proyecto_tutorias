@@ -64,8 +64,8 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     /// IMAGEN PRINCIPAL
                     Image.asset(''
                         'assets/images/consulta.webp',
-                      width: 260,
-                      height: 240,
+                      width: 280,
+                      height: 260,
                     ),
 
                     /// TÍTULO

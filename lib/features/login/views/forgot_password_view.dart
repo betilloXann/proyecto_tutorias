@@ -52,8 +52,8 @@ class ForgotPasswordView extends StatelessWidget {
             children: [
               Image.asset(
                 'assets/images/recuperar.webp',
-                width: 200,
-                height: 210,
+                width: 210,
+                height: 220,
               ),
               const SizedBox(height: 20),
               const Text(
