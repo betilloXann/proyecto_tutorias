@@ -98,6 +98,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     // --- PASO 1: BOLETA (Visible si NO está verificado) ---
                     if (!viewModel.isBoletaVerified)
                     TextInputField(
+                      key: const ValueKey('input_boleta'),
                       label: "Número de Boleta",
                       controller: boletaCtrl,
                       icon: Icons.numbers,
@@ -108,6 +109,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                     if (viewModel.isBoletaVerified) ...[
                       const SizedBox(height: 10),
                       TextInputField(
+                        key: const ValueKey('input_curp'),
                         label: "Ingresa tu CURP",
                         controller: curpCtrl,
                         icon: Icons.badge,
@@ -144,6 +146,9 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                             ? "Validar CURP y Continuar"
                             : "Buscar Estudiante",
                         onPressed: () async {
+                          //Cierra el teclado
+                          FocusScope.of(context).unfocus();
+
                           if (!viewModel.isBoletaVerified) {
                             // ACCIÓN 1: BUSCAR BOLETA
                             await viewModel.searchStudent(boletaCtrl.text);
