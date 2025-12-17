@@ -51,7 +51,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
   Future<void> loadAvailableProfessors() async {
     try {
       final snapshot = await _db.collection('users')
-          .where('role', isEqualTo: 'profesor')
+          .where('role', isEqualTo: 'professor')
           .where('academies', arrayContains: currentAcademy)
           .get();
 
