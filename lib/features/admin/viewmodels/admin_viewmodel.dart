@@ -82,4 +82,32 @@ class AdminViewModel extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> createSingleStaff({
+    required String email,
+    required String name,
+    required String role,
+    required String academy,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Si el rol es 'tutorias', la lista de academias va vacía.
+      // Si es 'jefe_academia', enviamos la seleccionada en el diálogo.
+      await _repository.createUser(
+        email: email,
+        password: 'Password123', // Contraseña temporal
+        name: name,
+        role: role,
+        academies: role == 'jefe_academia' ? [academy] : [],
+      );
+    } catch (e) {
+      debugPrint("Error en ViewModel al crear staff: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
