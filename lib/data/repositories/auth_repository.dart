@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/user_model.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:developer';
 
 class AuthRepository {
@@ -330,5 +331,60 @@ class AuthRepository {
     } catch (e) {
       debugPrint("Error recalculando estatus global: $e");
     }
+  }
+
+  Future<void> createProfessorUser({
+    required String email,
+    required String password,
+    required String name,
+    required String academy,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      // 1. Inicializamos una instancia secundaria de la app para no cerrar sesión al Admin
+      secondaryApp = await Firebase.initializeApp(
+        name: 'SecondaryApp',
+        options: Firebase.app().options,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+
+      // 2. Creamos el usuario en Auth
+      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 3. Guardamos los datos en Firestore (usando la instancia principal _db)
+      await _db.collection('users').doc(userCredential.user!.uid).set({
+        'name': name,
+        'email_inst': email,
+        'role': 'profesor', // <--- ROL IMPORTANTE
+        'status': 'ACTIVO',
+        'academies': [academy], // Asignamos la academia del jefe
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      // 4. Cerramos la sesión de la app secundaria para limpiar
+      await secondaryAuth.signOut();
+
+    } catch (e) {
+      throw Exception("Error creando profesor: $e");
+    } finally {
+      // Eliminamos la app secundaria para liberar memoria
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
+  }
+
+  /// Obtener lista de profesores de una academia específica
+  Future<List<UserModel>> getProfessorsByAcademy(String academy) async {
+    final snapshot = await _db.collection('users')
+        .where('role', isEqualTo: 'profesor')
+        .where('academies', arrayContains: academy)
+        .get();
+
+    return snapshot.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
   }
 }

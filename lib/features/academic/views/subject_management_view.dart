@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+// Widgets y Core
 import '../../../core/widgets/responsive_container.dart';
-import '../../../data/models/professor_model.dart';
-import '../viewmodels/subject_management_viewmodel.dart';
-import '../../../data/models/subject_model.dart';
 import '../../../theme/theme.dart';
+
+// Modelos
+import '../../../data/models/professor_model.dart';
+import '../../../data/models/subject_model.dart';
+import '../../../data/models/user_model.dart';
+
+// ViewModel
+import '../viewmodels/subject_management_viewmodel.dart';
 
 class SubjectManagementView extends StatefulWidget {
   final String academy;
@@ -187,31 +194,65 @@ class _SubjectCard extends StatelessWidget {
     );
   }
 
-  void _showAddProfessorDialog(BuildContext context, SubjectManagementViewModel vm, String subjectId) {
-    final nameController = TextEditingController();
+  void _showAddProfessorDialog(BuildContext context, SubjectManagementViewModel vm, String subjectId) async {
+    // Aseguramos que la lista esté cargada
+    await vm.loadAvailableProfessors();
+
+    if (!context.mounted) return;
+
+    // Si no hay profesores, avisa
+    if (vm.availableProfessors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No hay profesores registrados. Crea uno primero.")));
+      return;
+    }
+
+    UserModel? selectedProfessor;
     final scheduleController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text("Añadir Profesor"),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameController, decoration: const InputDecoration(labelText: "Nombre del profesor"), autofocus: true),
-          const SizedBox(height: 10),
-          TextField(controller: scheduleController, decoration: const InputDecoration(labelText: "Horario", hintText: "Ej. Lun-Mie 7-9")),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Cancelar")),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await vm.addProfessorToSubject(subjectId, nameController.text, scheduleController.text);
-              if (success && dialogContext.mounted) {
-                Navigator.pop(dialogContext);
-              }
-            },
-            child: const Text("Guardar"),
-          ),
-        ],
+      builder: (dialogContext) => StatefulBuilder( // StatefulBuilder para actualizar el Dropdown
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Asignar Profesor a Materia"),
+              content: Column(mainAxisSize: MainAxisSize.min, children: [
+                // DROPDOWN DE PROFESORES
+                DropdownButtonFormField<UserModel>(
+                  decoration: const InputDecoration(labelText: "Selecciona Profesor"),
+                  isExpanded: true,
+                  items: vm.availableProfessors.map((prof) {
+                    return DropdownMenuItem(
+                      value: prof,
+                      child: Text(prof.name, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setState(() => selectedProfessor = value),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: scheduleController,
+                  decoration: const InputDecoration(labelText: "Horario y Salón", hintText: "Ej. L-M 7:00 - 1-05"),
+                ),
+              ]),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Cancelar")),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (selectedProfessor == null || scheduleController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Selecciona profesor y horario")));
+                      return;
+                    }
+
+                    final success = await vm.addProfessorToSubject(subjectId, selectedProfessor!, scheduleController.text);
+                    if (success && dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                  child: const Text("Asignar"),
+                ),
+              ],
+            );
+          }
       ),
     );
   }
