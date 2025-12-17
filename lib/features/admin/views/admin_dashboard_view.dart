@@ -31,8 +31,8 @@ class AdminDashboardView extends StatelessWidget {
                 _buildSectionTitle("Gestión de Personal"),
                 const SizedBox(height: 10),
                 _adminCard(
-                  title: "Gestión de Jefes",
-                  subtitle: "Añadir o editar personal de academia",
+                  title: "Gestión de Academias",
+                  subtitle: "Añadir o editar personal de Jefe de Academia",
                   icon: Icons.person_add,
                   color: Colors.blue,
                   onTap: () => _showAddStaffDialog(context),
