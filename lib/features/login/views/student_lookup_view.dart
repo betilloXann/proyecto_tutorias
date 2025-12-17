@@ -142,13 +142,40 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                       child: viewModel.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : PrimaryButton(
-                        text: viewModel.isBoletaVerified
+                        text: "Buscar y Continuar",
+                        /*viewModel.isBoletaVerified
                             ? "Validar CURP y Continuar"
-                            : "Buscar Estudiante",
+                            : "Buscar Estudiante",*/
                         onPressed: () async {
                           //Cierra el teclado
                           FocusScope.of(context).unfocus();
+                          // --- LÓGICA TEMPORAL PARA SALTAR CURP ---
 
+                          // 1. Ejecutamos la búsqueda de boleta
+                          await viewModel.searchStudent(boletaCtrl.text);
+
+                          // 2. Si encontró al usuario, navegamos INMEDIATAMENTE
+                          if (viewModel.foundUser != null && context.mounted) {
+                            final user = viewModel.foundUser!;
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RegisterView(
+                                  boleta: user.boleta,
+                                  foundName: user.name,
+                                  docId: user.id,
+                                  email: user.email,
+                                  // Enviamos un texto dummy para que no truene si RegisterView lo pide
+                                  curp: "CURP_SALTADO_POR_TEST",
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Nota: He eliminado el bloque 'else' y la validación de isBoletaVerified
+                          // para que actúe como un "tunel directo".
+                          /*
                           if (!viewModel.isBoletaVerified) {
                             // ACCIÓN 1: BUSCAR BOLETA
                             await viewModel.searchStudent(boletaCtrl.text);
@@ -175,7 +202,7 @@ class _StudentLookupViewState extends State<StudentLookupView> {
                                 );
                               }
                             }
-                          }
+                          }*/
                         },
                       ),
                     ),
