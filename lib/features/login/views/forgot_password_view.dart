@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math'; // Necesario para random
+import 'dart:math';
 
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/text_input_field.dart';
@@ -52,8 +52,8 @@ class ForgotPasswordView extends StatelessWidget {
             children: [
               Image.asset(
                 'assets/images/recuperar.webp',
-                width: 200,
-                height: 210,
+                width: 210,
+                height: 220,
               ),
               const SizedBox(height: 20),
               const Text(

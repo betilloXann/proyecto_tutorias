@@ -4,15 +4,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
-import 'package:proyecto_tutorias/routes/routes.dart';
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
+
+import 'package:proyecto_tutorias/routes/routes.dart';
 import 'package:proyecto_tutorias/data/repositories/auth_repository.dart';
+
+// ViewModels
 import 'package:proyecto_tutorias/features/login/viewmodels/login_viewmodel.dart';
 import 'package:proyecto_tutorias/features/operations/viewmodels/upload_evidence_viewmodel.dart';
 import 'package:proyecto_tutorias/features/login/viewmodels/forgot_password_viewmodel.dart';
+import 'package:proyecto_tutorias/features/splash/viewmodels/splash_viewmodel.dart';
 
-// --- NEW: Import the scroll behavior config ---
+// Views
+import 'package:proyecto_tutorias/features/splash/views/splash_view.dart';
+
+// Config
 import 'package:proyecto_tutorias/core/config/app_scroll_behavior.dart';
 
 void main() async {
@@ -43,6 +50,9 @@ void main() async {
             authRepository: context.read<AuthRepository>(),
           ),
         ),
+        ChangeNotifierProvider<SplashViewModel>(
+          create: (_) => SplashViewModel(),
+        ),
         StreamProvider<User?>(
           create: (context) => context.read<AuthRepository>().authStateChanges,
           initialData: null,
@@ -70,7 +80,7 @@ class MyApp extends StatelessWidget {
       // --- NEW: Apply the custom scroll behavior ---
       scrollBehavior: AppScrollBehavior(),
 
-      home: const AuthGate(),
+      home: const SplashView(),
       routes: appRoutes,
     );
   }

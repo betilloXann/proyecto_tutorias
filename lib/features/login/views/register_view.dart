@@ -170,8 +170,8 @@ class _RegisterViewState extends State<RegisterView> {
               children: [
                 Image.asset(
                   'assets/images/registro.webp',
-                  height: 180,
-                  width: 200,
+                  height: 200,
+                  width: 220,
                 ),
                 const SizedBox(height: 24),
                 Text(
