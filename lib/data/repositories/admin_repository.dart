@@ -46,6 +46,14 @@ class AdminRepository {
     }
   }
 
+  Stream<List<Map<String, dynamic>>> getStaffStream() {
+  return _firestore
+      .collection('users')
+      .where('role', whereIn: ['jefe_academia', 'tutorias'])
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+}
+
   // Borrado masivo de alumnos
   Future<Map<String, int>> deleteStudents() async {
     int deletedFirestore = 0;

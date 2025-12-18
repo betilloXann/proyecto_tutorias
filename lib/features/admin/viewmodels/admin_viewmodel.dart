@@ -6,6 +6,7 @@ class AdminViewModel extends ChangeNotifier {
   bool _isLoading = false;
 
   AdminViewModel(this._repository);
+  Stream<List<Map<String, dynamic>>> get staffStream => _repository.getStaffStream();
 
   bool get isLoading => _isLoading;
 

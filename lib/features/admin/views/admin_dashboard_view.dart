@@ -33,7 +33,7 @@ class AdminDashboardView extends StatelessWidget {
                 _adminCard(
                   title: "Gestión de Academias",
                   subtitle: "Añadir o editar personal de Jefe de Academia",
-                  icon: Icons.person_add,
+                  icon: Icons.school,
                   color: Colors.blue,
                   onTap: () => _showAddStaffDialog(context, 'jefe_academia'),
                 ),
@@ -43,13 +43,72 @@ class AdminDashboardView extends StatelessWidget {
                   subtitle: "Asignar responsable al departamento general",
                   icon: Icons.admin_panel_settings,
                   color: Colors.orange,
-                  onTap: () => _showAddStaffDialog(context, 'tutorias'), // CORREGIDO: Se añadió el rol
+                  onTap: () => _showAddStaffDialog(context, 'tutorias'),
                 ),
+                
+                const Divider(height: 40),
+                _buildSectionTitle("Personal Asignado"),
+                const SizedBox(height: 15),
+                
+                // LISTADO DE PERSONAL EN TIEMPO REAL
+                StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: viewModel.staffStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text("No hay personal asignado todavía.", 
+                          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                      );
+                    }
+
+                    final staffList = snapshot.data!;
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: staffList.length,
+                      itemBuilder: (context, index) {
+                        final person = staffList[index];
+                        final bool isJefe = person['role'] == 'jefe_academia';
+                        
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isJefe ? Colors.blue.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                              child: Icon(
+                                isJefe ? Icons.school : Icons.admin_panel_settings,
+                                color: isJefe ? Colors.blue : Colors.orange,
+                              ),
+                            ),
+                            title: Text(person['name'] ?? 'Sin nombre', 
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(person['email_inst'] ?? 'Sin correo'),
+                                Text(
+                                  isJefe 
+                                    ? "Academia: ${(person['academies'] as List?)?.join(', ') ?? 'N/A'}"
+                                    : "Departamento: Tutorías General",
+                                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+
                 const Divider(height: 40),
                 _buildSectionTitle("Herramientas de Desarrollo"),
                 const SizedBox(height: 20),
                 
-                // Botones llamando al ViewModel
                 _mantenimientoButton(
                   text: "REGENERAR JEFES (V2)",
                   icon: Icons.refresh,
@@ -70,12 +129,12 @@ class AdminDashboardView extends StatelessWidget {
                   color: Colors.blueAccent,
                   onPressed: () => viewModel.runGenerateSampleStudents(),
                 ),
+                const SizedBox(height: 40),
               ],
             ),
           ),
         ),
         
-        // Pantalla de carga global (se activa cuando el ViewModel está trabajando)
         if (viewModel.isLoading)
           const ModalBarrier(dismissible: false, color: Colors.black45),
         if (viewModel.isLoading)
@@ -84,7 +143,7 @@ class AdminDashboardView extends StatelessWidget {
     );
   }
 
-  // --- MÉTODOS DE APOYO (Widgets que faltaban) ---
+  // --- WIDGETS DE APOYO ---
 
   Widget _buildSectionTitle(String title) {
     return Align(
@@ -109,7 +168,7 @@ class AdminDashboardView extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha:0.1), 
+          backgroundColor: color.withValues(alpha: 0.1), 
           child: Icon(icon, color: color)
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -142,7 +201,7 @@ class AdminDashboardView extends StatelessWidget {
     );
   }
 
-  // --- LÓGICA DE DIÁLOGOS ---
+  // --- DIÁLOGOS Y LÓGICA ---
 
   void _confirmDelete(BuildContext context, AdminViewModel vm) async {
     final proceed = await showDialog<bool>(
@@ -171,94 +230,90 @@ class AdminDashboardView extends StatelessWidget {
   }
 
   void _showAddStaffDialog(BuildContext context, String initialRole) {
-  final viewModel = context.read<AdminViewModel>();
-  final nameCtrl = TextEditingController();
-  final emailCtrl = TextEditingController();
-  
-  // Lista de academias disponibles
-  final academiesList = ['COMPUTACION', 'LAB. ELECT. Y CONTROL', 'INFORMATICA'];
-  String selectedAcademy = academiesList[0];
-  String selectedRole = initialRole; // 'jefe_academia' o 'tutorias'
+    final viewModel = context.read<AdminViewModel>();
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    
+    final academiesList = ['COMPUTACION', 'LAB. ELECT. Y CONTROL', 'INFORMATICA'];
+    String selectedAcademy = academiesList[0];
+    String selectedRole = initialRole;
 
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder( // Necesario para actualizar el dropdown dentro del diálogo
-      builder: (context, setState) => AlertDialog(
-        title: Text(selectedRole == 'jefe_academia' 
-            ? "Nuevo Jefe de Academia" 
-            : "Nuevo Personal de Tutorías"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Selección de Rol (Por si el Admin cambia de opinión dentro del diálogo)
-              DropdownButtonFormField<String>(
-                initialValue: selectedRole,
-                decoration: const InputDecoration(labelText: "Perfil de Usuario"),
-                items: const [
-                  DropdownMenuItem(value: 'jefe_academia', child: Text("Jefe de Academia")),
-                  DropdownMenuItem(value: 'tutorias', child: Text("Personal de Tutorías")),
-                ],
-                onChanged: (val) => setState(() => selectedRole = val!),
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: "Nombre Completo", 
-                  icon: Icon(Icons.person) 
-                ),
-              ),
-              TextField(
-                controller: emailCtrl,
-                decoration: InputDecoration(
-                  labelText: "Correo Institucional", 
-                  icon: Icon(Icons.email)
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              
-              // Mostrar selección de academia SOLO si es jefe_academia
-              if (selectedRole == 'jefe_academia') ...[
-                const SizedBox(height: 15),
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(selectedRole == 'jefe_academia' 
+              ? "Nuevo Jefe de Academia" 
+              : "Nuevo Personal de Tutorías"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 DropdownButtonFormField<String>(
-                  initialValue: selectedAcademy,
-                  decoration: InputDecoration(
-                    labelText: "Academia a Cargo", 
-                    icon: Icon(Icons.account_balance)
-                  ),
-                  items: academiesList.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
-                  onChanged: (val) => setState(() => selectedAcademy = val!),
+                  initialValue: selectedRole,
+                  decoration: const InputDecoration(labelText: "Perfil de Usuario"),
+                  items: const [
+                    DropdownMenuItem(value: 'jefe_academia', child: Text("Jefe de Academia")),
+                    DropdownMenuItem(value: 'tutorias', child: Text("Personal de Tutorías")),
+                  ],
+                  onChanged: (val) => setState(() => selectedRole = val!),
                 ),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Nombre Completo", 
+                    icon: Icon(Icons.person) 
+                  ),
+                ),
+                TextField(
+                  controller: emailCtrl,
+                  decoration: const InputDecoration(
+                    labelText: "Correo Institucional", 
+                    icon: Icon(Icons.email)
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                if (selectedRole == 'jefe_academia') ...[
+                  const SizedBox(height: 15),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedAcademy,
+                    decoration: const InputDecoration(
+                      labelText: "Academia a Cargo", 
+                      icon: Icon(Icons.account_balance)
+                    ),
+                    items: academiesList.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
+                    onChanged: (val) => setState(() => selectedAcademy = val!),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("CANCELAR"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Por favor llena todos los campos"))
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCELAR"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Por favor llena todos los campos"))
+                  );
+                  return;
+                }
+
+                await viewModel.createSingleStaff(
+                  email: emailCtrl.text.trim(),
+                  name: nameCtrl.text.trim(),
+                  role: selectedRole,
+                  academy: selectedRole == 'jefe_academia' ? selectedAcademy : '',
                 );
-                return;
-              }
 
-              await viewModel.createSingleStaff(
-                email: emailCtrl.text.trim(),
-                name: nameCtrl.text.trim(),
-                role: selectedRole,
-                academy: selectedRole == 'jefe_academia' ? selectedAcademy : '',
-              );
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Usuario creado exitosamente"))
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Usuario creado exitosamente"))
                   );
                 }
               },
