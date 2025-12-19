@@ -130,7 +130,12 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: flutter build web --release --base-href /
 
-      # 1️⃣2️⃣ Desplegar a Vercel usando los Secretos
+      # 1️⃣1️⃣.5️⃣ Copiar identidad del proyecto a la carpeta de build
+      - name: Copy Vercel Identity
+        if: github.ref == 'refs/heads/main'
+        run: cp -r .vercel build/web/
+
+      # 1️⃣2️⃣ Desplegar a Vercel con IDs forzados
       - name: Deploy to Vercel
         if: github.ref == 'refs/heads/main'
         uses: amondnet/vercel-action@v20
@@ -139,4 +144,4 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./build/web
-          vercel-args: '--prod'
+          vercel-args: '--prod --force'
