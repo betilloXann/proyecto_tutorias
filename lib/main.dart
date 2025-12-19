@@ -35,11 +35,12 @@ void main() async {
   // --- NUEVO: Configuración de App Check ---
   // Esto le da el "sello de autenticidad" a tu app para que Firebase le de permiso
   await FirebaseAppCheck.instance.activate(
-    // Reemplaza esto con la "Site Key" que obtuviste en la consola de reCAPTCHA v3
-    webProvider: ReCaptchaV3Provider('TU_SITE_KEY_DE_RECAPTCHA_AQUI'),
+    // Para la Web
+    providerWeb: ReCaptchaV3Provider('TU_SITE_KEY_DE_RECAPTCHA_AQUI'),
     
-    // Esto protege tu aplicación cuando generas el APK de Android
-    androidProvider: AndroidProvider.playIntegrity,
+    // Para Android: 
+    // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
+    //androidProvider: AndroidProvider.playIntegrity, // Asegúrate de que AndroidProvider empiece con A mayúscula
   );
 
   runApp(
