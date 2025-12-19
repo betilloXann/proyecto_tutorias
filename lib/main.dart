@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:proyecto_tutorias/data/repositories/admin_repository.dart';
+import 'package:proyecto_tutorias/features/admin/viewmodels/admin_viewmodel.dart';
 import 'firebase_options.dart';
 
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
@@ -32,9 +34,15 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        // REPOSITORIOS
         Provider<AuthRepository>(
           create: (_) => AuthRepository(firebaseAuth: FirebaseAuth.instance),
         ),
+        // NUEVO: Registro del AdminRepository
+        Provider<AdminRepository>(
+          create: (_) => AdminRepository(),
+        ),
+        // VIEWMODELS
         ChangeNotifierProvider<LoginViewModel>(
           create: (context) => LoginViewModel(
             authRepository: context.read<AuthRepository>(),
@@ -50,9 +58,15 @@ void main() async {
             authRepository: context.read<AuthRepository>(),
           ),
         ),
+        ChangeNotifierProvider<AdminViewModel>(
+          create: (context) => AdminViewModel(
+            context.read<AdminRepository>(),
+          ),
+        ),
         ChangeNotifierProvider<SplashViewModel>(
           create: (_) => SplashViewModel(),
         ),
+        // STREAMS
         StreamProvider<User?>(
           create: (context) => context.read<AuthRepository>().authStateChanges,
           initialData: null,
