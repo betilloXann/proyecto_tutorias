@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:proyecto_tutorias/data/repositories/admin_repository.dart';
 import 'package:proyecto_tutorias/features/admin/viewmodels/admin_viewmodel.dart';
 import 'firebase_options.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
@@ -29,6 +30,16 @@ void main() async {
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // --- NUEVO: Configuración de App Check ---
+  // Esto le da el "sello de autenticidad" a tu app para que Firebase le de permiso
+  await FirebaseAppCheck.instance.activate(
+    // Reemplaza esto con la "Site Key" que obtuviste en la consola de reCAPTCHA v3
+    webProvider: ReCaptchaV3Provider('TU_SITE_KEY_DE_RECAPTCHA_AQUI'),
+    
+    // Esto protege tu aplicación cuando generas el APK de Android
+    androidProvider: AndroidProvider.playIntegrity,
   );
 
   runApp(
