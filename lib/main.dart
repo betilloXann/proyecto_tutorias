@@ -36,7 +36,7 @@ void main() async {
   // Esto le da el "sello de autenticidad" a tu app para que Firebase le de permiso
   await FirebaseAppCheck.instance.activate(
     // Para la Web
-    providerWeb: ReCaptchaV3Provider('TU_SITE_KEY_DE_RECAPTCHA_AQUI'),
+    providerWeb: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
     
     // Para Android: 
     // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
