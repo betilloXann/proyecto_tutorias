@@ -124,3 +124,19 @@ jobs:
           else
             echo "No hay issue de fallo de CI abierto para cerrar."
           fi
+
+      # 1️⃣1️⃣ Build Web SOLO en main (Estrategia Pre-compilado)
+      - name: Build Flutter Web
+        if: github.ref == 'refs/heads/main'
+        run: flutter build web --release --base-href /
+
+      # 1️⃣2️⃣ Desplegar a Vercel usando los Secretos
+      - name: Deploy to Vercel
+        if: github.ref == 'refs/heads/main'
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./build/web
+          vercel-args: '--prod'
