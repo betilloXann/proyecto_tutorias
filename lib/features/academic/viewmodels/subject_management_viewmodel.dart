@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/subject_model.dart';
 import '../../../data/models/professor_model.dart';
+import '../../../data/models/user_model.dart';
 
 class SubjectManagementViewModel extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -15,6 +16,8 @@ class SubjectManagementViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<SubjectModel> get subjects => _subjects;
+
+  List<UserModel> availableProfessors = [];
 
   SubjectManagementViewModel({required this.currentAcademy}) {
     loadSubjects();
@@ -33,7 +36,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
 
       _subjects = snapshot.docs.map((doc) => SubjectModel.fromMap(doc.data(), doc.id)).toList();
 
-      // --- FIX: Sort subjects alphabetically by name ---
+      // Sort subjects alphabetically by name
       _subjects.sort((a, b) => a.name.compareTo(b.name));
 
     } catch (e) {
@@ -41,6 +44,21 @@ class SubjectManagementViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Cargar lista de profesores reales desde 'users'
+  Future<void> loadAvailableProfessors() async {
+    try {
+      final snapshot = await _db.collection('users')
+          .where('role', isEqualTo: 'professor')
+          .where('academies', arrayContains: currentAcademy)
+          .get();
+
+      availableProfessors = snapshot.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error cargando profesores: $e");
     }
   }
 
@@ -54,7 +72,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
     try {
       await _db.collection('subjects').add({
         'name': subjectName,
-        'academy': currentAcademy, 
+        'academy': currentAcademy,
         'professors': [],
       });
       await loadSubjects();
@@ -66,14 +84,16 @@ class SubjectManagementViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> addProfessorToSubject(String subjectId, String professorName, String schedule) async {
-    if (professorName.isEmpty || schedule.isEmpty) {
-      _errorMessage = "El nombre y el horario del profesor son obligatorios.";
-      notifyListeners();
-      return false;
-    }
+  Future<bool> addProfessorToSubject(String subjectId, UserModel professorUser, String schedule) async {
     try {
-      final newProfessor = ProfessorModel(name: professorName, schedule: schedule);
+      // Creamos el modelo con ID real, nombre real y correo real
+      final newProfessor = ProfessorModel(
+          uid: professorUser.id,
+          name: professorUser.name,
+          email: professorUser.email,
+          schedule: schedule
+      );
+
       await _db.collection('subjects').doc(subjectId).update({
         'professors': FieldValue.arrayUnion([newProfessor.toMap()]),
       });
@@ -84,7 +104,7 @@ class SubjectManagementViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
+  } // <--- AQUI HABÍA UNA LLAVE EXTRA QUE ELIMINÉ
 
   Future<bool> updateProfessorToSubject(String subjectId, ProfessorModel oldProfessor, String newProfessorName, String newSchedule) async {
     if (newProfessorName.isEmpty || newSchedule.isEmpty) {
@@ -94,7 +114,16 @@ class SubjectManagementViewModel extends ChangeNotifier {
     }
 
     try {
-      final newProfessor = ProfessorModel(name: newProfessorName, schedule: newSchedule);
+      // CORRECCIÓN IMPORTANTE:
+      // Mantenemos el uid y email del profesor original, solo actualizamos horario (y nombre si fuera corrección de typo)
+      final newProfessor = ProfessorModel(
+          uid: oldProfessor.uid,     // <--- Mantener ID
+          email: oldProfessor.email, // <--- Mantener Email
+          name: newProfessorName,
+          schedule: newSchedule
+      );
+
+      // Usamos arrayRemove y arrayUnion para "reemplazar" el objeto en el array de Firestore
       await _db.collection('subjects').doc(subjectId).update({
         'professors': FieldValue.arrayRemove([oldProfessor.toMap()]),
       });
