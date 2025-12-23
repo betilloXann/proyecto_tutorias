@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:proyecto_tutorias/data/repositories/admin_repository.dart';
 import 'package:proyecto_tutorias/features/admin/viewmodels/admin_viewmodel.dart';
 import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
@@ -42,6 +43,11 @@ void main() async {
     // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
     //androidProvider: AndroidProvider.playIntegrity, // Asegúrate de que AndroidProvider empiece con A mayúscula
   );
+
+  if (kDebugMode) {
+    // Esto permite que App Check genere un token de depuración en la consola
+    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+  }
 
   runApp(
     MultiProvider(

@@ -133,7 +133,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                           GestureDetector(
                             onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
                             child: _HoverableSummaryCard(
-                              title: 'Sin Activar Cuenta',
+                              title: 'Alumnos Sin Activar Cuenta',
                               count: vm.preRegisteredCount.toString(),
                               icon: Icons.person_add_alt_1_outlined,
                               color: Colors.purple.shade700,
