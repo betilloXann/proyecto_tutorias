@@ -9,6 +9,7 @@ import '../viewmodels/home_menu_viewmodel.dart';
 import '../../students/views/student_home_view.dart';
 import '../../academic/views/department_home_view.dart';
 import '../../academic/views/academy_home_view.dart';
+import '../../admin/views/admin_dashboard_view.dart';
 
 class HomeMenuView extends StatelessWidget {
   const HomeMenuView({super.key});
@@ -63,9 +64,11 @@ class HomeMenuView extends StatelessWidget {
 
               // --- FIX: Pass the user object to DepartmentHomeView ---
               case 'tutorias':
-              case 'admin':
                 return DepartmentHomeView(user: user);
 
+              case 'admin':
+                return const AdminDashboardView();
+      
               case 'jefe_academia':
                 return const AcademyHomeView();
 
