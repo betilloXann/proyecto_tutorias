@@ -7,6 +7,7 @@ import 'package:proyecto_tutorias/features/admin/viewmodels/admin_viewmodel.dart
 import 'firebase_options.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart'; // Necesario para kDebugMode
 
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';
@@ -35,19 +36,25 @@ void main() async {
 
   // --- NUEVO: Configuración de App Check ---
   // Esto le da el "sello de autenticidad" a tu app para que Firebase le de permiso
-  await FirebaseAppCheck.instance.activate(
-    // Para la Web
-    providerWeb: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
+  // SOLO activamos App Check si NO estamos en modo Debug (o sea, solo en producción)
+  if (!kDebugMode) {
+    await FirebaseAppCheck.instance.activate(
+      webProvider: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
+      androidProvider: AndroidProvider.playIntegrity,
+    );
+    print("🛡️ App Check activado para Producción");
+  } else {
+    print("🔧 Modo Debug detectado: App Check desactivado para facilitar desarrollo.");
+  }
     
     // Para Android: 
     // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
     //androidProvider: AndroidProvider.playIntegrity, // Asegúrate de que AndroidProvider empiece con A mayúscula
-  );
 
-  if (kDebugMode) {
+  //if (kDebugMode) {
     // Esto permite que App Check genere un token de depuración en la consola
-    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
-  }
+  //  await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+  //}
 
   runApp(
     MultiProvider(
