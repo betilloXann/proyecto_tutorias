@@ -7,7 +7,6 @@ import 'package:proyecto_tutorias/features/admin/viewmodels/admin_viewmodel.dart
 import 'firebase_options.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart'; // Necesario para kDebugMode
 
 import 'package:proyecto_tutorias/features/login/views/welcome_view.dart';
 import 'package:proyecto_tutorias/features/dashboard/views/home_menu_view.dart';

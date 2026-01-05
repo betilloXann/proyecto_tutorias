@@ -124,10 +124,10 @@ class AdminDashboardView extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _mantenimientoButton(
-                  text: "GENERAR 40 ALUMNOS",
+                  text: "GENERAR DATOS DE PRUEBA",
                   icon: Icons.people,
                   color: Colors.blueAccent,
-                  onPressed: () => viewModel.runGenerateSampleStudents(),
+                  onPressed: () => _showGenerationOptions(context, viewModel), // Nueva función
                 ),
                 const SizedBox(height: 40),
               ],
@@ -322,6 +322,47 @@ class AdminDashboardView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showGenerationOptions(BuildContext context, AdminViewModel vm) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) =>
+          Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Selecciona el escenario de prueba",
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(Icons.today, color: Colors.blue),
+                  title: const Text("Generar Semestre ACTUAL"),
+                  subtitle: const Text(
+                      "Crea alumnos 'En Curso' para el periodo actual."),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    vm.runGenerateSampleStudents(
+                        periodOffset: 0); // Offset 0 = Hoy
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history, color: Colors.orange),
+                  title: const Text("Generar Semestre PASADO"),
+                  subtitle: const Text(
+                      "Crea registros históricos para probar los filtros."),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    vm.runGenerateSampleStudents(
+                        periodOffset: -1); // Offset -1 = Semestre anterior
+                  },
+                ),
+              ],
+            ),
+          ),
     );
   }
 }
