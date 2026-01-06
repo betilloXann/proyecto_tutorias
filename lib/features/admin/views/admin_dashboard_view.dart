@@ -45,11 +45,11 @@ class AdminDashboardView extends StatelessWidget {
                   color: Colors.orange,
                   onTap: () => _showAddStaffDialog(context, 'tutorias'),
                 ),
-                
+
                 const Divider(height: 40),
                 _buildSectionTitle("Personal Asignado"),
                 const SizedBox(height: 15),
-                
+
                 // LISTADO DE PERSONAL EN TIEMPO REAL
                 StreamBuilder<List<Map<String, dynamic>>>(
                   stream: viewModel.staffStream,
@@ -60,8 +60,8 @@ class AdminDashboardView extends StatelessWidget {
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text("No hay personal asignado todavía.", 
-                          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                        child: Text("No hay personal asignado todavía.",
+                            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
                       );
                     }
 
@@ -73,27 +73,27 @@ class AdminDashboardView extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final person = staffList[index];
                         final bool isJefe = person['role'] == 'jefe_academia';
-                        
+
                         return Card(
                           margin: const EdgeInsets.only(bottom: 10),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: isJefe ? Colors.blue.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                              backgroundColor: isJefe ? Colors.blue.withAlpha(30) : Colors.orange.withAlpha(30),
                               child: Icon(
                                 isJefe ? Icons.school : Icons.admin_panel_settings,
                                 color: isJefe ? Colors.blue : Colors.orange,
                               ),
                             ),
-                            title: Text(person['name'] ?? 'Sin nombre', 
+                            title: Text(person['name'] ?? 'Sin nombre',
                                 style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(person['email_inst'] ?? 'Sin correo'),
                                 Text(
-                                  isJefe 
-                                    ? "Academia: ${(person['academies'] as List?)?.join(', ') ?? 'N/A'}"
-                                    : "Departamento: Tutorías General",
+                                  isJefe
+                                      ? "Academia: ${(person['academies'] as List?)?.join(', ') ?? 'N/A'}"
+                                      : "Departamento: Tutorías General",
                                   style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
                                 ),
                               ],
@@ -108,7 +108,7 @@ class AdminDashboardView extends StatelessWidget {
                 const Divider(height: 40),
                 _buildSectionTitle("Herramientas de Desarrollo"),
                 const SizedBox(height: 20),
-                
+
                 _mantenimientoButton(
                   text: "REGENERAR JEFES (V2)",
                   icon: Icons.refresh,
@@ -127,14 +127,14 @@ class AdminDashboardView extends StatelessWidget {
                   text: "GENERAR DATOS DE PRUEBA",
                   icon: Icons.people,
                   color: Colors.blueAccent,
-                  onPressed: () => _showGenerationOptions(context, viewModel), // Nueva función
+                  onPressed: () => _showGenerationOptions(context, viewModel),
                 ),
                 const SizedBox(height: 40),
               ],
             ),
           ),
         ),
-        
+
         if (viewModel.isLoading)
           const ModalBarrier(dismissible: false, color: Colors.black45),
         if (viewModel.isLoading)
@@ -149,17 +149,17 @@ class AdminDashboardView extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        title, 
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)
       ),
     );
   }
 
   Widget _adminCard({
-    required String title, 
-    required String subtitle, 
-    required IconData icon, 
-    required Color color, 
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
     required VoidCallback onTap
   }) {
     return Card(
@@ -168,8 +168,8 @@ class AdminDashboardView extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1), 
-          child: Icon(icon, color: color)
+            backgroundColor: color.withAlpha(30),
+            child: Icon(icon, color: color)
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle),
@@ -180,9 +180,9 @@ class AdminDashboardView extends StatelessWidget {
   }
 
   Widget _mantenimientoButton({
-    required String text, 
-    required IconData icon, 
-    required Color color, 
+    required String text,
+    required IconData icon,
+    required Color color,
     required VoidCallback onPressed
   }) {
     return SizedBox(
@@ -192,10 +192,10 @@ class AdminDashboardView extends StatelessWidget {
         label: Text(text),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
         ),
       ),
     );
@@ -212,8 +212,8 @@ class AdminDashboardView extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("CANCELAR")),
           TextButton(
-            onPressed: () => Navigator.pop(c, true), 
-            child: const Text("SÍ, BORRAR", style: TextStyle(color: Colors.red))
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text("SÍ, BORRAR", style: TextStyle(color: Colors.red))
           ),
         ],
       ),
@@ -223,7 +223,7 @@ class AdminDashboardView extends StatelessWidget {
       final res = await vm.runDeleteStudents();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Limpieza completada: ${res['db']} registros eliminados."))
+            SnackBar(content: Text("Limpieza completada: ${res['db']} registros eliminados."))
         );
       }
     }
@@ -233,7 +233,7 @@ class AdminDashboardView extends StatelessWidget {
     final viewModel = context.read<AdminViewModel>();
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
-    
+
     final academiesList = ['COMPUTACION', 'LAB. ELECT. Y CONTROL', 'INFORMATICA'];
     String selectedAcademy = academiesList[0];
     String selectedRole = initialRole;
@@ -242,8 +242,8 @@ class AdminDashboardView extends StatelessWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text(selectedRole == 'jefe_academia' 
-              ? "Nuevo Jefe de Academia" 
+          title: Text(selectedRole == 'jefe_academia'
+              ? "Nuevo Jefe de Academia"
               : "Nuevo Personal de Tutorías"),
           content: SingleChildScrollView(
             child: Column(
@@ -262,15 +262,15 @@ class AdminDashboardView extends StatelessWidget {
                 TextField(
                   controller: nameCtrl,
                   decoration: const InputDecoration(
-                    labelText: "Nombre Completo", 
-                    icon: Icon(Icons.person) 
+                      labelText: "Nombre Completo",
+                      icon: Icon(Icons.person)
                   ),
                 ),
                 TextField(
                   controller: emailCtrl,
                   decoration: const InputDecoration(
-                    labelText: "Correo Institucional", 
-                    icon: Icon(Icons.email)
+                      labelText: "Correo Institucional",
+                      icon: Icon(Icons.email)
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -279,8 +279,8 @@ class AdminDashboardView extends StatelessWidget {
                   DropdownButtonFormField<String>(
                     initialValue: selectedAcademy,
                     decoration: const InputDecoration(
-                      labelText: "Academia a Cargo", 
-                      icon: Icon(Icons.account_balance)
+                        labelText: "Academia a Cargo",
+                        icon: Icon(Icons.account_balance)
                     ),
                     items: academiesList.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
                     onChanged: (val) => setState(() => selectedAcademy = val!),
@@ -298,11 +298,12 @@ class AdminDashboardView extends StatelessWidget {
               onPressed: () async {
                 if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Por favor llena todos los campos"))
+                      const SnackBar(content: Text("Por favor llena todos los campos"))
                   );
                   return;
                 }
 
+                // Corregimos para que use la función que ya existe en tu VM
                 await viewModel.createSingleStaff(
                   email: emailCtrl.text.trim(),
                   name: nameCtrl.text.trim(),
@@ -313,7 +314,7 @@ class AdminDashboardView extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Usuario creado exitosamente"))
+                      const SnackBar(content: Text("Usuario creado exitosamente"))
                   );
                 }
               },
@@ -345,19 +346,27 @@ class AdminDashboardView extends StatelessWidget {
                       "Crea alumnos 'En Curso' para el periodo actual."),
                   onTap: () {
                     Navigator.pop(ctx);
-                    vm.runGenerateSampleStudents(
-                        periodOffset: 0); // Offset 0 = Hoy
+                    vm.runGenerateSampleStudents(periodOffset: 0);
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.history, color: Colors.orange),
                   title: const Text("Generar Semestre PASADO"),
                   subtitle: const Text(
-                      "Crea registros históricos para probar los filtros."),
+                      "Crea registros históricos (ej. 25/1, 24/2)."),
                   onTap: () {
                     Navigator.pop(ctx);
-                    vm.runGenerateSampleStudents(
-                        periodOffset: -1); // Offset -1 = Semestre anterior
+                    vm.runGenerateSampleStudents(periodOffset: -1);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history_edu, color: Colors.deepOrange),
+                  title: const Text("Generar Semestre ANTEPASADO"),
+                  subtitle: const Text(
+                      "Crea registros más antiguos (ej. 24/1)."),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    vm.runGenerateSampleStudents(periodOffset: -2);
                   },
                 ),
               ],

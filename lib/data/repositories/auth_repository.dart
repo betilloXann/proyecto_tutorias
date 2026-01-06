@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../models/user_model.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:developer';
+import '../../../data/models/enrollment_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth;
@@ -121,17 +122,31 @@ class AuthRepository {
 
   // --- FIX: Make student upload additive ---
   Future<void> bulkRegisterStudents(List<Map<String, dynamic>> students, Function(int) onProgress) async {
-    final batch = _db.batch();
+    // Usamos batches, pero con control de límite (Firestore permite max 500 ops por batch)
+    WriteBatch batch = _db.batch();
+    int operationCount = 0;
     int processedCount = 0;
 
     for (final studentData in students) {
-      final querySnapshot = await _db.collection('users').where('boleta', isEqualTo: studentData['boleta']).limit(1).get();
+      final String boleta = studentData['boleta'];
+      DocumentReference userRef;
+      bool isNewUser = false;
+
+      // 1. Verificar si el alumno ya existe
+      final querySnapshot = await _db.collection('users').where('boleta', isEqualTo: boleta).limit(1).get();
 
       if (querySnapshot.docs.isEmpty) {
-        // Student doesn't exist, create them
-        final newDocRef = _db.collection('users').doc();
-        batch.set(newDocRef, {
-          'boleta': studentData['boleta'],
+        userRef = _db.collection('users').doc();
+        isNewUser = true;
+      } else {
+        userRef = querySnapshot.docs.first.reference;
+      }
+
+      // 2. Crear o Actualizar el documento del Usuario (User Model)
+      if (isNewUser) {
+        batch.set(userRef, {
+          'uid': userRef.id, // Es buena práctica guardar el ID dentro del doc
+          'boleta': boleta,
           'name': studentData['name'],
           'email_inst': studentData['email_inst'],
           'academies': studentData['academies'],
@@ -141,17 +156,58 @@ class AuthRepository {
           'created_at': FieldValue.serverTimestamp(),
         });
       } else {
-        // Student exists, update them by adding new subjects/academies
-        final docRef = querySnapshot.docs.first.reference;
-        batch.update(docRef, {
+        batch.update(userRef, {
           'academies': FieldValue.arrayUnion(studentData['academies'] ?? []),
           'subjects_to_take': FieldValue.arrayUnion(studentData['subjects_to_take'] ?? []),
         });
       }
+      operationCount++;
+
+      // 3. CREAR INSCRIPCIONES (ENROLLMENTS)
+      // Esto es vital para que el "Reporte Semestral" detecte las materias en el periodo seleccionado
+
+      final String targetPeriod = studentData['target_period'] ?? EnrollmentModel.getPeriodId(DateTime.now());
+      final List<String> subjects = List<String>.from(studentData['subjects_to_take'] ?? []);
+
+      // Nota: Asignamos la primera academia disponible como default.
+      final String defaultAcademy = (studentData['academies'] as List).isNotEmpty
+          ? (studentData['academies'] as List).first
+          : 'GENERAL';
+
+      for (final subject in subjects) {
+        // Creamos una referencia nueva para la inscripción
+        final enrollmentRef = _db.collection('enrollments').doc();
+
+        batch.set(enrollmentRef, {
+          'uid': userRef.id,          // Enlace al alumno
+          'subject': subject,         // Nombre de la materia
+          'periodId': targetPeriod,   // <--- AQUÍ SE APLICA EL PERIODO SELECCIONADO
+          'status': 'PRE_REGISTRO',
+          'academy': defaultAcademy,
+          'professor': '',            // Se asignará después
+          'schedule': '',
+          'salon': '',
+          'final_grade': null,
+          'assigned_at': FieldValue.serverTimestamp(),
+        });
+        operationCount++;
+      }
+
       processedCount++;
       onProgress(processedCount);
+
+      // 4. Seguridad: Si el batch se acerca al límite de 500, guardar y limpiar
+      if (operationCount >= 450) {
+        await batch.commit();
+        batch = _db.batch();
+        operationCount = 0;
+      }
     }
-    await batch.commit();
+
+    // Guardar los restantes
+    if (operationCount > 0) {
+      await batch.commit();
+    }
   }
 
   Future<void> uploadEvidence({

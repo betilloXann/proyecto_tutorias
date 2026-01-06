@@ -38,27 +38,49 @@ class SemesterReportViewModel extends ChangeNotifier {
     _initializePeriods();
   }
 
-  // 1. Inicializa el periodo actual y genera una lista de periodos recientes
-  void _initializePeriods() {
-    final now = DateTime.now();
-    _selectedPeriod = EnrollmentModel.getPeriodId(now);
+  Future<void> _initializePeriods() async {
+    _setLoading(true, "Sincronizando periodo...");
 
-    // Genera opciones para el Dropdown (Ej: Actual + 3 anteriores)
-    int currentYear = now.year % 100;
-    int currentMonth = now.month;
-    int startSemester = (currentMonth >= 1 && currentMonth <= 6) ? 1 : 2;
+    // 1. Intentar leer la configuración global primero
+    try {
+      final doc = await _db.collection('config').doc('system_settings').get();
 
-    _availablePeriods = [];
-    // Generamos 4 semestres hacia atrás
-    for (int i = 0; i < 4; i++) {
-      _availablePeriods.add('$currentYear/$startSemester');
-      if (startSemester == 1) {
-        startSemester = 2;
-        currentYear--;
+      if (doc.exists && doc.data()!.containsKey('currentPeriod')) {
+        _selectedPeriod = doc.data()!['currentPeriod'];
       } else {
-        startSemester = 1;
+        // Fallback a la fecha si no hay config
+        _selectedPeriod = EnrollmentModel.getPeriodId(DateTime.now());
+      }
+    } catch (e) {
+      _selectedPeriod = EnrollmentModel.getPeriodId(DateTime.now());
+    }
+
+    // 2. Generar lista de periodos (basado en lo que recuperamos, NO en DateTime.now)
+    _availablePeriods = [];
+
+    // Parseamos el periodo actual (Ej: "26/1")
+    final parts = _selectedPeriod.split('/');
+    int currentYear = int.parse(parts[0]);
+    int currentSemester = int.parse(parts[1]);
+
+    // Generamos este y los 3 anteriores
+    for (int i = 0; i < 4; i++) {
+      _availablePeriods.add('$currentYear/$currentSemester');
+
+      // Retroceder un semestre
+      if (currentSemester == 1) {
+        currentSemester = 2;
+        currentYear--; // Si estamos en Ene-Jun, el anterior es Jul-Dic del año pasado
+      } else {
+        currentSemester = 1; // Si estamos en Jul-Dic, el anterior es Ene-Jun del mismo año
       }
     }
+
+    _setLoading(false); // Termina la carga inicial
+    notifyListeners();
+
+    // Opcional: Cargar los gráficos automáticamente al iniciar
+    processChartData();
   }
 
   // 2. Función para cambiar el periodo desde el Dropdown
@@ -94,7 +116,6 @@ class SemesterReportViewModel extends ChangeNotifier {
     final Map<String, List<EnrollmentModel>> allEnrollments = {};
 
     // 2. APLICAMOS EL FILTRO: Solo traer materias del '_selectedPeriod'
-    // IMPORTANTE: Esto puede requerir crear un índice en Firestore (uid + periodId)
     for (int i = 0; i < studentIds.length; i += 10) {
       final chunk = studentIds.sublist(i, i + 10 > studentIds.length ? studentIds.length : i + 10);
 
@@ -170,7 +191,6 @@ class SemesterReportViewModel extends ChangeNotifier {
               inProgress: academyStat.inProgress
               );
             } else if (status == 'EN_CURSO') {
-              // Nuevo contador para los que están cursando
               tempBySubject[enrollment.subject] = (
               accredited: subjectStat.accredited,
               notAccredited: subjectStat.notAccredited,
@@ -201,7 +221,6 @@ class SemesterReportViewModel extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      // Reutiliza fetchReportData, así que YA RESPETA el periodo seleccionado
       final data = await _fetchReportData();
 
       if (data.students.isEmpty) {
@@ -212,7 +231,6 @@ class SemesterReportViewModel extends ChangeNotifier {
       final excel = Excel.createExcel();
       final Sheet sheet = excel[excel.getDefaultSheet()!];
 
-      // Agregamos el periodo al encabezado para claridad
       sheet.appendRow([TextCellValue('REPORTE PERIODO: $_selectedPeriod')]);
       final headers = ['Boleta', 'Nombre del Alumno', 'Materia', 'Estatus', 'Calificación'];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
@@ -222,7 +240,6 @@ class SemesterReportViewModel extends ChangeNotifier {
       for (final student in data.students) {
         final studentEnrollments = data.enrollments[student.id] ?? [];
 
-        // Si tiene materias en ESTE periodo, lo agregamos
         if (studentEnrollments.isNotEmpty) {
           dataFound = true;
           for (final enrollment in studentEnrollments) {
@@ -246,7 +263,7 @@ class SemesterReportViewModel extends ChangeNotifier {
         final blob = html.Blob([fileBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         final url = html.Url.createObjectUrlFromBlob(blob);
         html.AnchorElement(href: url)
-          ..setAttribute("download", "Reporte_$_selectedPeriod.xlsx") // Nombre dinámico
+          ..setAttribute("download", "Reporte_$_selectedPeriod.xlsx")
           ..click();
         html.Url.revokeObjectUrl(url);
       } else if (!kIsWeb) {
@@ -260,17 +277,12 @@ class SemesterReportViewModel extends ChangeNotifier {
     }
   }
 
-  // --- NUEVA LÓGICA DE CIERRE (SOFT DELETE) ---
-  // Reemplaza a "deleteAllStudents"
+  // --- CIERRE DE CICLO ---
   Future<String?> closeSemester() async {
     _setLoading(true, "Cerrando ciclo escolar $_selectedPeriod...");
     _errorMessage = null;
 
     try {
-      // 1. Validar que no estemos cerrando por error
-      // (Aquí podrías agregar validaciones extra si hay materias pendientes)
-
-      // 2. Calcular el NUEVO periodo (siguiente semestre)
       final parts = _selectedPeriod.split('/');
       int year = int.parse(parts[0]);
       int sem = int.parse(parts[1]);
@@ -282,20 +294,16 @@ class SemesterReportViewModel extends ChangeNotifier {
         nextPeriod = "${year + 1}/1";
       }
 
-      // 3. Actualizar configuración global
-      // Esto archiva el periodo actual y mueve el sistema al siguiente
       await _db.collection('config').doc('system_settings').set({
         'currentPeriod': nextPeriod,
         'previousPeriod': _selectedPeriod,
         'archivedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // Actualizamos la vista localmente
       _selectedPeriod = nextPeriod;
-      _initializePeriods(); // Regenerar lista
+      _initializePeriods(); // Regenerar lista para el nuevo periodo
 
       notifyListeners();
-
       return "Ciclo cerrado con éxito. Nuevo periodo activo: $nextPeriod";
     } catch (e) {
       _errorMessage = "Error al cerrar ciclo: $e";
