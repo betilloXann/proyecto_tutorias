@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../data/models/enrollment_model.dart';
 
 class BulkUploadViewModel extends ChangeNotifier {
   final AuthRepository _authRepo;
@@ -36,6 +37,15 @@ class BulkUploadViewModel extends ChangeNotifier {
     _processedStudents = 0;
     _isSuccess = false;
     _pickedFile = null;
+    notifyListeners();
+  }
+
+  String _targetPeriod = EnrollmentModel.getPeriodId(DateTime.now()); // Valor por defecto
+
+  String get targetPeriod => _targetPeriod;
+
+  void setTargetPeriod(String period) {
+    _targetPeriod = period;
     notifyListeners();
   }
 
@@ -138,6 +148,7 @@ class BulkUploadViewModel extends ChangeNotifier {
       final List<Map<String, dynamic>> uploadList = studentsData.values.map((data) {
         return {
           ...data,
+          'target_period': _targetPeriod,
           'academies': (data['academies'] as Set<String>).toList(),
           'subjects_to_take': (data['subjects_to_take'] as Set<String>).toList(),
         };

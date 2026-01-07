@@ -35,19 +35,25 @@ void main() async {
 
   // --- NUEVO: Configuración de App Check ---
   // Esto le da el "sello de autenticidad" a tu app para que Firebase le de permiso
-  await FirebaseAppCheck.instance.activate(
-    // Para la Web
-    providerWeb: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
-    
-    // Para Android: 
+  // SOLO activamos App Check si NO estamos en modo Debug (o sea, solo en producción)
+  if (!kDebugMode) {
+    await FirebaseAppCheck.instance.activate(
+      providerWeb: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
+      //providerAndroid: AndroidProvider.playIntegrity,
+    );
+    debugPrint("🛡️ App Check activado para Producción");
+  } else {
+    debugPrint("🔧 Modo Debug detectado: App Check desactivado para facilitar desarrollo.");
+  }
+
+    // Para Android:
     // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
     //androidProvider: AndroidProvider.playIntegrity, // Asegúrate de que AndroidProvider empiece con A mayúscula
-  );
 
-  if (kDebugMode) {
+  //if (kDebugMode) {
     // Esto permite que App Check genere un token de depuración en la consola
-    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
-  }
+  //  await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+  //}
 
   runApp(
     MultiProvider(

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../data/repositories/admin_repository.dart';
+import '../../../data/services/simulation_service.dart';
+import '../../../data/models/enrollment_model.dart';
 
 class AdminViewModel extends ChangeNotifier {
   final AdminRepository _repository;
+  final SimulationService _simulationService = SimulationService();
   bool _isLoading = false;
 
   AdminViewModel(this._repository);
@@ -51,37 +54,33 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   // Script: Generar 40 Alumnos
-  Future<void> runGenerateSampleStudents() async {
+  Future<void> runGenerateSampleStudents({int periodOffset = 0}) async {
     _isLoading = true;
     notifyListeners();
-    
-    final academies = ['COMPUTACION', 'LAB. ELECT. Y CONTROL', 'INFORMATICA'];
-    final statuses = ['PRE_REGISTRO', 'PENDIENTE_ASIGNACION', 'EN_CURSO', 'ACREDITADO', 'NO_ACREDITADO'];
 
-    for (int i = 1; i <= 40; i++) {
-      try {
-        // Usamos la variable statuses para asignar un estado cíclico (0 al 4)
-        // Esto elimina el warning y mejora la data de prueba
-        final currentStatus = statuses[(i - 1) % statuses.length];
-
-        await _repository.createUser(
-          email: 'alumno$i@ipn.mx',
-          password: 'alumno123',
-          name: 'Alumno Test $i',
-          role: 'student',
-          academies: [academies[i % 3]],
-          boleta: '202460${i.toString().padLeft(2, '0')}',
-          // Nota: Asegúrate de que tu repository.createUser acepte 'status'
-          // Si no, puedes pasar esta lógica según tus necesidades de BD
-        );
-        debugPrint("Creado alumno$i con estado: $currentStatus");
-      } catch (e) {
-        debugPrint("Error al generar alumno$i: $e");
+    try {
+      // Calculamos el periodo string (ej: "24/2") basado en el offset
+      DateTime targetDate = DateTime.now();
+      if (periodOffset != 0) {
+        // Restar semestres (aprox 6 meses)
+        int monthsToRemove = periodOffset.abs() * 6;
+        targetDate = targetDate.subtract(Duration(days: monthsToRemove * 30));
       }
-    }
 
-    _isLoading = false;
-    notifyListeners();
+      String periodId = EnrollmentModel.getPeriodId(targetDate);
+
+      // Llamamos al servicio
+      await _simulationService.simulateSemester(
+          periodId: periodId,
+          studentCount: 40
+      );
+
+    } catch (e) {
+      debugPrint("Error generando simulación: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> createSingleStaff({
@@ -92,13 +91,10 @@ class AdminViewModel extends ChangeNotifier {
   }) async {
     _isLoading = true;
     notifyListeners();
-    
     try {
-      // Si el rol es 'tutorias', la lista de academias va vacía.
-      // Si es 'jefe_academia', enviamos la seleccionada en el diálogo.
       await _repository.createUser(
         email: email,
-        password: 'Password123', // Contraseña temporal
+        password: 'Password123',
         name: name,
         role: role,
         academies: role == 'jefe_academia' ? [academy] : [],
