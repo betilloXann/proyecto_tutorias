@@ -38,15 +38,15 @@ void main() async {
   // SOLO activamos App Check si NO estamos en modo Debug (o sea, solo en producción)
   if (!kDebugMode) {
     await FirebaseAppCheck.instance.activate(
-      webProvider: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
-      androidProvider: AndroidProvider.playIntegrity,
+      providerWeb: ReCaptchaV3Provider('6LeMHDEsAAAAADuMS3-K7_iH6qBq180HilnPuPJC'),
+      //providerAndroid: AndroidProvider.playIntegrity,
     );
-    print("🛡️ App Check activado para Producción");
+    debugPrint("🛡️ App Check activado para Producción");
   } else {
-    print("🔧 Modo Debug detectado: App Check desactivado para facilitar desarrollo.");
+    debugPrint("🔧 Modo Debug detectado: App Check desactivado para facilitar desarrollo.");
   }
-    
-    // Para Android: 
+
+    // Para Android:
     // Usamos 'AndroidProvider' que es el nombre actual de la clase en la librería.
     //androidProvider: AndroidProvider.playIntegrity, // Asegúrate de que AndroidProvider empiece con A mayúscula
 
