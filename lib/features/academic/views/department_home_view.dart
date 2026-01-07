@@ -9,7 +9,7 @@ import '../viewmodels/department_home_viewmodel.dart';
 import '../../dashboard/viewmodels/home_menu_viewmodel.dart';
 import '../../students/views/student_list_view.dart';
 import '../../operations/views/bulk_upload_view.dart';
-import '../../reports/views/semester_report_view.dart'; // <-- AÑADIDO
+import '../../reports/views/semester_report_view.dart';
 
 class DepartmentHomeView extends StatefulWidget {
   final UserModel user;
@@ -27,7 +27,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _viewModel = DepartmentHomeViewModel(context.read<AuthRepository>());
-    _viewModel.loadDashboardData();
+    // loadDashboardData ya se llama en el init del VM
   }
 
   @override
@@ -39,7 +39,6 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      debugPrint("🔄 Volviendo a obtener los datos...");
       _viewModel.loadDashboardData();
     }
   }
@@ -48,7 +47,15 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
     await _viewModel.loadDashboardData();
   }
 
+  // Función genérica de navegación
   void _navigateToStudentList(BuildContext context, String title, List<UserModel> students) async {
+    if (students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No hay alumnos en esta categoría para el periodo seleccionado."))
+      );
+      return;
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => StudentListView(title: title, students: students)),
@@ -103,11 +110,46 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                      // --- HEADER Y SELECTOR DE PERIODO ---
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Resumen Global", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: vm.availablePeriods.contains(vm.selectedPeriod) ? vm.selectedPeriod : null,
+                                hint: const Text("Periodo"),
+                                items: vm.availablePeriods.map((period) {
+                                  return DropdownMenuItem(
+                                    value: period,
+                                    child: Text(
+                                        period,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.bluePrimary)
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) vm.changePeriod(val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: 16),
 
+                      // TARJETA TOTAL
                       GestureDetector(
-                        onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.students),
+                        onTap: () => _navigateToStudentList(context, 'Total Alumnos', vm.allStudents),
                         child: SizedBox(
                           height: 100,
                           child: _HoverableSummaryCard(
@@ -122,6 +164,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
 
                       const SizedBox(height: 16),
 
+                      // GRID DE ESTATUS (Ahora con navegación real)
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -131,7 +174,11 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                         childAspectRatio: 1.3,
                         children: [
                           GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'Pre-registrados', vm.students.where((s) => s.status == 'PRE_REGISTRO').toList()),
+                            onTap: () => _navigateToStudentList(
+                                context,
+                                'Sin Activar Cuenta',
+                                vm.getStudentsByStatus('PRE_REGISTRO')
+                            ),
                             child: _HoverableSummaryCard(
                               title: 'Alumnos Sin Activar Cuenta',
                               count: vm.preRegisteredCount.toString(),
@@ -140,7 +187,11 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'Pendientes', vm.students.where((s) => s.status == 'PENDIENTE_ASIGNACION').toList()),
+                            onTap: () => _navigateToStudentList(
+                                context,
+                                'Pendientes de Tutor',
+                                vm.getStudentsByStatus('PENDIENTE_ASIGNACION')
+                            ),
                             child: _HoverableSummaryCard(
                               title: 'Pendientes de Asignar Tutor',
                               count: vm.pendingCount.toString(),
@@ -149,7 +200,11 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'En Curso', vm.students.where((s) => s.status == 'EN_CURSO').toList()),
+                            onTap: () => _navigateToStudentList(
+                                context,
+                                'En Curso',
+                                vm.getStudentsByStatus('EN_CURSO')
+                            ),
                             child: _HoverableSummaryCard(
                               title: 'Cursando',
                               count: vm.inCourseCount.toString(),
@@ -158,7 +213,11 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'Acreditados', vm.students.where((s) => s.status == 'ACREDITADO').toList()),
+                            onTap: () => _navigateToStudentList(
+                                context,
+                                'Acreditados',
+                                vm.getStudentsByStatus('ACREDITADO')
+                            ),
                             child: _HoverableSummaryCard(
                               title: 'Acreditados',
                               count: vm.accreditedCount.toString(),
@@ -167,7 +226,11 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => _navigateToStudentList(context, 'No Acreditados', vm.students.where((s) => s.status == 'NO_ACREDITADO').toList()),
+                            onTap: () => _navigateToStudentList(
+                                context,
+                                'No Acreditados',
+                                vm.getStudentsByStatus('NO_ACREDITADO')
+                            ),
                             child: _HoverableSummaryCard(
                               title: 'No Acreditados',
                               count: vm.notAccreditedCount.toString(),
@@ -180,10 +243,9 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
 
                       const SizedBox(height: 24),
 
-
-                      // --- NUEVA SECCIÓN: DESGLOSE POR ACADEMIA ---
+                      // --- DESGLOSE POR ACADEMIA (ALUMNOS) ---
                       if (academyStats.isNotEmpty) ...[
-                        const Text("Desglose por Academia", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
+                        const Text("Desglose por Academia (Alumnos)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
                         const SizedBox(height: 16),
                         GridView.builder(
                           shrinkWrap: true,
@@ -192,23 +254,23 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                             crossAxisCount: 2,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
-                            childAspectRatio: 1.5, // Tarjetas un poco más compactas
+                            childAspectRatio: 1.5,
                           ),
                           itemCount: academyStats.length,
                           itemBuilder: (context, index) {
                             final academyName = academyStats[index].key;
                             final count = academyStats[index].value;
-                            
+
                             return GestureDetector(
                               onTap: () => _navigateToStudentList(
-                                context, 
-                                academyName, 
-                                vm.getStudentsByAcademy(academyName)
+                                  context,
+                                  academyName,
+                                  vm.getStudentsByAcademy(academyName)
                               ),
                               child: _HoverableSummaryCard(
                                 title: academyName,
                                 count: count.toString(),
-                                icon: Icons.business_outlined, // Icono de edificio/academia
+                                icon: Icons.business_outlined,
                                 color: Colors.teal.shade700,
                               ),
                             );
@@ -217,7 +279,6 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
                         const SizedBox(height: 24),
                       ],
 
-                      // --- SECCIÓN DE FIN DE SEMESTRE ---
                       const Text("Herramientas Adicionales", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.blueDark)),
                       const SizedBox(height: 16),
 
@@ -251,7 +312,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
             );
             _refreshData();
           },
-          tooltip: "Carga Masiva de Alumnos",
+          tooltip: "Carga Masiva",
           child: const Icon(Icons.add),
         ),
       ),
@@ -259,6 +320,7 @@ class _DepartmentHomeViewState extends State<DepartmentHomeView> with WidgetsBin
   }
 }
 
+// ... La clase _HoverableSummaryCard la dejas igual ...
 class _HoverableSummaryCard extends StatefulWidget {
   final String title;
   final String count;

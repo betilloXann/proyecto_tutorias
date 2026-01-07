@@ -66,4 +66,32 @@ class UserModel {
   String getStatusForAcademy(String academy) {
     return academyStatus[academy] ?? status;
   }
+
+  UserModel copyWith({
+    String? id,
+    String? boleta,
+    String? name,
+    String? email,
+    String? status,
+    String? role,
+    List<String>? academies,
+    String? dictamenUrl,
+    double? finalGrade,
+    List<String>? subjectsToTake,
+    Map<String, String>? academyStatus,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      boleta: boleta ?? this.boleta,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      status: status ?? this.status,
+      role: role ?? this.role,
+      academies: academies ?? this.academies,
+      dictamenUrl: dictamenUrl ?? this.dictamenUrl,
+      finalGrade: finalGrade ?? this.finalGrade,
+      subjectsToTake: subjectsToTake ?? this.subjectsToTake,
+      academyStatus: academyStatus ?? this.academyStatus,
+    );
+  }
 }
