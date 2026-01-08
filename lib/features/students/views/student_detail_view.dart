@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/responsive_container.dart';
 import '../../../data/models/enrollment_model.dart';
@@ -45,6 +46,24 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     return "${initialsName}_${boleta}_${initialsSubject}_$docType.pdf";
   }
 
+  // --- CORRECCIÓN ASYNC GAP: Usamos 'mounted' rigurosamente ---
+  Future<void> _downloadActa(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      final bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      
+      if (!launched) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo abrir el documento')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error abriendo URL: $e");
+    }
+  }
+
   Future<void> _downloadAndOpenFile(String? urlString, String fileName) async {
     if (urlString == null || urlString.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay archivo disponible.')));
@@ -59,7 +78,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
         final blob = html.Blob([response.data]);
         final url = html.Url.createObjectUrlFromBlob(blob);
         
-        // Directamente llamamos a click() en la instancia del AnchorElement sin usar una variable adicional
         html.AnchorElement(href: url)
           ..setAttribute("download", fileName)
           ..click();
@@ -121,8 +139,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                   children: [
                     _buildStudentInfoCard(context, vm.student),
                     const SizedBox(height: 24),
-                    _buildSectionTitle("MATERIAS PENDIENTES DE ASIGNAR TUTOR"), // <-- NUEVA SECCIÓN
-                    _buildSubjectsToTake(vm), // <-- NUEVO WIDGET
+                    _buildSectionTitle("MATERIAS PENDIENTES DE ASIGNAR TUTOR"),
+                    _buildSubjectsToTake(vm),
                     const SizedBox(height: 24),
                     _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
                     _buildEnrollmentsList(vm, context),
@@ -225,7 +243,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     );
   }
 
-  // --- WIDGET PARA MATERIAS POR CURSAR (NUEVO) ---
   Widget _buildSubjectsToTake(StudentDetailViewModel vm) {
     if (vm.subjectsToTakeStatus.isEmpty) {
       return const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No tiene materias por cursar definidas."))));
@@ -271,7 +288,8 @@ class _StudentDetailViewState extends State<StudentDetailView> {
       return const Card(child: Padding(padding: EdgeInsets.all(24.0), child: Center(child: Text("No tiene materias asignadas."))));
     }
     return Column(
-        children: vm.enrollments.map((e) {
+        // Asegúrate de que EnrollmentModel tenga el campo recoveryActUrl
+        children: vm.enrollments.map<Widget>((e) {
           final bool isGraded = e.status == 'ACREDITADO' || e.status == 'NO_ACREDITADO';
           Color statusColor = Colors.grey;
           if (e.status == 'ACREDITADO') statusColor = Colors.green;
@@ -294,10 +312,23 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                     const Text("Estatus: En Curso", style: TextStyle(fontSize: 12)),
                 ],
               ),
-              trailing: IconButton(
-                icon: Icon(isGraded ? Icons.edit : Icons.grading, color: AppTheme.blueDark),
-                tooltip: "Calificar esta materia",
-                onPressed: () => _showSubjectGradeDialog(context, e),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // BOTÓN DESCARGA (Usa e.recoveryActUrl)
+                  if (e.recoveryActUrl != null && e.recoveryActUrl!.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.download_rounded, color: Colors.blueAccent),
+                      tooltip: "Descargar Acta",
+                      onPressed: () => _downloadActa(e.recoveryActUrl!),
+                    ),
+                  
+                  IconButton(
+                    icon: Icon(isGraded ? Icons.edit : Icons.grading, color: AppTheme.blueDark),
+                    tooltip: "Calificar esta materia",
+                    onPressed: () => _showSubjectGradeDialog(context, e),
+                  ),
+                ],
               ),
             ),
           );
@@ -305,12 +336,6 @@ class _StudentDetailViewState extends State<StudentDetailView> {
     );
   }
 }
-
-// ... (El resto de la vista se mantiene igual)
-
-
-
-
 
 class _SubjectGradeDialog extends StatefulWidget {
   final EnrollmentModel enrollment;
@@ -347,7 +372,7 @@ class _SubjectGradeDialogState extends State<_SubjectGradeDialog> {
         _isAccredited = false;
         _statusMessage = "Ingresa la calificación";
         _statusColor = Colors.grey;
-      } else if (grade > 5) {
+      } else if (grade >= 6) { 
         _isAccredited = true;
         _statusMessage = "¡Felicidades! Alumno Acreditado";
         _statusColor = Colors.green;
@@ -516,6 +541,7 @@ class _EvidencePageViewState extends State<_EvidencePageView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+          // USO EXPLÍCITO DE MAP CON SPREAD OPERATOR
           ...evidences.map((e) => _EvidenceCard(
             evidence: e,
             studentName: widget.studentName,
