@@ -62,7 +62,7 @@ class SimulationService {
         batch.set(enrollRef, {
           'uid': userRef.id,
           'subject': subject,
-          'periodId': periodId, // <--- LA CLAVE DE TODO
+          'periodId': periodId, // <--- LA CLAVE DE T0D0
           'status': passed ? 'ACREDITADO' : 'NO_ACREDITADO',
           'academy': 'SISTEMAS',
           'final_grade': grade,
