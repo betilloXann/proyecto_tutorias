@@ -121,7 +121,7 @@ class _StudentDetailViewState extends State<StudentDetailView> {
                   children: [
                     _buildStudentInfoCard(context, vm.student),
                     const SizedBox(height: 24),
-                    _buildSectionTitle("MATERIAS REPROBADAS"), // <-- NUEVA SECCIÓN
+                    _buildSectionTitle("MATERIAS PENDIENTES DE ASIGNAR TUTOR"), // <-- NUEVA SECCIÓN
                     _buildSubjectsToTake(vm), // <-- NUEVO WIDGET
                     const SizedBox(height: 24),
                     _buildSectionTitle("CARGA ACADÉMICA REGISTRADA"),
