@@ -145,6 +145,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.4"
+  cleartec_docx_template:
+    dependency: "direct main"
+    description:
+      name: cleartec_docx_template
+      sha256: "6d235182c0539bf8591e8b0d71a137a8d28f9e93b5133195b975870fba37c5c5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1"
   cli_util:
     dependency: transitive
     description:
@@ -273,14 +281,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
-  docx_template:
-    dependency: "direct main"
-    description:
-      name: docx_template
-      sha256: "0dbdaa47c1ef6cf34565820c647771721886170d8fbc5dd6ca6c0af6adc17503"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.0"
   equatable:
     dependency: transitive
     description:

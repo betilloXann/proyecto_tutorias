@@ -7,13 +7,13 @@ import '../models/user_model.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:developer';
 import '../../../data/models/enrollment_model.dart';
-import '../services/word_generator_service.dart'; 
+import '../services/word_generator_service.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
   final FirebaseStorage _storage;
-  
+
   // Instancia del servicio de generación de Word
   final WordGeneratorService _wordGenService = WordGeneratorService();
 
@@ -53,7 +53,6 @@ class AuthRepository {
 
   Future<bool> checkCurpExists(String curp) async {
     try {
-      // Buscamos si hay algún usuario con ese CURP
       final snapshot = await _db
           .collection('users')
           .where('curp', isEqualTo: curp)
@@ -91,7 +90,7 @@ class AuthRepository {
         if (dictamenFileMobile == null) throw Exception("El archivo del dictamen es requerido para móvil.");
         await ref.putFile(dictamenFileMobile);
       }
-      
+
       String downloadUrl = await ref.getDownloadURL();
 
       await _db.collection('users').doc(docId).update({
@@ -125,7 +124,6 @@ class AuthRepository {
   }
 
   Future<void> bulkRegisterStudents(List<Map<String, dynamic>> students, Function(int) onProgress) async {
-    // Usamos batches, pero con control de límite (Firestore permite max 500 ops por batch)
     WriteBatch batch = _db.batch();
     int operationCount = 0;
     int processedCount = 0;
@@ -135,7 +133,6 @@ class AuthRepository {
       DocumentReference userRef;
       bool isNewUser = false;
 
-      // 1. Verificar si el alumno ya existe
       final querySnapshot = await _db.collection('users').where('boleta', isEqualTo: boleta).limit(1).get();
 
       if (querySnapshot.docs.isEmpty) {
@@ -145,10 +142,9 @@ class AuthRepository {
         userRef = querySnapshot.docs.first.reference;
       }
 
-      // 2. Crear o Actualizar el documento del Usuario (User Model)
       if (isNewUser) {
         batch.set(userRef, {
-          'uid': userRef.id, 
+          'uid': userRef.id,
           'boleta': boleta,
           'name': studentData['name'],
           'email_inst': studentData['email_inst'],
@@ -166,7 +162,6 @@ class AuthRepository {
       }
       operationCount++;
 
-      // 3. CREAR INSCRIPCIONES (ENROLLMENTS)
       final String targetPeriod = studentData['target_period'] ?? EnrollmentModel.getPeriodId(DateTime.now());
       final List<String> subjects = List<String>.from(studentData['subjects_to_take'] ?? []);
 
@@ -178,12 +173,12 @@ class AuthRepository {
         final enrollmentRef = _db.collection('enrollments').doc();
 
         batch.set(enrollmentRef, {
-          'uid': userRef.id,          
-          'subject': subject,         
-          'periodId': targetPeriod,   
+          'uid': userRef.id,
+          'subject': subject,
+          'periodId': targetPeriod,
           'status': 'PRE_REGISTRO',
           'academy': defaultAcademy,
-          'professor': '',            
+          'professor': '',
           'schedule': '',
           'salon': '',
           'final_grade': null,
@@ -195,7 +190,6 @@ class AuthRepository {
       processedCount++;
       onProgress(processedCount);
 
-      // 4. Seguridad: Si el batch se acerca al límite de 500, guardar y limpiar
       if (operationCount >= 450) {
         await batch.commit();
         batch = _db.batch();
@@ -203,7 +197,6 @@ class AuthRepository {
       }
     }
 
-    // Guardar los restantes
     if (operationCount > 0) {
       await batch.commit();
     }
@@ -231,7 +224,7 @@ class AuthRepository {
         if (fileMobile == null) throw Exception("El archivo es requerido para móvil.");
         await ref.putFile(fileMobile);
       }
-      
+
       String downloadUrl = await ref.getDownloadURL();
 
       await _db.collection('evidencias').add({
@@ -249,7 +242,7 @@ class AuthRepository {
       throw Exception("Error al subir evidencia: $e");
     }
   }
-  
+
   Future<void> reviewEvidence({
     required String evidenceId,
     required String newStatus,
@@ -293,49 +286,62 @@ class AuthRepository {
   }
 
   // --- FUNCIÓN PRINCIPAL DE CALIFICACIÓN Y GENERACIÓN DE WORD ---
+  // CORREGIDA PARA USAR LA LISTA
   Future<void> assignSubjectGrade({
     required String studentId,
-    required String enrollmentId, // ID de la inscripción
+    required String enrollmentId,
     required double finalGrade,
-    required String status, // 'ACREDITADO' o 'NO_ACREDITADO'
+    required String status,
     required String studentName,
     required String boleta,
     required String subjectName,
     required String professorName,
   }) async {
     try {
-      // A. Actualizamos SOLO esa materia
+      // A. Actualizamos SOLO esa materia en Firestore
       await _db.collection('enrollments').doc(enrollmentId).update({
         'final_grade': finalGrade,
         'status': status,
         'graded_at': FieldValue.serverTimestamp(),
       });
 
-      // B. Generar y Subir Acta (Solo si es Acreditado o No Acreditado)
+      // B. Generar y Subir Acta (Si es Acreditado o No Acreditado)
       if (status == 'ACREDITADO' || status == 'NO_ACREDITADO') {
+
+        // 1. Obtener TODAS las inscripciones del alumno
+        final enrollmentsSnapshot = await _db
+            .collection('enrollments')
+            .where('uid', isEqualTo: studentId)
+            .get();
+
+        // 2. Convertirlas a MODELOS (Lista de objetos EnrollmentModel)
+        final List<EnrollmentModel> allEnrollments = enrollmentsSnapshot.docs
+            .map((doc) => EnrollmentModel.fromMap(doc.data(), doc.id))
+            .toList();
+
+        // 3. Pasar la LISTA COMPLETA al generador de Word
         final fileBytes = await _wordGenService.generateRecoveryAct(
           studentName: studentName,
           boleta: boleta,
-          subjectName: subjectName,
-          professorName: professorName,
-          status: status,
+          allEnrollments: allEnrollments, // <--- AQUÍ ESTÁ EL CAMBIO CLAVE
         );
 
         if (fileBytes != null) {
           // Subir a Firebase Storage
-          final fileName = 'Acta_${subjectName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.docx';
+          // Usamos 'Acta_Global' en el nombre porque incluye todas las materias
+          final fileName = 'Acta_Global_${studentName.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.docx';
           final ref = _storage.ref().child('actas/$studentId/$fileName');
-          
-          // putData acepta Uint8List
+
           await ref.putData(Uint8List.fromList(fileBytes));
-          
           final downloadUrl = await ref.getDownloadURL();
 
-          // Guardar la URL del acta en la inscripción
+          // Guardar la URL del acta en la inscripción actual
+          // (Como es un acta global, podrías querer guardarla en todas las inscripciones,
+          // pero guardarla en la que se acaba de calificar es suficiente para que aparezca el botón)
           await _db.collection('enrollments').doc(enrollmentId).update({
             'recovery_act_url': downloadUrl,
           });
-          
+
           debugPrint("Acta generada y subida con éxito: $downloadUrl");
         }
       }
@@ -348,10 +354,8 @@ class AuthRepository {
     }
   }
 
-  // Función inteligente que decide el estatus del alumno
   Future<void> _recalculateStudentGlobalStatus(String studentId) async {
     try {
-      // Obtenemos al alumno para saber cuántas debe cursar
       final userDoc = await _db.collection('users').doc(studentId).get();
       if (!userDoc.exists) return;
 
@@ -359,33 +363,29 @@ class AuthRepository {
       final List<dynamic> subjectsToTake = userData['subjects_to_take'] ?? [];
       final int totalRequired = subjectsToTake.length;
 
-      // Obtenemos TODAS sus inscripciones
       final enrollmentsSnapshot = await _db.collection('enrollments')
           .where('uid', isEqualTo: studentId)
           .get();
 
       final docs = enrollmentsSnapshot.docs;
 
-      // Variables de control
       int passedCount = 0;
       int failedCount = 0;
       int pendingCount = 0;
 
       for (var doc in docs) {
         final data = doc.data();
-        final status = data['status']; // EN_CURSO, ACREDITADO, NO_ACREDITADO
+        final status = data['status'];
 
         if (status == 'ACREDITADO') {
           passedCount++;
         } else if (status == 'NO_ACREDITADO') {
           failedCount++;
         } else {
-          // EN_CURSO o cualquier otro
           pendingCount++;
         }
       }
 
-      // LÓGICA DE DECISIÓN
       String newGlobalStatus = 'EN_CURSO';
       double? finalAverage;
 
@@ -398,7 +398,6 @@ class AuthRepository {
       else if (passedCount == docs.length && docs.isNotEmpty) {
         newGlobalStatus = 'ACREDITADO';
 
-        // Calcular promedio global
         double sumGrades = 0;
         for (var doc in docs) {
           sumGrades += (doc.data()['final_grade'] ?? 0.0);
@@ -406,7 +405,6 @@ class AuthRepository {
         finalAverage = sumGrades / docs.length;
       }
 
-      // Guardamos el veredicto
       await _db.collection('users').doc(studentId).update({
         'status': newGlobalStatus,
         if (finalAverage != null) 'final_grade': finalAverage,
@@ -457,7 +455,6 @@ class AuthRepository {
     }
   }
 
-  /// Obtener lista de profesores de una academia específica
   Future<List<UserModel>> getProfessorsByAcademy(String academy) async {
     final snapshot = await _db.collection('users')
         .where('role', isEqualTo: 'profesor')
@@ -466,4 +463,4 @@ class AuthRepository {
 
     return snapshot.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList();
   }
-} // <--- FIN DE LA CLASE (Esta llave es crucial)
+}
