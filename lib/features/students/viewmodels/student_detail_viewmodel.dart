@@ -148,10 +148,26 @@ class StudentDetailViewModel extends ChangeNotifier {
     if (grade == null || grade < 0 || grade > 10) {
       return "Ingresa una calificación válida (0-10)";
     }
+
+    final enrollment = _enrollments.firstWhere(
+      (e) => e.id == enrollmentId, 
+      orElse: () => throw Exception("No se encontró la información de la materia")
+    );
+    
     _isLoading = true;
     notifyListeners();
     try {
-      await _authRepo.assignSubjectGrade(studentId: student.id, enrollmentId: enrollmentId, finalGrade: grade, status: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO');
+await _authRepo.assignSubjectGrade(
+        studentId: student.id,
+        enrollmentId: enrollmentId,
+        finalGrade: grade,
+        status: isAccredited ? 'ACREDITADO' : 'NO_ACREDITADO',
+        // --- Nuevos datos para el Word ---
+        studentName: student.name,
+        boleta: student.boleta,
+        subjectName: enrollment.subject,
+        professorName: enrollment.professor.isNotEmpty ? enrollment.professor : "Sin Asignar",
+      );
       await loadStudentData();
       return null;
     } catch (e) {

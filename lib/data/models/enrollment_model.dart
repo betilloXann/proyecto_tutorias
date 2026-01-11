@@ -12,6 +12,7 @@ class EnrollmentModel {
   final String academy;
   final DateTime assignedAt;
   final double? finalGrade;
+  final String? recoveryActUrl;
 
   EnrollmentModel({
     required this.id,
@@ -25,6 +26,7 @@ class EnrollmentModel {
     required this.academy,
     required this.assignedAt,
     this.finalGrade,
+    this.recoveryActUrl,
   });
 
   /// Calcula el periodId según la fecha
@@ -51,6 +53,7 @@ class EnrollmentModel {
       assignedAt: assignedAt,
       periodId: getPeriodId(assignedAt),
       finalGrade: (data['final_grade'] != null) ? (data['final_grade'] as num).toDouble() : null,
+      recoveryActUrl: data['recovery_act_url'],
     );
   }
 
@@ -66,6 +69,7 @@ class EnrollmentModel {
       'assigned_at': Timestamp.fromDate(assignedAt),
       'periodId': periodId,
       'final_grade': finalGrade,
+      'recovery_act_url': recoveryActUrl,
     };
   }
 }
