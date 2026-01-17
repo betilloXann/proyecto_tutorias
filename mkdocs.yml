@@ -3,7 +3,7 @@ site_author: UPIICSA
 site_description: Documentación del prototipo digital para el Programa Institucional de Tutorías.
 
 # --------------------------
-# Configuración del Tema
+# Tema
 # --------------------------
 theme:
     name: material
@@ -32,12 +32,25 @@ theme:
 # Estructura del Menú (NAV)
 # --------------------------
 nav:
-    - Inicio: index.md
-    - Visión General:
-          - Stack Tecnológico: stack.md
-          - Equipo de Desarrollo: equipo.md
-    - Funcionalidades: modulos.md
-    - Roadmap: roadmap.md
+  - Inicio: index.md
+  - Análisis y Requerimientos:
+      - Requerimientos Funcionales: requerimientos.md
+      - Casos de Uso: casos_uso.md
+  - Arquitectura y Diseño:
+      - Arquitectura del Sistema: arquitectura.md
+      - Diagramas UML: uml.md
+      - Modelo de Datos (Firebase): base_datos.md
+  - Desarrollo y Módulos:
+      - Estructura del Proyecto: estructura_codigo.md
+      - Detalle de Módulos: modulos.md
+      - Stack Tecnológico: stack.md
+  - Calidad y DevOps:
+      - Estrategia de Pruebas: pruebas.md
+      - Pipeline CI/CD: ci_cd.md
+  - Guías y Manuales:
+      - Manual de Usuario: manual.md
+      - Guía de Instalación: instalacion.md
+  - Acerca del Equipo: equipo.md
 
 # --------------------------
 # Extensiones de Markdown (para tablas, emojis, etc.)
@@ -45,7 +58,11 @@ nav:
 markdown_extensions:
     - admonition
     - pymdownx.details
-    - pymdownx.superfences
+    - pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: !!python/name:pymdownx.superfences.fence_code_format
     - attr_list
     - pymdownx.critic
     - pymdownx.caret
