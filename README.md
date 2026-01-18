@@ -51,7 +51,7 @@ El sistema resuelve la problemática de la dispersión de información mediante 
 ## Galería del Proyecto
 |                      Inicio Tutorías                       |                    Gestión de Alumnos                    |                             Gestión del Alumno                             |
 |:----------------------------------------------------------:|:--------------------------------------------------------:|:--------------------------------------------------------------------------:|
-| <img src="assets/images/mockup_inicio.jpeg" width="220" /> | <img src="assets/images/mockup_home.jpeg" width="200" /> |         <img src="assets/images/mockup_alumno.jpeg" width="200" />         |
+| <img src="assets/images/muckup_inicio.jpeg" width="220" /> | <img src="assets/images/mockup_home.jpeg" width="200" /> |         <img src="assets/images/mockup_alumno.jpeg" width="200" />         |
 |               *Inicio del usuario Tutorías*                |           *Dashboard con semáforo de estatus*            | *Perfil que ven Tutorías y Academias para ver estado de alumno específico* |
 ---
 
@@ -92,4 +92,5 @@ Si deseas clonar y ejecutar el proyecto en tu entorno de desarrollo:
   <p>Desarrollado con ❤️ por el equipo 4️⃣ de Ingeniería Informática - UPIICSA IPN</p>
 
 </div>
+
 
