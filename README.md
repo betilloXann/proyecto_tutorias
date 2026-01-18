@@ -1,29 +1,89 @@
-# 🎓 Sistema de Acompañamiento Tutorial (SAT) - UPIICSA
+<div style="text-align: center;">
+  <h1>Sistema de Acompañamiento Tutorial 🎓</h1>
 
-Este es el repositorio de código fuente para el **Sistema de Acompañamiento Tutorial (SAT)**, un prototipo de solución digital multiplataforma (Web y Móvil) para la gestión del **Programa Institucional de Tutorías (PIT)** en la UPIICSA del IPN.
+  <p>
+    <strong>Centralización, Trazabilidad y Gestión Digital para Tutorías de Recuperación en UPIICSA</strong>
+  </p>
 
-## 📖 Documentación Completa del Proyecto
+  <a href="https://github.com/betilloxann/proyecto_tutorias/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/betilloxann/proyecto_tutorias/flutter_ci.yml?label=Build&style=for-the-badge&logo=github" alt="CI Status"/>
+  </a>
+  <a href="https://github.com/betilloxann/proyecto_tutorias/releases">
+    <img src="https://img.shields.io/github/v/release/betilloxann/proyecto_tutorias?style=for-the-badge&label=Versión&color=blue" alt="Latest Release"/>
+  </a>
+  <a href="https://proyecto-tutorias.vercel.app/">
+    <img src="https://img.shields.io/badge/Demo_Web-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel Deploy"/>
+  </a>
+  <br/>
+  <br/>
 
-Toda la información detallada sobre la visión general, el stack tecnológico, los módulos principales y la hoja de ruta del desarrollo se encuentra en nuestro sitio de documentación oficial, generado con MkDocs.
+  <img src="assets/images/hero_mockup.png" width="100%" alt="Vista General del Sistema SAT" />
 
-**[🌐 VISITAR LA DOCUMENTACIÓN COMPLETA AQUÍ 🌐](https://betilloxann.github.io/proyecto_tutorias/)**
+  <br/>
+  <br/>
+
+  <a href="https://github.com/betilloxann/proyecto_tutorias/releases/latest/download/app-release.apk">
+    <img src="https://img.shields.io/badge/📲_Descargar_APK_Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="45" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://betilloxann.github.io/proyecto_tutorias/">
+    <img src="https://img.shields.io/badge/📚_Leer_Documentación-MKDocs-526CFE?style=for-the-badge&logo=materialformkdocs&logoColor=white" height="45" />
+  </a>
+</div>
+
+<br/>
 
 ---
 
-### Enlaces Rápidos
+## Acerca del Proyecto
 
-| Sección | Descripción |
+El **Sistema de Acompañamiento Tutorial (SAT)** es una solución multiplataforma (Móvil y Web) desarrollada para optimizar el **Programa Institucional de Tutorías (PIT)**.
+
+El sistema resuelve la problemática de la dispersión de información mediante un expediente digital centralizado, permitiendo:
+* **Alumnos:** Subir evidencias fotográficas y consultar su estatus en tiempo real.
+* **Tutores/Jefes:** Validar documentos y asignar calificaciones digitalmente.
+* **Coordinación:** Generar reportes consolidados para Gestión Escolar.
+
+---
+
+## Galería del Proyecto
+<img src="assets/images/hero_mockup.png" width="100%" alt="Vista General del Sistema DIMA" />
+
+---
+
+## Stack Tecnológico
+
+Este proyecto implementa una arquitectura moderna y escalable:
+
+| Categoría | Tecnologías |
 | :--- | :--- |
-| **Stack Tecnológico** | Tecnologías clave utilizadas (Flutter, Firebase, Firestore). |
-| **Módulos Principales** | Detalles de las funcionalidades de la App Móvil (Estudiantes) y el Módulo Web (Tutores). |
-| **Roadmap** | Progreso actual y planificación de fases futuras. |
+| **Frontend Móvil** | ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white) **3.35.5** |
+| **Backend (BaaS)** | ![Firebase](https://img.shields.io/badge/firebase-%23039BE5.svg?style=flat&logo=firebase) (Auth, Firestore, Storage) |
+| **CI/CD** | ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=flat&logo=githubactions&logoColor=white) & ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=flat&logo=vercel&logoColor=white) |
+| **Documentación** | ![MkDocs](https://img.shields.io/badge/mkdocs-%23526CFE.svg?style=flat&logo=materialformkdocs&logoColor=white) |
 
 ---
 
-### Desarrollo y Colaboración
+## Instalación Local
 
-* **Stack Principal:** Dart / Flutter
-* **Gestión:** Git / GitHub
-* **Equipo:** Hernández Alberto y Ruiz Abdiel.
+Si deseas clonar y ejecutar el proyecto en tu entorno de desarrollo:
 
-_La Técnica al Servicio de la Patria_
+1.  **Prerrequisitos:** Flutter SDK 3.35.5, Java 11.
+2.  **Clonar:**
+    ```bash
+    git clone https://github.com/betilloXann/proyecto_tutorias.git
+    cd proyecto_tutorias
+    ```
+3.  **Configuración:**
+    * Necesitas el archivo `google-services.json` (Android) y `GoogleService-Info.plist` (iOS).
+    * Colócalos en sus carpetas respectivas (`android/app/` y `ios/Runner/`).
+4.  **Ejecutar:**
+    ```bash
+    flutter pub get
+    flutter run
+    ```
+---
+
+<div style="text-align: center;">
+  <p>Desarrollado con ❤️ por el equipo de Ingeniería Informática - UPIICSA IPN</p>
+</div>
