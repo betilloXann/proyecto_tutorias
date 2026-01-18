@@ -85,6 +85,7 @@ Si deseas clonar y ejecutar el proyecto en tu entorno de desarrollo:
 ---
 
 <div style="text-align: center;">
-  <p>Desarrollado con ❤️ por el equipo de Ingeniería Informática - UPIICSA IPN</p>
+  <p>Desarrollado con ❤️ por el equipo 4️⃣ de Ingeniería Informática - UPIICSA IPN</p>
 
 </div>
+
