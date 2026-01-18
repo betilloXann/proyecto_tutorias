@@ -1,5 +1,7 @@
 <div style="text-align: center;">
-  <h1>Sistema de Acompañamiento Tutorial 🎓</h1>
+  <img src="assets/images/app_icon.png" alt="Logo" width="80" />
+
+  <h1>Sistema de Acompañamiento Tutorial</h1>
 
   <p>
     <strong>Centralización, Trazabilidad y Gestión Digital para Tutorías de Recuperación en UPIICSA</strong>
@@ -47,8 +49,10 @@ El sistema resuelve la problemática de la dispersión de información mediante 
 ---
 
 ## Galería del Proyecto
-<img src="assets/images/hero_mockup.png" width="100%" alt="Vista General del Sistema DIMA" />
-
+|                      Inicio Tutorías                       |                    Gestión de Alumnos                    |                             Gestión del Alumno                             |
+|:----------------------------------------------------------:|:--------------------------------------------------------:|:--------------------------------------------------------------------------:|
+| <img src="assets/images/mockup_inicio.jpeg" width="220" /> | <img src="assets/images/mockup_home.jpeg" width="200" /> |         <img src="assets/images/mockup_alumno.jpeg" width="200" />         |
+|               *Inicio del usuario Tutorías*                |           *Dashboard con semáforo de estatus*            | *Perfil que ven Tutorías y Academias para ver estado de alumno específico* |
 ---
 
 ## Stack Tecnológico
