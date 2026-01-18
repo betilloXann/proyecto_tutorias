@@ -1,41 +1,22 @@
-# Equipo de Desarrollo
+# Acerca del Equipo de Desarrollo
 
-Este proyecto es una colaboración estudiantil de la UPIICSA, con el objetivo de construir una documentación clara y profesional usando MkDocs.  
-Cada miembro del equipo tiene roles específicos para garantizar que el desarrollo y la documentación se realicen de manera eficiente y organizada.
+El **Sistema de Gestión de Tutorías** fue desarrollado como proyecto de titulación para la carrera de Ingeniería en Informática de la UPIICSA - IPN.
+## Desarrolladores
 
----
+### Alberto Hernández
+* **Rol:** Lead Developer (Backend & Mobile)
+* **Enfoque:** Arquitectura de Software, Integración con Firebase, Lógica de Negocio (Bloc/Provider) y DevOps.
+* **Contacto:** [Tu Correo / LinkedIn]
 
-## Miembros del Equipo
-
-| Nombre | Rol Principal | Responsabilidades | Contacto |
-| :--- | :--- | :--- | :--- |
-| **Hernández Alberto** | Desarrollador Full Stack | Desarrollo de backend en PHP y Java, integración de bases de datos, despliegue de documentación con MkDocs | ahernandezc1801@alumno.ipn.mx |
-| **Ruiz Abdiel** | Desarrollador Full Stack | Desarrollo de interfaces con HTML, CSS, JS, React, pruebas de usabilidad, SQL | aruizd2100@alumno.ipn.mx |
----
-
-## Herramientas y Stack Tecnológico
-
-- **Frontend:** HTML5, CSS3, JavaScript, React
-- **Backend:** PHP, Java
-- **Base de Datos:** MySQL
-- **Control de Versiones:** Git, GitHub
-- **Documentación:** MkDocs, mkdocs-material
-- **Metodología:** Scrum / Kanban
+### Abdiel Ruiz
+* **Rol:** Frontend Developer, Backend & UI/UX Designer
+* **Enfoque:** Diseño de interfaces, Experiencia de Usuario, Gráficos (Fl_chart) y Maquetado en Flutter.
+* **Contacto:** [Correo / LinkedIn]
 
 ---
 
-## Cómo Contactarnos
+## Institución
+**Unidad Profesional Interdisciplinaria de Ingeniería y Ciencias Sociales y Administrativas (UPIICSA)**
+*Instituto Politécnico Nacional (IPN)*
 
-- Puedes enviar un correo a cualquiera de los miembros listados arriba.  
-
----
-
-## Notas Adicionales
-
-- Cada miembro es responsable de actualizar su sección de documentación correspondiente.  
-- El equipo realiza reuniones semanales para revisar avances y planificar las siguientes tareas.  
-- Toda la documentación se publica públicamente usando **GitHub Pages**, asegurando transparencia y colaboración.
-
----
-
-
+Este proyecto busca resolver la problemática de la gestión manual de documentos en el departamento de tutorías, aportando una solución tecnológica moderna y escalable.
