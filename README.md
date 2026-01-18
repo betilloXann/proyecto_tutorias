@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/github/actions/workflow/status/betilloxann/proyecto_tutorias/flutter_ci.yml?label=Build&style=for-the-badge&logo=github" alt="CI Status"/>
   </a>
   <a href="https://github.com/betilloxann/proyecto_tutorias/releases">
-    <img src="https://img.shields.io/github/v/release/betilloxann/proyecto_tutorias?style=for-the-badge&label=Versión&color=blue" alt="Latest Release"/>
+    <img src="https://img.shields.io/badge/Versión-v1.0.0_Beta-blue?style=for-the-badge" alt="Versión Manual"/>
   </a>
   <a href="https://proyecto-tutorias.vercel.app/">
     <img src="https://img.shields.io/badge/Demo_Web-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel Deploy"/>
@@ -86,4 +86,5 @@ Si deseas clonar y ejecutar el proyecto en tu entorno de desarrollo:
 
 <div style="text-align: center;">
   <p>Desarrollado con ❤️ por el equipo de Ingeniería Informática - UPIICSA IPN</p>
+
 </div>
