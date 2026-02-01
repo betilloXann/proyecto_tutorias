@@ -87,10 +87,29 @@ Si deseas clonar y ejecutar el proyecto en tu entorno de desarrollo:
     flutter run
     ```
 ---
+## Desarrolladores
+
+### Alberto Hernández
+- **Rol:** Lead Developer (Backend & Mobile)
+- **Enfoque en el proyecto:** Arquitectura de Software, Integración con Firebase, Lógica de Negocio (BLoC / Provider), Diagramas UML y DevOps.
+- **Contacto:**
+  - Institucional: [ahernandezc1801@alumno.ipn.mx](mailto:ahernandezc1801@alumno.ipn.mx)
+  - Personal: [alberto10pumas@gmail.com](mailto:alberto10pumas@gmail.com)
+  - 💼 LinkedIn: [Perfil](https://www.linkedin.com/in/alberto-hernandezc)
+
+
+### Abdiel Ruiz
+- **Rol:** Frontend Developer, Backend & UI/UX Designer
+- **Enfoque  en el proyecto:** Diseño de Interfaces, Experiencia de Usuario, Gráficos (fl_chart) y Maquetado en Flutter, Diagramas UML.
+- **Contacto:**
+  - Institucional: [aruizd2100@alumno.ipn.mx](mailto:aruizd2100@alumno.ipn.mx)
+  - 💼 LinkedIn: [Perfil](https://www.linkedin.com/in/abdiel-rd-b18b23398)
+---
 
 <div style="text-align: center;">
   <p>Desarrollado con ❤️ por el equipo 4️⃣ de Ingeniería Informática - UPIICSA IPN</p>
 
 </div>
+
 
 
